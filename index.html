@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="description" content="Motus — le jeu de mots. Devinez le mot caché en 6 essais.">
+<title>Motus</title>
+
+<!-- PWA -->
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#071633">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Motus">
+<link rel="apple-touch-icon" href="./icon-512.png">
+
+<style>
+  :root{
+    --bg:        #071633;   /* bleu nuit studio */
+    --bg-2:      #0b2247;   /* dégradé bas       */
+    --cell:      #10305f;   /* cellule vide      */
+    --cell-edge: #1d477f;   /* liseré cellule    */
+    --red:       #e23a44;   /* bonne place       */
+    --yellow:    #ffcb2e;   /* mauvaise place    */
+    --absent:    #0c1f3d;   /* lettre absente    */
+    --ink:       #ffffff;
+    --ink-dim:   #8aa6cf;
+    --key:       #22467c;
+    --key-edge:  #2f5c9e;
+
+    --gap: clamp(4px, 1.4vw, 8px);
+    --radius: 10px;
+    --tile: 54px; /* recalculé en JS selon la longueur du mot */
+  }
+
+  *{ box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+
+  html,body{ height:100%; }
+
+  body{
+    font-family: ui-rounded, "SF Pro Rounded", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    color: var(--ink);
+    background: radial-gradient(120% 90% at 50% 0%, var(--bg-2) 0%, var(--bg) 60%);
+    background-attachment: fixed;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  /* ---------- Header ---------- */
+  header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 12px clamp(12px, 4vw, 22px) 8px;
+    gap: 8px;
+  }
+  .brand{ display:flex; gap:5px; }
+  .brand b{
+    width: 30px; height: 34px;
+    display:grid; place-items:center;
+    font-weight: 800; font-size: 20px;
+    border-radius: 7px;
+    background: var(--absent);
+    box-shadow: inset 0 0 0 1.5px var(--cell-edge);
+  }
+  .brand b.r{ background: var(--red); box-shadow:none; }
+  .brand b.y{ background: var(--cell); box-shadow:none; position:relative; }
+  .brand b.y::before{
+    content:""; position:absolute; inset:5px; border-radius:50%;
+    background: var(--yellow); z-index:0;
+  }
+  .brand b.y span{ position:relative; z-index:1; color:#1a1a1a; }
+
+  .tools{ display:flex; gap:6px; }
+  .icon-btn{
+    width:40px; height:40px; border:none; border-radius:10px;
+    background: rgba(255,255,255,.06);
+    color: var(--ink); font-size:18px; cursor:pointer;
+    display:grid; place-items:center;
+    transition: background .15s;
+  }
+  .icon-btn:hover{ background: rgba(255,255,255,.12); }
+  .icon-btn:active{ transform: scale(.94); }
+
+  /* ---------- Zone de jeu ---------- */
+  main{
+    flex:1; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap: 10px; padding: 4px 10px; min-height:0;
+  }
+
+  #board{ display:grid; gap: var(--gap); }
+  .row{ display:grid; gap: var(--gap); grid-auto-flow:column; }
+
+  .tile{
+    width: var(--tile); height: var(--tile);
+    display:grid; place-items:center; position:relative;
+    font-weight: 800; font-size: calc(var(--tile) * .5);
+    text-transform: uppercase;
+    background: var(--cell);
+    border-radius: var(--radius);
+    box-shadow: inset 0 0 0 1.5px var(--cell-edge);
+    transition: transform .12s ease;
+  }
+  .tile span{ position:relative; z-index:2; line-height:1; }
+
+  .tile.filled{ animation: pop .12s ease; box-shadow: inset 0 0 0 2px #3b6dae; }
+  @keyframes pop{ 0%{transform:scale(.85)} 100%{transform:scale(1)} }
+
+  /* états révélés */
+  .tile.correct{ background: var(--red); box-shadow:none; }
+  .tile.absent{  background: var(--absent); box-shadow: inset 0 0 0 1.5px #14294a; color: var(--ink-dim); }
+  .tile.present{ background: var(--cell); box-shadow:none; }
+  .tile.present::before{
+    content:""; position:absolute; inset:14%; border-radius:50%;
+    background: var(--yellow); z-index:1;
+    transform: scale(0);
+    animation: disc .2s ease forwards;
+  }
+  .tile.present span{ color:#1a1a1a; }
+  @keyframes disc{ to{ transform:scale(1); } }
+
+  /* animation de retournement à la validation */
+  .tile.reveal{ animation: flip .5s ease forwards; }
+  @keyframes flip{
+    0%   { transform: rotateX(0); }
+    50%  { transform: rotateX(90deg); }
+    100% { transform: rotateX(0); }
+  }
+
+  .row.shake{ animation: shake .4s; }
+  @keyframes shake{
+    10%,90%{transform:translateX(-2px)} 20%,80%{transform:translateX(4px)}
+    30%,50%,70%{transform:translateX(-7px)} 40%,60%{transform:translateX(7px)}
+  }
+  .tile.win{ animation: bounce .5s ease; }
+  @keyframes bounce{ 0%,100%{transform:translateY(0)} 40%{transform:translateY(-16px)} 60%{transform:translateY(-6px)} }
+
+  /* ---------- Clavier ---------- */
+  #keyboard{
+    width:100%; max-width: 560px; margin: 0 auto;
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+    display:flex; flex-direction:column; gap:7px;
+  }
+  .krow{ display:flex; gap:5px; justify-content:center; }
+  .key{
+    flex:1; height: 52px; min-width:0;
+    border:none; border-radius:9px;
+    background: var(--key);
+    box-shadow: inset 0 -2px 0 rgba(0,0,0,.25), inset 0 0 0 1px var(--key-edge);
+    color: var(--ink); font-weight:700; font-size:16px;
+    text-transform: uppercase; cursor:pointer;
+    display:grid; place-items:center;
+    transition: transform .06s, background .15s, box-shadow .15s;
+  }
+  .key:active{ transform: translateY(1px) scale(.97); }
+  .key.wide{ flex: 1.6; font-size:13px; letter-spacing:.5px; }
+  .key.correct{ background: var(--red); box-shadow:none; }
+  .key.present{ background: var(--yellow); color:#1a1a1a; box-shadow:none; }
+  .key.absent{  background: #0c1c38; color:#516c94; box-shadow:none; }
+
+  /* ---------- Toast ---------- */
+  #toast{
+    position: fixed; top: 74px; left:50%; transform: translateX(-50%) translateY(-10px);
+    background: #fff; color:#0a1830; font-weight:700; font-size:14px;
+    padding: 10px 18px; border-radius: 999px; opacity:0; pointer-events:none;
+    transition: opacity .2s, transform .2s; z-index: 50; box-shadow: 0 8px 24px rgba(0,0,0,.4);
+  }
+  #toast.show{ opacity:1; transform: translateX(-50%) translateY(0); }
+
+  /* ---------- Modales ---------- */
+  .overlay{
+    position: fixed; inset:0; background: rgba(2,8,20,.72);
+    backdrop-filter: blur(4px); display:none; z-index:100;
+    align-items:center; justify-content:center; padding: 20px;
+  }
+  .overlay.open{ display:flex; }
+  .modal{
+    background: linear-gradient(180deg,#123057 0%, #0b2247 100%);
+    border: 1px solid #1d477f; border-radius: 20px;
+    padding: 24px; width: 100%; max-width: 380px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.5);
+    animation: rise .25s ease;
+  }
+  @keyframes rise{ from{opacity:0; transform: translateY(16px)} to{opacity:1;transform:none} }
+  .modal h2{ font-size: 24px; margin-bottom: 6px; text-align:center; }
+  .modal .sub{ color: var(--ink-dim); text-align:center; font-size:14px; margin-bottom:18px; }
+  .modal p{ font-size:14px; line-height:1.55; color:#cfe0f7; margin-bottom:12px; }
+
+  .legend{ display:flex; flex-direction:column; gap:12px; margin:16px 0; }
+  .legend .li{ display:flex; align-items:center; gap:12px; font-size:14px; color:#dbe8fb; }
+  .mini{
+    width:38px; height:38px; border-radius:9px; flex:none; position:relative;
+    display:grid; place-items:center; font-weight:800; background:var(--cell);
+  }
+  .mini.correct{ background:var(--red); }
+  .mini.present::before{ content:""; position:absolute; inset:6px; border-radius:50%; background:var(--yellow); }
+  .mini.present span{ position:relative; color:#1a1a1a; }
+  .mini.absent{ background: var(--absent); color: var(--ink-dim); box-shadow: inset 0 0 0 1.5px #14294a; }
+
+  .stats{ display:flex; justify-content:space-around; margin: 8px 0 20px; }
+  .stat{ text-align:center; }
+  .stat .n{ font-size: 30px; font-weight:800; }
+  .stat .l{ font-size: 11px; color: var(--ink-dim); text-transform:uppercase; letter-spacing:.5px; }
+
+  .btn{
+    width:100%; height: 52px; border:none; border-radius: 12px;
+    background: var(--red); color:#fff; font-weight:800; font-size:16px;
+    cursor:pointer; margin-top: 6px; transition: transform .08s, filter .15s;
+  }
+  .btn:hover{ filter: brightness(1.08); }
+  .btn:active{ transform: scale(.98); }
+  .btn.ghost{ background: transparent; box-shadow: inset 0 0 0 1.5px #2f5c9e; }
+  .close-x{
+    position:absolute; top:12px; right:14px; background:none; border:none;
+    color: var(--ink-dim); font-size:24px; cursor:pointer; line-height:1;
+  }
+  .modal{ position:relative; }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation: none !important; transition: none !important; }
+  }
+  @media (max-height: 680px){
+    .key{ height: 46px; }
+    header{ padding-top: 8px; }
+  }
+</style>
+</head>
+<body>
+
+  <header>
+    <div class="brand" aria-label="Motus">
+      <b class="r"><span>M</span></b>
+      <b class="y"><span>O</span></b>
+      <b><span>T</span></b>
+      <b class="r"><span>U</span></b>
+      <b class="y"><span>S</span></b>
+    </div>
+    <div class="tools">
+      <button class="icon-btn" id="btnHelp" aria-label="Règles">?</button>
+      <button class="icon-btn" id="btnStats" aria-label="Statistiques">📊</button>
+      <button class="icon-btn" id="btnNew" aria-label="Nouvelle partie">↻</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="board" role="grid" aria-label="Grille de jeu"></div>
+  </main>
+
+  <div id="keyboard"></div>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <!-- Modale fin de partie -->
+  <div class="overlay" id="endOverlay">
+    <div class="modal">
+      <button class="close-x" data-close>&times;</button>
+      <h2 id="endTitle">Bravo !</h2>
+      <p class="sub" id="endSub"></p>
+      <div class="stats">
+        <div class="stat"><div class="n" id="sPlayed">0</div><div class="l">Parties</div></div>
+        <div class="stat"><div class="n" id="sWin">0%</div><div class="l">Victoires</div></div>
+        <div class="stat"><div class="n" id="sStreak">0</div><div class="l">Série</div></div>
+      </div>
+      <button class="btn" id="btnReplay">Nouvelle partie</button>
+    </div>
+  </div>
+
+  <!-- Modale règles -->
+  <div class="overlay" id="helpOverlay">
+    <div class="modal">
+      <button class="close-x" data-close>&times;</button>
+      <h2>Comment jouer</h2>
+      <p class="sub">Trouvez le mot caché en 6 essais. La première lettre est donnée.</p>
+      <div class="legend">
+        <div class="li"><div class="mini correct"><span>A</span></div> Lettre bien placée</div>
+        <div class="li"><div class="mini present"><span>B</span></div> Lettre présente, mal placée</div>
+        <div class="li"><div class="mini absent"><span>C</span></div> Lettre absente du mot</div>
+      </div>
+      <p>Chaque proposition doit avoir le bon nombre de lettres. Bonne chance !</p>
+      <button class="btn" data-close>C'est parti</button>
+    </div>
+  </div>
+
+  <!-- Modale stats -->
+  <div class="overlay" id="statsOverlay">
+    <div class="modal">
+      <button class="close-x" data-close>&times;</button>
+      <h2>Statistiques</h2>
+      <p class="sub">Votre parcours sur cet appareil</p>
+      <div class="stats">
+        <div class="stat"><div class="n" id="s2Played">0</div><div class="l">Parties</div></div>
+        <div class="stat"><div class="n" id="s2Win">0%</div><div class="l">Victoires</div></div>
+        <div class="stat"><div class="n" id="s2Streak">0</div><div class="l">Série</div></div>
+        <div class="stat"><div class="n" id="s2Best">0</div><div class="l">Record</div></div>
+      </div>
+      <button class="btn ghost" data-close>Fermer</button>
+    </div>
+  </div>
+
+<script>
+(() => {
+  "use strict";
+
+  /* ---------- Liste de mots (français, sans accents, A-Z) ---------- */
+  const WORDS = [
+    "MAISON","JARDIN","SOLEIL","VOYAGE","CHEVAL","ORANGE","MIROIR","BALCON",
+    "NUAGES","CERISE","CARTON","BOUCHE","DANGER","FUSEES","BONHEUR","SAVANE",
+    "BONJOUR","MUSIQUE","FENETRE","TABLEAU","GUITARE","VOITURE","CUISINE",
+    "JOURNAL","CHAPEAU","POMPIER","DIAMANT","FROMAGE","CAMPING","LANTERNE",
+    "MONTAGNE","CHOCOLAT","ELEPHANT","PAPILLON","CHANTEUR","AVENTURE","PLANETE",
+    "COURAGE","LIBERTE","VILLAGE","POUSSIN","RENARDS","FORTUNE","GALAXIE",
+    "ORCHIDEE","BROUILLARD","TROMPETTE","BOUSSOLE","CARROSSE","TORNADE"
+  ];
+
+  const MAX_ROWS = 6;
+  const AZERTY = ["AZERTYUIOP","QSDFGHJKLM","WXCVBN"];
+
+  /* ---------- Persistance (protégée) ---------- */
+  const store = {
+    get(k, d){ try { const v = localStorage.getItem(k); return v===null ? d : JSON.parse(v); } catch(e){ return d; } },
+    set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+  };
+  let stats = store.get("motus.stats", { played:0, won:0, streak:0, best:0 });
+
+  /* ---------- État ---------- */
+  let answer = "", len = 0, row = 0, col = 0, grid = [], over = false;
+
+  const board = document.getElementById("board");
+  const keyboard = document.getElementById("keyboard");
+  const toastEl = document.getElementById("toast");
+  const keyEls = {};
+
+  /* ---------- Init partie ---------- */
+  function newGame(){
+    answer = WORDS[Math.floor(Math.random()*WORDS.length)];
+    len = answer.length;
+    row = 0; col = 1; over = false;
+    grid = Array.from({length:MAX_ROWS}, () => Array(len).fill(""));
+
+    // taille des tuiles selon la longueur + l'espace dispo
+    const maxW = Math.min(window.innerWidth - 24, 520);
+    const gap = Math.max(4, Math.min(8, window.innerWidth*0.014));
+    const tile = Math.min(58, Math.floor((maxW - gap*(len-1)) / len));
+    document.documentElement.style.setProperty("--tile", tile + "px");
+    document.documentElement.style.setProperty("--gap", gap + "px");
+
+    buildBoard();
+    resetKeyboardColors();
+    // première lettre donnée
+    setCell(0, 0, answer[0]);
+    board.querySelector(`.row[data-r="0"] .tile[data-c="0"]`).classList.add("correct");
+  }
+
+  function buildBoard(){
+    board.style.gridTemplateRows = `repeat(${MAX_ROWS}, var(--tile))`;
+    board.innerHTML = "";
+    for(let r=0; r<MAX_ROWS; r++){
+      const rowEl = document.createElement("div");
+      rowEl.className = "row"; rowEl.dataset.r = r;
+      rowEl.style.gridTemplateColumns = `repeat(${len}, var(--tile))`;
+      for(let c=0; c<len; c++){
+        const t = document.createElement("div");
+        t.className = "tile"; t.dataset.c = c;
+        t.setAttribute("role","gridcell");
+        t.innerHTML = "<span></span>";
+        rowEl.appendChild(t);
+      }
+      board.appendChild(rowEl);
+    }
+  }
+
+  function tileAt(r,c){ return board.querySelector(`.row[data-r="${r}"] .tile[data-c="${c}"]`); }
+
+  function setCell(r, c, ch){
+    grid[r][c] = ch;
+    const t = tileAt(r,c);
+    t.querySelector("span").textContent = ch;
+    if(ch) t.classList.add("filled");
+    else t.classList.remove("filled");
+  }
+
+  /* ---------- Clavier écran ---------- */
+  function buildKeyboard(){
+    keyboard.innerHTML = "";
+    AZERTY.forEach((line, i) => {
+      const kr = document.createElement("div");
+      kr.className = "krow";
+      if(i === 2){
+        kr.appendChild(makeKey("ENTRÉE", "enter", true));
+      }
+      for(const ch of line){
+        const k = makeKey(ch, ch, false);
+        keyEls[ch] = k;
+        kr.appendChild(k);
+      }
+      if(i === 2){
+        kr.appendChild(makeKey("⌫", "back", true));
+      }
+      keyboard.appendChild(kr);
+    });
+  }
+  function makeKey(label, action, wide){
+    const b = document.createElement("button");
+    b.className = "key" + (wide ? " wide" : "");
+    b.textContent = label;
+    b.addEventListener("click", () => handleKey(action));
+    return b;
+  }
+  function resetKeyboardColors(){
+    for(const k in keyEls) keyEls[k].classList.remove("correct","present","absent");
+  }
+
+  /* ---------- Saisie ---------- */
+  function handleKey(action){
+    if(over) return;
+    if(action === "enter") return submit();
+    if(action === "back")  return backspace();
+    if(/^[A-Z]$/.test(action)) return type(action);
+  }
+  function type(ch){
+    if(col >= len) return;
+    setCell(row, col, ch);
+    col++;
+  }
+  function backspace(){
+    if(col <= 1) return;          // on ne supprime jamais la 1re lettre donnée
+    col--;
+    setCell(row, col, "");
+  }
+
+  function submit(){
+    if(col < len){
+      shake(); toast("Pas assez de lettres");
+      return;
+    }
+    const guess = grid[row].join("");
+    reveal(guess);
+  }
+
+  /* ---------- Révélation (algo Motus, gère les doublons) ---------- */
+  function reveal(guess){
+    const res = Array(len).fill("absent");
+    const pool = {};
+    for(const ch of answer) pool[ch] = (pool[ch]||0) + 1;
+
+    // 1er passage : bonnes places
+    for(let c=0; c<len; c++){
+      if(guess[c] === answer[c]){ res[c] = "correct"; pool[guess[c]]--; }
+    }
+    // 2e passage : présentes ailleurs
+    for(let c=0; c<len; c++){
+      if(res[c] === "correct") continue;
+      const ch = guess[c];
+      if(pool[ch] > 0){ res[c] = "present"; pool[ch]--; }
+    }
+
+    over = true; // bloque la saisie pendant l'animation
+    for(let c=0; c<len; c++){
+      const t = tileAt(row, c);
+      setTimeout(() => {
+        t.classList.add("reveal");
+        setTimeout(() => {
+          t.classList.remove("filled");
+          t.classList.add(res[c]);
+          paintKey(guess[c], res[c]);
+        }, 250);
+      }, c * 180);
+    }
+
+    const total = (len-1) * 180 + 500;
+    setTimeout(() => finishRow(guess === answer), total);
+  }
+
+  function paintKey(ch, state){
+    const k = keyEls[ch]; if(!k) return;
+    const rank = { absent:0, present:1, correct:2 };
+    const cur = k.classList.contains("correct") ? "correct"
+              : k.classList.contains("present") ? "present"
+              : k.classList.contains("absent")  ? "absent" : null;
+    if(cur && rank[cur] >= rank[state]) return;
+    k.classList.remove("absent","present","correct");
+    k.classList.add(state);
+  }
+
+  function finishRow(won){
+    if(won){
+      vibrate([12,40,12]);
+      for(let c=0;c<len;c++){
+        const t = tileAt(row,c);
+        setTimeout(()=>t.classList.add("win"), c*70);
+      }
+      recordResult(true);
+      setTimeout(()=>endGame(true), 700);
+      return;
+    }
+    row++;
+    if(row >= MAX_ROWS){
+      recordResult(false);
+      setTimeout(()=>endGame(false), 350);
+      return;
+    }
+    // ligne suivante : on redonne la 1re lettre
+    col = 1; over = false;
+    setCell(row, 0, answer[0]);
+    tileAt(row,0).classList.add("correct");
+  }
+
+  /* ---------- Fin & stats ---------- */
+  function recordResult(won){
+    stats.played++;
+    if(won){
+      stats.won++; stats.streak++;
+      if(stats.streak > stats.best) stats.best = stats.streak;
+    } else {
+      stats.streak = 0;
+    }
+    store.set("motus.stats", stats);
+  }
+
+  function winPct(){ return stats.played ? Math.round(stats.won/stats.played*100) : 0; }
+
+  function refreshStats(){
+    const p = stats.played, w = winPct(), s = stats.streak, b = stats.best;
+    setText("sPlayed",p); setText("sWin",w+"%"); setText("sStreak",s);
+    setText("s2Played",p); setText("s2Win",w+"%"); setText("s2Streak",s); setText("s2Best",b);
+  }
+
+  function endGame(won){
+    refreshStats();
+    document.getElementById("endTitle").textContent = won ? "Bravo !" : "Dommage…";
+    document.getElementById("endSub").innerHTML = won
+      ? `Trouvé en ${row+1} essai${row+1>1?"s":""}.`
+      : `Le mot était <b>${answer}</b>.`;
+    openOverlay("endOverlay");
+  }
+
+  /* ---------- UI helpers ---------- */
+  let toastTimer;
+  function toast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>toastEl.classList.remove("show"), 1400);
+  }
+  function shake(){
+    const r = board.querySelector(`.row[data-r="${row}"]`);
+    r.classList.add("shake");
+    vibrate(20);
+    setTimeout(()=>r.classList.remove("shake"), 420);
+  }
+  function vibrate(p){ try{ navigator.vibrate && navigator.vibrate(p); }catch(e){} }
+  function setText(id,v){ document.getElementById(id).textContent = v; }
+
+  function openOverlay(id){ document.getElementById(id).classList.add("open"); }
+  function closeOverlays(){ document.querySelectorAll(".overlay").forEach(o=>o.classList.remove("open")); }
+
+  /* ---------- Événements ---------- */
+  document.addEventListener("keydown", e => {
+    if(document.querySelector(".overlay.open")) return;
+    const k = e.key;
+    if(k === "Enter") handleKey("enter");
+    else if(k === "Backspace") handleKey("back");
+    else if(/^[a-zA-Z]$/.test(k)){
+      let ch = k.toUpperCase();
+      // AZERTY : a<->q, z<->w, m après l — on accepte la lettre telle quelle
+      handleKey(ch);
+    }
+  });
+
+  document.getElementById("btnNew").addEventListener("click", () => { closeOverlays(); newGame(); });
+  document.getElementById("btnReplay").addEventListener("click", () => { closeOverlays(); newGame(); });
+  document.getElementById("btnHelp").addEventListener("click", () => openOverlay("helpOverlay"));
+  document.getElementById("btnStats").addEventListener("click", () => { refreshStats(); openOverlay("statsOverlay"); });
+  document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeOverlays));
+  document.querySelectorAll(".overlay").forEach(o => o.addEventListener("click", e => { if(e.target === o) closeOverlays(); }));
+
+  window.addEventListener("resize", () => {
+    // recalcule la taille des tuiles sans perdre la partie
+    const maxW = Math.min(window.innerWidth - 24, 520);
+    const gap = Math.max(4, Math.min(8, window.innerWidth*0.014));
+    const tile = Math.min(58, Math.floor((maxW - gap*(len-1)) / len));
+    document.documentElement.style.setProperty("--tile", tile + "px");
+    document.documentElement.style.setProperty("--gap", gap + "px");
+  });
+
+  /* ---------- Service worker (actif une fois sw.js déployé) ---------- */
+  if("serviceWorker" in navigator){
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./sw.js").catch(()=>{});
+    });
+  }
+
+  /* ---------- Démarrage ---------- */
+  buildKeyboard();
+  newGame();
+  refreshStats();
+  if(!store.get("motus.seen", false)){ openOverlay("helpOverlay"); store.set("motus.seen", true); }
+})();
+</script>
+</body>
+</html>
