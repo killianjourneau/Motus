@@ -1,10 +1,11 @@
 /* Motus — service worker */
-const CACHE = "motus-v1";
+const CACHE = "motus-v3";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.json",
-  "./icon-512.png"
+  "./icon-512.png",
+  "./dico.txt"
 ];
 
 // Installation : on met l'app shell en cache
