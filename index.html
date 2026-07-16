@@ -1,12 +1,11 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
 <meta name="description" content="Motus — le jeu de mots. Devinez le mot caché en 6 essais.">
 <title>Motus</title>
 
-<!-- PWA -->
 <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#071633">
 <meta name="mobile-web-app-capable" content="yes">
@@ -17,263 +16,165 @@
 
 <style>
   :root{
-    --bg:        #071633;   /* bleu nuit studio */
-    --bg-2:      #0b2247;   /* dégradé bas       */
-    --cell:      #10305f;   /* cellule vide      */
-    --cell-edge: #1d477f;   /* liseré cellule    */
-    --red:       #e23a44;   /* bonne place       */
-    --yellow:    #ffcb2e;   /* mauvaise place    */
-    --absent:    #0c1f3d;   /* lettre absente    */
-    --ink:       #ffffff;
-    --ink-dim:   #8aa6cf;
-    --key:       #22467c;
-    --key-edge:  #2f5c9e;
-
-    --gap: clamp(4px, 1.4vw, 8px);
-    --radius: 10px;
-    --tile: 54px; /* recalculé en JS selon la longueur du mot */
+    --bg:#071633; --bg-2:#0b2247; --cell:#10305f; --cell-edge:#1d477f;
+    --red:#e23a44; --yellow:#ffcb2e; --absent:#12294a;
+    --ink:#ffffff; --ink-dim:#8aa6cf; --key:#22467c; --key-edge:#2f5c9e;
+    --gap:6px; --radius:10px; --tile:54px;
+  }
+  :root[data-theme="light"]{
+    --bg:#eef2f9; --bg-2:#dfe7f3; --cell:#cdd8ea; --cell-edge:#b6c5df;
+    --red:#e23a44; --yellow:#f2be14; --absent:#aebbd0;
+    --ink:#14233c; --ink-dim:#5c6c88; --key:#ffffff; --key-edge:#cbd8ea;
   }
 
   *{ box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
-
   html,body{ height:100%; }
-
   body{
     font-family: ui-rounded, "SF Pro Rounded", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
     color: var(--ink);
     background: radial-gradient(120% 90% at 50% 0%, var(--bg-2) 0%, var(--bg) 60%);
     background-attachment: fixed;
-    min-height: 100dvh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    user-select: none;
-    -webkit-user-select: none;
+    min-height: 100dvh; display:flex; flex-direction:column; overflow:hidden;
+    user-select:none; -webkit-user-select:none;
     padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    transition: color .2s;
   }
 
-  /* ---------- Header ---------- */
-  header{
-    display:flex; align-items:center; justify-content:space-between;
-    padding: 12px clamp(12px, 4vw, 22px) 8px;
-    gap: 8px;
-  }
+  /* Header */
+  header{ display:flex; align-items:center; justify-content:space-between; padding:12px clamp(12px,4vw,22px) 4px; gap:8px; }
   .brand{ display:flex; gap:5px; }
-  .brand b{
-    width: 30px; height: 34px;
-    display:grid; place-items:center;
-    font-weight: 800; font-size: 20px;
-    border-radius: 7px;
-    background: var(--absent);
-    box-shadow: inset 0 0 0 1.5px var(--cell-edge);
-  }
-  .brand b.r{ background: var(--red); box-shadow:none; }
-  .brand b.y{ background: var(--cell); box-shadow:none; position:relative; }
-  .brand b.y::before{
-    content:""; position:absolute; inset:5px; border-radius:50%;
-    background: var(--yellow); z-index:0;
-  }
+  .brand b{ width:30px; height:34px; display:grid; place-items:center; font-weight:800; font-size:20px; border-radius:7px; background:var(--absent); }
+  .brand b.r{ background:var(--red); }
+  .brand b.r span{ color:#fff; }
+  .brand b.y{ background:var(--cell); position:relative; }
+  .brand b.y::before{ content:""; position:absolute; inset:5px; border-radius:50%; background:var(--yellow); z-index:0; }
   .brand b.y span{ position:relative; z-index:1; color:#1a1a1a; }
-
   .tools{ display:flex; gap:6px; }
-  .icon-btn{
-    width:40px; height:40px; border:none; border-radius:10px;
-    background: rgba(255,255,255,.06);
-    color: var(--ink); font-size:18px; cursor:pointer;
-    display:grid; place-items:center;
-    transition: background .15s;
-  }
-  .icon-btn:hover{ background: rgba(255,255,255,.12); }
-  .icon-btn:active{ transform: scale(.94); }
+  .icon-btn{ width:40px; height:40px; border:none; border-radius:10px; background:var(--cell); color:var(--ink); font-size:17px; cursor:pointer; display:grid; place-items:center; transition:.15s; }
+  .icon-btn:active{ transform:scale(.94); }
 
-  /* ---------- Zone de jeu ---------- */
-  main{
-    flex:1; display:flex; flex-direction:column; align-items:center;
-    justify-content:center; gap: 10px; padding: 4px 10px; min-height:0;
-  }
+  /* Sélecteur de mode */
+  #modes{ display:flex; gap:6px; padding:4px clamp(12px,4vw,22px) 2px; }
+  .seg{ flex:1; height:38px; border:none; border-radius:10px; background:var(--cell); color:var(--ink-dim); font-weight:700; font-size:13px; cursor:pointer; box-shadow: inset 0 0 0 1.5px var(--cell-edge); transition:.15s; }
+  .seg.active{ background:var(--red); color:#fff; box-shadow:none; }
+  .seg:active{ transform:scale(.97); }
 
-  #board{ display:grid; gap: var(--gap); }
-  .row{ display:grid; gap: var(--gap); grid-auto-flow:column; }
-
+  /* Zone de jeu */
+  main{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:4px 8px; min-height:0; }
+  #board{ display:grid; gap:var(--gap); }
+  .row{ display:grid; gap:var(--gap); grid-auto-flow:column; }
   .tile{
-    width: var(--tile); height: var(--tile);
-    display:grid; place-items:center; position:relative;
-    font-weight: 800; font-size: calc(var(--tile) * .5);
-    text-transform: uppercase;
-    background: var(--cell);
-    border-radius: var(--radius);
-    box-shadow: inset 0 0 0 1.5px var(--cell-edge);
-    transition: transform .12s ease;
+    width:var(--tile); height:var(--tile); display:grid; place-items:center; position:relative;
+    font-weight:800; font-size:calc(var(--tile)*.5); text-transform:uppercase;
+    background:var(--cell); border-radius:var(--radius);
+    box-shadow: inset 0 0 0 1.5px var(--cell-edge); transition: transform .12s ease;
   }
   .tile span{ position:relative; z-index:2; line-height:1; }
-
-  .tile.filled{ animation: pop .12s ease; box-shadow: inset 0 0 0 2px #3b6dae; }
+  .tile.filled{ animation:pop .12s ease; box-shadow: inset 0 0 0 2px var(--cell-edge); }
   @keyframes pop{ 0%{transform:scale(.85)} 100%{transform:scale(1)} }
-
-  /* états révélés */
-  .tile.correct{ background: var(--red); box-shadow:none; }
-  .tile.absent{  background: var(--absent); box-shadow: inset 0 0 0 1.5px #14294a; color: var(--ink-dim); }
-  .tile.present{ background: var(--cell); box-shadow:none; }
-  .tile.present::before{
-    content:""; position:absolute; inset:14%; border-radius:50%;
-    background: var(--yellow); z-index:1;
-    transform: scale(0);
-    animation: disc .2s ease forwards;
-  }
+  .tile.correct{ background:var(--red); box-shadow:none; color:#fff; }
+  .tile.absent{ background:var(--absent); box-shadow:none; color:var(--ink-dim); }
+  .tile.present{ background:var(--cell); box-shadow:none; }
+  .tile.present::before{ content:""; position:absolute; inset:14%; border-radius:50%; background:var(--yellow); z-index:1; transform:scale(0); animation:disc .2s ease forwards; }
   .tile.present span{ color:#1a1a1a; }
   @keyframes disc{ to{ transform:scale(1); } }
-
-  /* animation de retournement à la validation */
-  .tile.reveal{ animation: flip .5s ease forwards; }
-  @keyframes flip{
-    0%   { transform: rotateX(0); }
-    50%  { transform: rotateX(90deg); }
-    100% { transform: rotateX(0); }
-  }
-
-  .row.shake{ animation: shake .4s; }
-  @keyframes shake{
-    10%,90%{transform:translateX(-2px)} 20%,80%{transform:translateX(4px)}
-    30%,50%,70%{transform:translateX(-7px)} 40%,60%{transform:translateX(7px)}
-  }
-  .tile.win{ animation: bounce .5s ease; }
+  .tile.reveal{ animation:flip .5s ease forwards; }
+  @keyframes flip{ 0%{transform:rotateX(0)} 50%{transform:rotateX(90deg)} 100%{transform:rotateX(0)} }
+  .row.shake{ animation:shake .4s; }
+  @keyframes shake{ 10%,90%{transform:translateX(-2px)} 20%,80%{transform:translateX(4px)} 30%,50%,70%{transform:translateX(-7px)} 40%,60%{transform:translateX(7px)} }
+  .tile.jump{ animation:bounce .5s ease; }
   @keyframes bounce{ 0%,100%{transform:translateY(0)} 40%{transform:translateY(-16px)} 60%{transform:translateY(-6px)} }
 
-  /* ---------- Clavier ---------- */
-  #keyboard{
-    width:100%; max-width: 560px; margin: 0 auto;
-    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
-    display:flex; flex-direction:column; gap:7px;
-  }
+  /* Clavier */
+  #keyboard{ width:100%; max-width:560px; margin:0 auto; padding:6px 6px calc(6px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; gap:7px; }
   .krow{ display:flex; gap:5px; justify-content:center; }
-  .key{
-    flex:1; height: 52px; min-width:0;
-    border:none; border-radius:9px;
-    background: var(--key);
-    box-shadow: inset 0 -2px 0 rgba(0,0,0,.25), inset 0 0 0 1px var(--key-edge);
-    color: var(--ink); font-weight:700; font-size:16px;
-    text-transform: uppercase; cursor:pointer;
-    display:grid; place-items:center;
-    transition: transform .06s, background .15s, box-shadow .15s;
-  }
-  .key:active{ transform: translateY(1px) scale(.97); }
-  .key.wide{ flex: 1.6; font-size:13px; letter-spacing:.5px; }
-  .key.correct{ background: var(--red); box-shadow:none; }
-  .key.present{ background: var(--yellow); color:#1a1a1a; box-shadow:none; }
-  .key.absent{  background: #0c1c38; color:#516c94; box-shadow:none; }
+  .key{ flex:1; height:52px; min-width:0; border:none; border-radius:9px; background:var(--key); box-shadow: inset 0 -2px 0 rgba(0,0,0,.22), inset 0 0 0 1px var(--key-edge); color:var(--ink); font-weight:700; font-size:16px; text-transform:uppercase; cursor:pointer; display:grid; place-items:center; transition: transform .06s, background .15s, box-shadow .15s; }
+  .key:active{ transform:translateY(1px) scale(.97); }
+  .key.wide{ flex:1.6; font-size:13px; letter-spacing:.5px; }
+  .key.correct{ background:var(--red); color:#fff; box-shadow:none; }
+  .key.present{ background:var(--yellow); color:#1a1a1a; box-shadow:none; }
+  .key.absent{ background:var(--absent); color:var(--ink-dim); box-shadow:none; }
 
-  /* ---------- Toast ---------- */
-  #toast{
-    position: fixed; top: 74px; left:50%; transform: translateX(-50%) translateY(-10px);
-    background: #fff; color:#0a1830; font-weight:700; font-size:14px;
-    padding: 10px 18px; border-radius: 999px; opacity:0; pointer-events:none;
-    transition: opacity .2s, transform .2s; z-index: 50; box-shadow: 0 8px 24px rgba(0,0,0,.4);
-  }
-  #toast.show{ opacity:1; transform: translateX(-50%) translateY(0); }
+  /* Toast */
+  #toast{ position:fixed; top:118px; left:50%; transform:translateX(-50%) translateY(-10px); background:var(--ink); color:var(--bg); font-weight:700; font-size:14px; padding:10px 18px; border-radius:999px; opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; z-index:50; box-shadow:0 8px 24px rgba(0,0,0,.4); }
+  #toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
 
-  /* ---------- Modales ---------- */
-  .overlay{
-    position: fixed; inset:0; background: rgba(2,8,20,.72);
-    backdrop-filter: blur(4px); display:none; z-index:100;
-    align-items:center; justify-content:center; padding: 20px;
-  }
+  /* Modales */
+  .overlay{ position:fixed; inset:0; background:rgba(2,8,20,.72); backdrop-filter:blur(4px); display:none; z-index:100; align-items:center; justify-content:center; padding:20px; }
   .overlay.open{ display:flex; }
-  .modal{
-    background: linear-gradient(180deg,#123057 0%, #0b2247 100%);
-    border: 1px solid #1d477f; border-radius: 20px;
-    padding: 24px; width: 100%; max-width: 380px;
-    box-shadow: 0 20px 60px rgba(0,0,0,.5);
-    animation: rise .25s ease;
-  }
-  @keyframes rise{ from{opacity:0; transform: translateY(16px)} to{opacity:1;transform:none} }
-  .modal h2{ font-size: 24px; margin-bottom: 6px; text-align:center; }
-  .modal .sub{ color: var(--ink-dim); text-align:center; font-size:14px; margin-bottom:18px; }
-  .modal p{ font-size:14px; line-height:1.55; color:#cfe0f7; margin-bottom:12px; }
-
+  .modal{ position:relative; background:var(--bg-2); border:1px solid var(--cell-edge); border-radius:20px; padding:24px; width:100%; max-width:380px; box-shadow:0 20px 60px rgba(0,0,0,.5); animation:rise .25s ease; }
+  @keyframes rise{ from{opacity:0; transform:translateY(16px)} to{opacity:1; transform:none} }
+  .modal h2{ font-size:24px; margin-bottom:6px; text-align:center; color:var(--ink); }
+  .modal .sub{ color:var(--ink-dim); text-align:center; font-size:14px; margin-bottom:18px; }
+  .modal p{ font-size:14px; line-height:1.55; color:var(--ink); margin-bottom:12px; }
+  .modal .sub b, .modal p b{ color:var(--ink); }
   .legend{ display:flex; flex-direction:column; gap:12px; margin:16px 0; }
-  .legend .li{ display:flex; align-items:center; gap:12px; font-size:14px; color:#dbe8fb; }
-  .mini{
-    width:38px; height:38px; border-radius:9px; flex:none; position:relative;
-    display:grid; place-items:center; font-weight:800; background:var(--cell);
-  }
-  .mini.correct{ background:var(--red); }
+  .legend .li{ display:flex; align-items:center; gap:12px; font-size:14px; color:var(--ink); }
+  .mini{ width:38px; height:38px; border-radius:9px; flex:none; position:relative; display:grid; place-items:center; font-weight:800; background:var(--cell); color:var(--ink); }
+  .mini.correct{ background:var(--red); color:#fff; }
   .mini.present::before{ content:""; position:absolute; inset:6px; border-radius:50%; background:var(--yellow); }
   .mini.present span{ position:relative; color:#1a1a1a; }
-  .mini.absent{ background: var(--absent); color: var(--ink-dim); box-shadow: inset 0 0 0 1.5px #14294a; }
+  .mini.absent{ background:var(--absent); color:var(--ink-dim); }
 
-  .stats{ display:flex; justify-content:space-around; margin: 8px 0 20px; }
+  .stats{ display:flex; justify-content:space-around; margin:8px 0 16px; }
   .stat{ text-align:center; }
-  .stat .n{ font-size: 30px; font-weight:800; }
-  .stat .l{ font-size: 11px; color: var(--ink-dim); text-transform:uppercase; letter-spacing:.5px; }
+  .stat .n{ font-size:28px; font-weight:800; color:var(--ink); }
+  .stat .l{ font-size:11px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.5px; }
 
-  .btn{
-    width:100%; height: 52px; border:none; border-radius: 12px;
-    background: var(--red); color:#fff; font-weight:800; font-size:16px;
-    cursor:pointer; margin-top: 6px; transition: transform .08s, filter .15s;
-  }
-  .btn:hover{ filter: brightness(1.08); }
-  .btn:active{ transform: scale(.98); }
-  .btn.ghost{ background: transparent; box-shadow: inset 0 0 0 1.5px #2f5c9e; }
-  .close-x{
-    position:absolute; top:12px; right:14px; background:none; border:none;
-    color: var(--ink-dim); font-size:24px; cursor:pointer; line-height:1;
-  }
-  .modal{ position:relative; }
+  .dist-title{ font-size:12px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.5px; margin:4px 0 8px; }
+  .dist{ display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
+  .dist .bar{ display:flex; align-items:center; gap:8px; font-size:13px; }
+  .dist .bar .k{ width:12px; color:var(--ink-dim); font-weight:700; }
+  .dist .bar .t{ background:var(--red); height:22px; border-radius:5px; min-width:26px; display:flex; align-items:center; justify-content:flex-end; padding:0 8px; color:#fff; font-weight:700; font-size:12px; transition:width .4s ease; }
 
-  @media (prefers-reduced-motion: reduce){
-    *{ animation: none !important; transition: none !important; }
-  }
-  @media (max-height: 680px){
-    .key{ height: 46px; }
-    header{ padding-top: 8px; }
-  }
+  .btn{ width:100%; height:52px; border:none; border-radius:12px; background:var(--red); color:#fff; font-weight:800; font-size:16px; cursor:pointer; margin-top:6px; transition:transform .08s, filter .15s; }
+  .btn:hover{ filter:brightness(1.08); }
+  .btn:active{ transform:scale(.98); }
+  .btn.ghost{ background:transparent; color:var(--ink); box-shadow: inset 0 0 0 1.5px var(--cell-edge); }
+  .close-x{ position:absolute; top:12px; right:14px; background:none; border:none; color:var(--ink-dim); font-size:24px; cursor:pointer; line-height:1; }
 
-  /* ---------- Invite à tourner l'écran (paysage sur mobile) ---------- */
+  /* Invite rotation (paysage mobile) */
   #rotate{ display:none; }
-  @media (orientation: landscape) and (max-height: 560px){
-    #rotate{
-      display:flex; position:fixed; inset:0; z-index:999;
-      background: radial-gradient(120% 120% at 50% 0%, var(--bg-2), var(--bg));
-      flex-direction:column; align-items:center; justify-content:center;
-      gap:20px; text-align:center; padding:24px;
-    }
-    #rotate .ph{ font-size:52px; animation: tilt 2.2s ease-in-out infinite; }
+  @media (orientation:landscape) and (max-height:560px){
+    #rotate{ display:flex; position:fixed; inset:0; z-index:999; background:radial-gradient(120% 120% at 50% 0%, var(--bg-2), var(--bg)); flex-direction:column; align-items:center; justify-content:center; gap:20px; text-align:center; padding:24px; }
+    #rotate .ph{ font-size:52px; animation:tilt 2.2s ease-in-out infinite; }
     #rotate p{ font-weight:800; font-size:18px; color:var(--ink); max-width:300px; line-height:1.4; }
   }
   @keyframes tilt{ 0%,45%{transform:rotate(0)} 65%,100%{transform:rotate(-90deg)} }
+
+  @media (prefers-reduced-motion: reduce){ *{ animation:none !important; transition:none !important; } }
+  @media (max-height:700px){ .key{ height:46px; } }
 </style>
 </head>
 <body>
 
-  <div id="rotate">
-    <div class="ph">📱</div>
-    <p>Tourne ton téléphone à la verticale pour jouer.</p>
-  </div>
+  <div id="rotate"><div class="ph">📱</div><p>Tourne ton téléphone à la verticale pour jouer.</p></div>
 
   <header>
     <div class="brand" aria-label="Motus">
-      <b class="r"><span>M</span></b>
-      <b class="y"><span>O</span></b>
-      <b><span>T</span></b>
-      <b class="r"><span>U</span></b>
-      <b class="y"><span>S</span></b>
+      <b class="r"><span>M</span></b><b class="y"><span>O</span></b><b><span>T</span></b><b class="r"><span>U</span></b><b class="y"><span>S</span></b>
     </div>
     <div class="tools">
+      <button class="icon-btn" id="btnTheme" aria-label="Thème">☀️</button>
       <button class="icon-btn" id="btnHelp" aria-label="Règles">?</button>
       <button class="icon-btn" id="btnStats" aria-label="Statistiques">📊</button>
       <button class="icon-btn" id="btnNew" aria-label="Nouvelle partie">↻</button>
     </div>
   </header>
 
-  <main>
-    <div id="board" role="grid" aria-label="Grille de jeu"></div>
-  </main>
+  <div id="modes">
+    <button class="seg" data-mode="daily">Jour</button>
+    <button class="seg" data-mode="court">Court</button>
+    <button class="seg active" data-mode="normal">Normal</button>
+    <button class="seg" data-mode="long">Long</button>
+  </div>
+
+  <main><div id="board" role="grid" aria-label="Grille de jeu"></div></main>
 
   <div id="keyboard"></div>
-
   <div id="toast" role="status" aria-live="polite"></div>
 
-  <!-- Modale fin de partie -->
+  <!-- Fin de partie -->
   <div class="overlay" id="endOverlay">
     <div class="modal">
       <button class="close-x" data-close>&times;</button>
@@ -284,11 +185,12 @@
         <div class="stat"><div class="n" id="sWin">0%</div><div class="l">Victoires</div></div>
         <div class="stat"><div class="n" id="sStreak">0</div><div class="l">Série</div></div>
       </div>
-      <button class="btn" id="btnReplay">Nouvelle partie</button>
+      <button class="btn" id="btnShare" style="display:none">Partager mon résultat</button>
+      <button class="btn ghost" id="btnAgain">Rejouer</button>
     </div>
   </div>
 
-  <!-- Modale règles -->
+  <!-- Règles -->
   <div class="overlay" id="helpOverlay">
     <div class="modal">
       <button class="close-x" data-close>&times;</button>
@@ -299,12 +201,13 @@
         <div class="li"><div class="mini present"><span>B</span></div> Lettre présente, mal placée</div>
         <div class="li"><div class="mini absent"><span>C</span></div> Lettre absente du mot</div>
       </div>
-      <p>Chaque proposition doit avoir le bon nombre de lettres. Bonne chance !</p>
+      <p><b>Jour</b> : le même mot pour tout le monde, une fois par jour.<br>
+         <b>Court</b> 4-5 lettres · <b>Normal</b> 6-8 · <b>Long</b> 10-15.</p>
       <button class="btn" data-close>C'est parti</button>
     </div>
   </div>
 
-  <!-- Modale stats -->
+  <!-- Stats -->
   <div class="overlay" id="statsOverlay">
     <div class="modal">
       <button class="close-x" data-close>&times;</button>
@@ -316,6 +219,8 @@
         <div class="stat"><div class="n" id="s2Streak">0</div><div class="l">Série</div></div>
         <div class="stat"><div class="n" id="s2Best">0</div><div class="l">Record</div></div>
       </div>
+      <div class="dist-title">Nombre d'essais</div>
+      <div class="dist" id="dist"></div>
       <button class="btn ghost" data-close>Fermer</button>
     </div>
   </div>
@@ -324,314 +229,312 @@
 (() => {
   "use strict";
 
-  /* ---------- Liste de mots (français, sans accents, A-Z) ---------- */
-  const WORDS = [
-    "MAISON","JARDIN","SOLEIL","VOYAGE","CHEVAL","ORANGE","MIROIR","BALCON",
-    "NUAGES","CERISE","CARTON","BOUCHE","DANGER","FUSEES","BONHEUR","SAVANE",
-    "BONJOUR","MUSIQUE","FENETRE","TABLEAU","GUITARE","VOITURE","CUISINE",
-    "JOURNAL","CHAPEAU","POMPIER","DIAMANT","FROMAGE","CAMPING","LANTERNE",
-    "MONTAGNE","CHOCOLAT","ELEPHANT","PAPILLON","CHANTEUR","AVENTURE","PLANETE",
-    "COURAGE","LIBERTE","VILLAGE","POUSSIN","RENARDS","FORTUNE","GALAXIE",
-    "ORCHIDEE","BROUILLARD","TROMPETTE","BOUSSOLE","CARROSSE","TORNADE"
-  ];
+  /* ---------- Listes de mots (sans accents, A-Z) ---------- */
+  const POOLS = {
+    court: ["LUNE","ROSE","CHAT","PAIN","MAIN","PIED","NUIT","JOUR","LOUP","OURS","MIEL","VELO","LAIT","ROUE","PONT","FOUR","SOIR","VENT","PORT","TOUR","GARE","RIRE","LIRE","ILES","AMIS","PLAT","BOIS","CIEL","EAUX","ROIS","NEIGE","TABLE","LIVRE","FLEUR","ARBRE","POMME","VERRE","PORTE","CHIEN","TIGRE","ROUTE","PLAGE","NUAGE","ROBOT","PIANO","RADIO","ZEBRE","LAPIN","SUCRE","SALLE","MUSEE","GLACE","VOILE","ECOLE","HERBE","MONDE","TERRE","CHOSE","VILLE","CARTE"],
+    normal: ["MAISON","JARDIN","SOLEIL","VOYAGE","CHEVAL","ORANGE","MIROIR","BALCON","NUAGES","CERISE","CARTON","BOUCHE","DANGER","FUSEES","BONHEUR","SAVANE","BONJOUR","MUSIQUE","FENETRE","TABLEAU","GUITARE","VOITURE","CUISINE","JOURNAL","CHAPEAU","POMPIER","DIAMANT","FROMAGE","CAMPING","LANTERNE","MONTAGNE","CHOCOLAT","ELEPHANT","PAPILLON","CHANTEUR","AVENTURE","PLANETE","COURAGE","LIBERTE","VILLAGE","POUSSIN","RENARDS","FORTUNE","GALAXIE","ORCHIDEE","BOUSSOLE","CARROSSE","TORNADE"],
+    long: ["ORDINATEUR","RESTAURANT","AVENTURIER","ASPIRATEUR","GEOGRAPHIE","UNIVERSITE","APPARTEMENT","TEMPERATURE","ELECTRICITE","PROGRAMMEUR","CHOCOLATIER","VENTILATEUR","PHILOSOPHIE","PSYCHOLOGIE","IMAGINATION","GENERATION","DICTIONNAIRE","BIBLIOTHEQUE","ANNIVERSAIRE","GOUVERNEMENT","INFORMATIQUE","ARCHITECTURE","CIVILISATION","CONSTRUCTION","ORGANISATION","CONSTITUTION","MEDITERRANEE","INTELLIGENCE","EXPERIENCES","MOUVEMENTS","ENVIRONNEMENT","MATHEMATIQUES","INTERNATIONAL","PROFESSIONNEL","REFRIGERATEUR","COMMUNICATION","PARLEMENTAIRE","CIRCONSTANCES","APPARTEMENTS","ADMINISTRATION","RECOMMANDATION","CORRESPONDANCE","REPRESENTATION","RESPONSABILITE","EXTRAORDINAIRE","TRANSFORMATION","BIBLIOTHECAIRE","REVOLUTIONNAIRE"]
+  };
+  const DAILY_POOL = POOLS.normal;
 
   const MAX_ROWS = 6;
   const AZERTY = ["AZERTYUIOP","QSDFGHJKLM","WXCVBN"];
+  const SHARE_URL = "https://killianjourneau.github.io/Motus/";
+  const EPOCH = Math.floor(Date.UTC(2025,0,1)/86400000);
 
-  /* ---------- Persistance (protégée) ---------- */
+  /* ---------- Persistance protégée ---------- */
   const store = {
-    get(k, d){ try { const v = localStorage.getItem(k); return v===null ? d : JSON.parse(v); } catch(e){ return d; } },
-    set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+    get(k,d){ try{ const v=localStorage.getItem(k); return v===null?d:JSON.parse(v); }catch(e){ return d; } },
+    set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
   };
-  let stats = store.get("motus.stats", { played:0, won:0, streak:0, best:0 });
+  let theme = store.get("motus.theme","dark");
+  let stats = store.get("motus.stats", {played:0,won:0,streak:0,best:0,fail:0,dist:{1:0,2:0,3:0,4:0,5:0,6:0}});
+  if(!stats.dist) stats.dist = {1:0,2:0,3:0,4:0,5:0,6:0};
 
   /* ---------- État ---------- */
-  let answer = "", len = 0, row = 0, col = 0, grid = [], over = false;
-  let DICO = null; // Set des mots valides (null tant que non chargé)
+  let mode="normal", answer="", len=0, row=0, col=0, grid=[], over=false, won=false;
+  let guesses=[], rowStates=[], dicoByLen={}, dailyKey="", dailyNum=0;
 
-  const board = document.getElementById("board");
-  const keyboard = document.getElementById("keyboard");
-  const toastEl = document.getElementById("toast");
-  const keyEls = {};
+  const $ = id => document.getElementById(id);
+  const board=$("board"), keyboard=$("keyboard"), toastEl=$("toast"), themeBtn=$("btnTheme");
+  const keyEls={};
 
-  /* ---------- Init partie ---------- */
-  function newGame(){
-    answer = WORDS[Math.floor(Math.random()*WORDS.length)];
-    len = answer.length;
-    row = 0; col = 1; over = false;
-    grid = Array.from({length:MAX_ROWS}, () => Array(len).fill(""));
+  /* ---------- Thème ---------- */
+  function applyTheme(){
+    document.documentElement.dataset.theme = theme;
+    document.querySelector('meta[name=theme-color]').content = (theme==="light") ? "#eef2f9" : "#071633";
+    themeBtn.textContent = (theme==="dark") ? "☀️" : "🌙";
+  }
+  function toggleTheme(){ theme = (theme==="dark")?"light":"dark"; store.set("motus.theme",theme); applyTheme(); }
 
-    // taille des tuiles selon la longueur + l'espace dispo
-    const maxW = Math.min(window.innerWidth - 24, 520);
-    const gap = Math.max(4, Math.min(8, window.innerWidth*0.014));
-    const tile = Math.min(58, Math.floor((maxW - gap*(len-1)) / len));
-    document.documentElement.style.setProperty("--tile", tile + "px");
-    document.documentElement.style.setProperty("--gap", gap + "px");
+  /* ---------- Dictionnaire (une longueur par partie) ---------- */
+  function loadDico(l){
+    if(dicoByLen[l] !== undefined) return;
+    const p = String(l).padStart(2,"0");
+    fetch(`./dico-${p}.txt`).then(r => r.ok ? r.text() : Promise.reject())
+      .then(t => { dicoByLen[l] = new Set(t.split("\n").filter(Boolean)); })
+      .catch(() => { dicoByLen[l] = null; });
+  }
+  function isValid(w){ const s = dicoByLen[w.length]; return s ? s.has(w) : true; }
 
-    buildBoard();
-    resetKeyboardColors();
-    // première lettre donnée
-    setCell(0, 0, answer[0]);
-    board.querySelector(`.row[data-r="0"] .tile[data-c="0"]`).classList.add("correct");
+  /* ---------- Mot du jour ---------- */
+  function todayKey(){ const d=new Date(), p=n=>String(n).padStart(2,"0"); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; }
+  function dayNumber(key){ const [y,m,d]=key.split("-").map(Number); return Math.floor(Date.UTC(y,m-1,d)/86400000) - EPOCH; }
+  function dailyWord(num){ const L=DAILY_POOL.length; const i=((num*2654435761)>>>0)%L; return DAILY_POOL[i]; }
+
+  /* ---------- Évaluation (gère les doublons) ---------- */
+  function evaluate(guess){
+    const res=Array(len).fill("absent"), pool={};
+    for(const c of answer) pool[c]=(pool[c]||0)+1;
+    for(let i=0;i<len;i++) if(guess[i]===answer[i]){ res[i]="correct"; pool[guess[i]]--; }
+    for(let i=0;i<len;i++){ if(res[i]==="correct")continue; const c=guess[i]; if(pool[c]>0){ res[i]="present"; pool[c]--; } }
+    return res;
   }
 
+  /* ---------- Grille ---------- */
+  function computeSizing(){
+    const gap = len>=10 ? 3 : Math.max(4, Math.min(8, window.innerWidth*0.014));
+    const maxW = Math.min(window.innerWidth-14, 560);
+    let tile = Math.floor((maxW - gap*(len-1))/len);
+    tile = Math.min(tile, 58);
+    if(len<=8) tile = Math.max(tile, 30);
+    document.documentElement.style.setProperty("--tile", tile+"px");
+    document.documentElement.style.setProperty("--gap", gap+"px");
+  }
   function buildBoard(){
     board.style.gridTemplateRows = `repeat(${MAX_ROWS}, var(--tile))`;
-    board.innerHTML = "";
-    for(let r=0; r<MAX_ROWS; r++){
-      const rowEl = document.createElement("div");
-      rowEl.className = "row"; rowEl.dataset.r = r;
+    board.innerHTML="";
+    for(let r=0;r<MAX_ROWS;r++){
+      const rowEl=document.createElement("div"); rowEl.className="row"; rowEl.dataset.r=r;
       rowEl.style.gridTemplateColumns = `repeat(${len}, var(--tile))`;
-      for(let c=0; c<len; c++){
-        const t = document.createElement("div");
-        t.className = "tile"; t.dataset.c = c;
-        t.setAttribute("role","gridcell");
-        t.innerHTML = "<span></span>";
-        rowEl.appendChild(t);
+      for(let c=0;c<len;c++){
+        const t=document.createElement("div"); t.className="tile"; t.dataset.c=c; t.setAttribute("role","gridcell");
+        t.innerHTML="<span></span>"; rowEl.appendChild(t);
       }
       board.appendChild(rowEl);
     }
   }
-
   function tileAt(r,c){ return board.querySelector(`.row[data-r="${r}"] .tile[data-c="${c}"]`); }
-
-  function setCell(r, c, ch){
-    grid[r][c] = ch;
-    const t = tileAt(r,c);
-    t.querySelector("span").textContent = ch;
-    if(ch) t.classList.add("filled");
-    else t.classList.remove("filled");
+  function setCell(r,c,ch){
+    grid[r][c]=ch; const t=tileAt(r,c); t.querySelector("span").textContent=ch;
+    t.classList.toggle("filled", !!ch);
   }
 
-  /* ---------- Clavier écran ---------- */
+  /* ---------- Clavier ---------- */
   function buildKeyboard(){
-    keyboard.innerHTML = "";
-    AZERTY.forEach((line, i) => {
-      const kr = document.createElement("div");
-      kr.className = "krow";
-      if(i === 2){
-        kr.appendChild(makeKey("ENTRÉE", "enter", true));
-      }
-      for(const ch of line){
-        const k = makeKey(ch, ch, false);
-        keyEls[ch] = k;
-        kr.appendChild(k);
-      }
-      if(i === 2){
-        kr.appendChild(makeKey("⌫", "back", true));
-      }
+    keyboard.innerHTML="";
+    AZERTY.forEach((line,i)=>{
+      const kr=document.createElement("div"); kr.className="krow";
+      if(i===2) kr.appendChild(makeKey("ENTRÉE","enter",true));
+      for(const ch of line){ const k=makeKey(ch,ch,false); keyEls[ch]=k; kr.appendChild(k); }
+      if(i===2) kr.appendChild(makeKey("⌫","back",true));
       keyboard.appendChild(kr);
     });
   }
-  function makeKey(label, action, wide){
-    const b = document.createElement("button");
-    b.className = "key" + (wide ? " wide" : "");
-    b.textContent = label;
-    b.addEventListener("click", () => handleKey(action));
-    return b;
+  function makeKey(label,action,wide){
+    const b=document.createElement("button"); b.className="key"+(wide?" wide":""); b.textContent=label;
+    b.addEventListener("click",()=>handleKey(action)); return b;
   }
-  function resetKeyboardColors(){
-    for(const k in keyEls) keyEls[k].classList.remove("correct","present","absent");
+  function resetKeyboardColors(){ for(const k in keyEls) keyEls[k].classList.remove("correct","present","absent"); }
+  function paintKey(ch,state){
+    const k=keyEls[ch]; if(!k) return;
+    const rank={absent:0,present:1,correct:2};
+    const cur = k.classList.contains("correct")?"correct":k.classList.contains("present")?"present":k.classList.contains("absent")?"absent":null;
+    if(cur && rank[cur]>=rank[state]) return;
+    k.classList.remove("absent","present","correct"); k.classList.add(state);
   }
 
   /* ---------- Saisie ---------- */
-  function handleKey(action){
+  function handleKey(a){
     if(over) return;
-    if(action === "enter") return submit();
-    if(action === "back")  return backspace();
-    if(/^[A-Z]$/.test(action)) return type(action);
+    if(a==="enter") return submit();
+    if(a==="back")  return backspace();
+    if(/^[A-Z]$/.test(a)) return type(a);
   }
-  function type(ch){
-    if(col >= len) return;
-    setCell(row, col, ch);
-    col++;
-  }
-  function backspace(){
-    if(col <= 1) return;          // on ne supprime jamais la 1re lettre donnée
-    col--;
-    setCell(row, col, "");
-  }
+  function type(ch){ if(col>=len) return; setCell(row,col,ch); col++; }
+  function backspace(){ if(col<=1) return; col--; setCell(row,col,""); }
 
   function submit(){
-    if(col < len){
-      shake(); toast("Pas assez de lettres");
-      return;
+    if(col<len){ shake(); toast("Pas assez de lettres"); return; }
+    const guess=grid[row].join("");
+    if(!isValid(guess) && guess!==answer){ shake(); toast("Mot inconnu"); return; }
+    over=true;
+    const states=evaluate(guess);
+    guesses.push(guess); rowStates.push(states);
+    for(let c=0;c<len;c++){
+      const t=tileAt(row,c);
+      setTimeout(()=>{ t.classList.add("reveal"); setTimeout(()=>{ t.classList.remove("filled"); t.classList.add(states[c]); paintKey(guess[c],states[c]); }, 250); }, c*180);
     }
-    const guess = grid[row].join("");
-    if(DICO && !DICO.has(guess) && guess !== answer){
-      shake(); toast("Mot inconnu");
-      return;
-    }
-    reveal(guess);
+    setTimeout(()=>finishRow(guess===answer), (len-1)*180+520);
   }
 
-  /* ---------- Révélation (algo Motus, gère les doublons) ---------- */
-  function reveal(guess){
-    const res = Array(len).fill("absent");
-    const pool = {};
-    for(const ch of answer) pool[ch] = (pool[ch]||0) + 1;
-
-    // 1er passage : bonnes places
-    for(let c=0; c<len; c++){
-      if(guess[c] === answer[c]){ res[c] = "correct"; pool[guess[c]]--; }
-    }
-    // 2e passage : présentes ailleurs
-    for(let c=0; c<len; c++){
-      if(res[c] === "correct") continue;
-      const ch = guess[c];
-      if(pool[ch] > 0){ res[c] = "present"; pool[ch]--; }
-    }
-
-    over = true; // bloque la saisie pendant l'animation
-    for(let c=0; c<len; c++){
-      const t = tileAt(row, c);
-      setTimeout(() => {
-        t.classList.add("reveal");
-        setTimeout(() => {
-          t.classList.remove("filled");
-          t.classList.add(res[c]);
-          paintKey(guess[c], res[c]);
-        }, 250);
-      }, c * 180);
-    }
-
-    const total = (len-1) * 180 + 500;
-    setTimeout(() => finishRow(guess === answer), total);
-  }
-
-  function paintKey(ch, state){
-    const k = keyEls[ch]; if(!k) return;
-    const rank = { absent:0, present:1, correct:2 };
-    const cur = k.classList.contains("correct") ? "correct"
-              : k.classList.contains("present") ? "present"
-              : k.classList.contains("absent")  ? "absent" : null;
-    if(cur && rank[cur] >= rank[state]) return;
-    k.classList.remove("absent","present","correct");
-    k.classList.add(state);
-  }
-
-  function finishRow(won){
-    if(won){
-      vibrate([12,40,12]);
-      for(let c=0;c<len;c++){
-        const t = tileAt(row,c);
-        setTimeout(()=>t.classList.add("win"), c*70);
-      }
-      recordResult(true);
-      setTimeout(()=>endGame(true), 700);
-      return;
+  function finishRow(win){
+    save();
+    if(win){
+      won=true; vibrate([12,40,12]);
+      for(let c=0;c<len;c++) setTimeout(()=>tileAt(row,c).classList.add("jump"), c*70);
+      recordResult(true, guesses.length);
+      setTimeout(()=>showEnd(true), 720); return;
     }
     row++;
-    if(row >= MAX_ROWS){
-      recordResult(false);
-      setTimeout(()=>endGame(false), 350);
-      return;
-    }
-    // ligne suivante : on redonne la 1re lettre
-    col = 1; over = false;
-    setCell(row, 0, answer[0]);
-    tileAt(row,0).classList.add("correct");
+    if(row>=MAX_ROWS){ over=true; recordResult(false); save(); setTimeout(()=>showEnd(false), 360); return; }
+    col=1; over=false;
+    setCell(row,0,answer[0]); tileAt(row,0).classList.add("correct");
+    save();
   }
 
-  /* ---------- Fin & stats ---------- */
-  function recordResult(won){
-    stats.played++;
-    if(won){
-      stats.won++; stats.streak++;
-      if(stats.streak > stats.best) stats.best = stats.streak;
-    } else {
-      stats.streak = 0;
+  /* ---------- Rejouer une grille (restauration) ---------- */
+  function replay(list){
+    for(let r=0;r<list.length;r++){
+      const g=list[r]; const states=evaluate(g);
+      guesses.push(g); rowStates.push(states);
+      for(let c=0;c<len;c++){
+        setCell(r,c,g[c]); const t=tileAt(r,c);
+        t.classList.remove("filled"); t.classList.add(states[c]); paintKey(g[c],states[c]);
+      }
     }
+    row=list.length;
+    won = list.length>0 && list[list.length-1]===answer;
+  }
+
+  /* ---------- Stats ---------- */
+  function recordResult(win, tries){
+    stats.played++;
+    if(win){ stats.won++; stats.streak++; if(stats.streak>stats.best) stats.best=stats.streak; if(tries>=1&&tries<=6) stats.dist[tries]=(stats.dist[tries]||0)+1; }
+    else { stats.streak=0; stats.fail=(stats.fail||0)+1; }
     store.set("motus.stats", stats);
   }
-
   function winPct(){ return stats.played ? Math.round(stats.won/stats.played*100) : 0; }
-
   function refreshStats(){
-    const p = stats.played, w = winPct(), s = stats.streak, b = stats.best;
-    setText("sPlayed",p); setText("sWin",w+"%"); setText("sStreak",s);
-    setText("s2Played",p); setText("s2Win",w+"%"); setText("s2Streak",s); setText("s2Best",b);
+    const p=stats.played,w=winPct(),s=stats.streak,b=stats.best;
+    $("sPlayed").textContent=p; $("sWin").textContent=w+"%"; $("sStreak").textContent=s;
+    $("s2Played").textContent=p; $("s2Win").textContent=w+"%"; $("s2Streak").textContent=s; $("s2Best").textContent=b;
+    const max=Math.max(1,...[1,2,3,4,5,6].map(i=>stats.dist[i]||0));
+    $("dist").innerHTML=[1,2,3,4,5,6].map(i=>{
+      const v=stats.dist[i]||0, pct=Math.round(v/max*100);
+      return `<div class="bar"><span class="k">${i}</span><div class="t" style="width:${Math.max(pct,8)}%">${v}</div></div>`;
+    }).join("");
   }
 
-  function endGame(won){
+  /* ---------- Sauvegarde ---------- */
+  function save(){
+    if(mode==="daily"){
+      store.set("motus.daily", {day:dailyKey, guesses, done:over, won});
+    } else {
+      store.set("motus.free", {mode, answer, len, guesses, over, won});
+    }
+    store.set("motus.last", mode==="daily" ? "daily" : "free");
+  }
+
+  /* ---------- Démarrage d'une partie ---------- */
+  function startFree(m){
+    mode=m; over=false; won=false; guesses=[]; rowStates=[];
+    const pool=POOLS[m]; answer=pool[Math.floor(Math.random()*pool.length)];
+    setupBoardForAnswer(); loadDico(len); setActiveSeg(m); save();
+  }
+  function enterDaily(){
+    mode="daily"; guesses=[]; rowStates=[];
+    dailyKey=todayKey(); dailyNum=dayNumber(dailyKey); answer=dailyWord(dailyNum);
+    setupBoardForAnswer(); loadDico(len); setActiveSeg("daily");
+    let d=store.get("motus.daily",null);
+    if(!d || d.day!==dailyKey){ d={day:dailyKey,guesses:[],done:false,won:false}; store.set("motus.daily",d); }
+    if(d.guesses.length){ replay(d.guesses); }
+    over = d.done || row>=MAX_ROWS;
+    if(!over){ col=1; setCell(row,0,answer[0]); tileAt(row,0).classList.add("correct"); }
+    store.set("motus.last","daily");
+    if(d.done) showEnd(d.won, true);
+  }
+  function setupBoardForAnswer(){
+    len=answer.length; row=0; col=1;
+    grid=Array.from({length:MAX_ROWS},()=>Array(len).fill(""));
+    computeSizing(); buildBoard(); resetKeyboardColors();
+    setCell(0,0,answer[0]); tileAt(0,0).classList.add("correct");
+  }
+  function restoreFree(f){
+    mode=f.mode; answer=f.answer; guesses=[]; rowStates=[]; won=false;
+    len=answer.length; grid=Array.from({length:MAX_ROWS},()=>Array(len).fill(""));
+    computeSizing(); buildBoard(); resetKeyboardColors();
+    replay(f.guesses||[]);
+    over = f.over || row>=MAX_ROWS;
+    if(!over){ col=1; setCell(row,0,answer[0]); tileAt(row,0).classList.add("correct"); }
+    loadDico(len); setActiveSeg(mode);
+  }
+
+  function setActiveSeg(m){ document.querySelectorAll(".seg").forEach(s=>s.classList.toggle("active", s.dataset.mode===m)); }
+
+  /* ---------- Partage ---------- */
+  function shareText(){
+    const tries = won ? guesses.length : "X";
+    const grid = rowStates.map(st => st.map(s => s==="correct"?"🟥":s==="present"?"🟡":"⬛").join("")).join("\n");
+    return `Motus #${dailyNum} — ${tries}/6\n${grid}\n${SHARE_URL}`;
+  }
+  function share(){
+    const text=shareText();
+    if(navigator.share){ navigator.share({text}).catch(()=>copy(text)); }
+    else copy(text);
+  }
+  function copy(text){
+    try{ navigator.clipboard.writeText(text).then(()=>toast("Résultat copié"), ()=>toast("Copie impossible")); }
+    catch(e){ toast("Copie impossible"); }
+  }
+
+  /* ---------- Fin de partie ---------- */
+  function showEnd(win, isDaily){
     refreshStats();
-    document.getElementById("endTitle").textContent = won ? "Bravo !" : "Dommage…";
-    document.getElementById("endSub").innerHTML = won
-      ? `Trouvé en ${row+1} essai${row+1>1?"s":""}.`
-      : `Le mot était <b>${answer}</b>.`;
+    $("endTitle").textContent = win ? "Bravo !" : "Dommage…";
+    $("endSub").innerHTML = win ? `Trouvé en ${guesses.length} essai${guesses.length>1?"s":""}.` : `Le mot était <b>${answer}</b>.`;
+    $("btnShare").style.display = (isDaily||mode==="daily") ? "block" : "none";
     openOverlay("endOverlay");
   }
 
-  /* ---------- UI helpers ---------- */
+  /* ---------- Helpers UI ---------- */
   let toastTimer;
-  function toast(msg){
-    toastEl.textContent = msg;
-    toastEl.classList.add("show");
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(()=>toastEl.classList.remove("show"), 1400);
-  }
-  function shake(){
-    const r = board.querySelector(`.row[data-r="${row}"]`);
-    r.classList.add("shake");
-    vibrate(20);
-    setTimeout(()=>r.classList.remove("shake"), 420);
-  }
+  function toast(msg){ toastEl.textContent=msg; toastEl.classList.add("show"); clearTimeout(toastTimer); toastTimer=setTimeout(()=>toastEl.classList.remove("show"),1400); }
+  function shake(){ const r=board.querySelector(`.row[data-r="${row}"]`); if(!r)return; r.classList.add("shake"); vibrate(20); setTimeout(()=>r.classList.remove("shake"),420); }
   function vibrate(p){ try{ navigator.vibrate && navigator.vibrate(p); }catch(e){} }
-  function setText(id,v){ document.getElementById(id).textContent = v; }
-
-  function openOverlay(id){ document.getElementById(id).classList.add("open"); }
+  function openOverlay(id){ $(id).classList.add("open"); }
   function closeOverlays(){ document.querySelectorAll(".overlay").forEach(o=>o.classList.remove("open")); }
 
   /* ---------- Événements ---------- */
-  document.addEventListener("keydown", e => {
+  document.addEventListener("keydown", e=>{
     if(document.querySelector(".overlay.open")) return;
-    const k = e.key;
-    if(k === "Enter") handleKey("enter");
-    else if(k === "Backspace") handleKey("back");
-    else if(/^[a-zA-Z]$/.test(k)){
-      let ch = k.toUpperCase();
-      // AZERTY : a<->q, z<->w, m après l — on accepte la lettre telle quelle
-      handleKey(ch);
-    }
+    const k=e.key;
+    if(k==="Enter") handleKey("enter");
+    else if(k==="Backspace") handleKey("back");
+    else if(/^[a-zA-Z]$/.test(k)) handleKey(k.toUpperCase());
   });
 
-  document.getElementById("btnNew").addEventListener("click", () => { closeOverlays(); newGame(); });
-  document.getElementById("btnReplay").addEventListener("click", () => { closeOverlays(); newGame(); });
-  document.getElementById("btnHelp").addEventListener("click", () => openOverlay("helpOverlay"));
-  document.getElementById("btnStats").addEventListener("click", () => { refreshStats(); openOverlay("statsOverlay"); });
-  document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", closeOverlays));
-  document.querySelectorAll(".overlay").forEach(o => o.addEventListener("click", e => { if(e.target === o) closeOverlays(); }));
+  themeBtn.addEventListener("click", toggleTheme);
+  $("btnHelp").addEventListener("click", ()=>openOverlay("helpOverlay"));
+  $("btnStats").addEventListener("click", ()=>{ refreshStats(); openOverlay("statsOverlay"); });
+  $("btnNew").addEventListener("click", ()=>{ closeOverlays(); mode==="daily" ? enterDaily() : startFree(mode); });
+  $("btnAgain").addEventListener("click", ()=>{ closeOverlays(); mode==="daily" ? enterDaily() : startFree(mode); });
+  $("btnShare").addEventListener("click", share);
 
-  window.addEventListener("resize", () => {
-    // recalcule la taille des tuiles sans perdre la partie
-    const maxW = Math.min(window.innerWidth - 24, 520);
-    const gap = Math.max(4, Math.min(8, window.innerWidth*0.014));
-    const tile = Math.min(58, Math.floor((maxW - gap*(len-1)) / len));
-    document.documentElement.style.setProperty("--tile", tile + "px");
-    document.documentElement.style.setProperty("--gap", gap + "px");
-  });
+  document.querySelectorAll(".seg").forEach(s=>s.addEventListener("click", ()=>{
+    const m=s.dataset.mode; closeOverlays();
+    if(m==="daily") enterDaily();
+    else if(m!==mode || over) startFree(m);
+  }));
 
-  /* ---------- Service worker (actif une fois sw.js déployé) ---------- */
-  if("serviceWorker" in navigator){
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.register("./sw.js").catch(()=>{});
-    });
-  }
+  document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click", closeOverlays));
+  document.querySelectorAll(".overlay").forEach(o=>o.addEventListener("click", e=>{ if(e.target===o) closeOverlays(); }));
+  window.addEventListener("resize", ()=>{ if(len) computeSizing(); });
 
-  /* ---------- Dictionnaire ---------- */
-  function loadDico(){
-    fetch("./dico.txt")
-      .then(r => r.ok ? r.text() : Promise.reject())
-      .then(txt => { DICO = new Set(txt.split("\n").filter(Boolean)); })
-      .catch(() => { DICO = null; }); // échec de chargement : on laisse jouer sans blocage
-  }
+  if("serviceWorker" in navigator){ window.addEventListener("load", ()=>navigator.serviceWorker.register("./sw.js").catch(()=>{})); }
 
-  /* ---------- Démarrage ---------- */
-  loadDico();
+  /* ---------- Init ---------- */
+  applyTheme();
   buildKeyboard();
-  newGame();
   refreshStats();
-  if(!store.get("motus.seen", false)){ openOverlay("helpOverlay"); store.set("motus.seen", true); }
+  const last = store.get("motus.last","free");
+  if(last==="daily"){ enterDaily(); }
+  else {
+    const f = store.get("motus.free",null);
+    if(f && f.answer && !f.over && (f.guesses||[]).length < MAX_ROWS && (f.guesses||[])[(f.guesses||[]).length-1] !== f.answer){ restoreFree(f); }
+    else startFree("normal");
+  }
+  if(!store.get("motus.seen",false)){ openOverlay("helpOverlay"); store.set("motus.seen",true); }
 })();
 </script>
 </body>
