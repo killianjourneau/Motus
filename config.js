@@ -10,6 +10,6 @@
 //   SUPABASE_ANON_KEY  = clé "anon public"  (elle est publique, c'est normal)
 // ---------------------------------------------------------------------------
 window.MOTUS_CONFIG = {
-  SUPABASE_URL: "",
-  SUPABASE_ANON_KEY: ""
+  SUPABASE_URL: "https://aqhdjnmdkgsfvfholkcj.supabase.co",
+  SUPABASE_ANON_KEY: "sb_publishable_VRkJVYDF_RekOX0c7ifHhQ_dfjdj_P-"
 };
