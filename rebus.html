@@ -52,9 +52,11 @@
   .puzzle-no{ color:var(--ink-dim); font-size:13px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; }
 
   #clue{ display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:10px; max-width:560px; }
-  .card{ min-width:64px; height:74px; padding:0 12px; background:var(--cell); border-radius:var(--radius); box-shadow: inset 0 0 0 1.5px var(--cell-edge); display:grid; place-items:center; }
+  .card{ position:relative; min-width:64px; height:74px; padding:0 12px; background:var(--cell); border-radius:var(--radius); box-shadow: inset 0 0 0 1.5px var(--cell-edge); display:grid; place-items:center; }
   .card.emoji{ font-size:40px; }
   .card.text{ font-size:24px; font-weight:800; color:var(--ink); }
+  .card.partial{ box-shadow: inset 0 0 0 2px var(--yellow); }
+  .badge{ position:absolute; top:-8px; right:-8px; width:22px; height:22px; border-radius:50%; background:var(--yellow); color:#1a1a1a; font-size:13px; font-weight:800; display:grid; place-items:center; box-shadow:0 2px 6px rgba(0,0,0,.35); }
 
   #hint{ color:var(--ink-dim); font-size:16px; letter-spacing:3px; font-weight:700; min-height:20px; }
 
@@ -102,7 +104,7 @@
       <button class="icon-btn" id="btnGame" aria-label="Jouer à Motus">🔤</button>
       <button class="icon-btn" id="btnTheme" aria-label="Thème">☀️</button>
       <button class="icon-btn" id="btnHelp" aria-label="Règles">?</button>
-      <button class="icon-btn" id="btnStats" aria-label="Statistiques">📊</button>
+      <button class="icon-btn" id="btnProfile" aria-label="Profil">👤</button>
     </div>
   </header>
 
@@ -145,6 +147,7 @@
       <h2>Comment jouer</h2>
       <p class="sub">Prononcez chaque image à voix haute et assemblez les sons pour trouver la réponse.</p>
       <p>Exemple : 🐱 + 🫙 se lit « chat » + « pot » = <b>chapeau</b>.</p>
+      <p>Un badge <b>½</b> sur une image = ne garde que le <b>début</b> du mot (ex. ☀️ soleil ½ → « sol »).</p>
       <p>Les accents, tirets et espaces n'ont pas d'importance. Bloqué ? Utilisez <b>Indice</b> puis <b>Solution</b>.</p>
       <p><b>Jour</b> : le même rébus pour tous, une fois par jour. <b>Libre</b> : enchaînez-en autant que vous voulez.</p>
       <button class="btn" data-close>C'est parti</button>
@@ -152,21 +155,9 @@
   </div>
 
   <!-- Stats -->
-  <div class="overlay" id="statsOverlay">
-    <div class="modal">
-      <button class="close-x" data-close>&times;</button>
-      <h2>Statistiques</h2>
-      <p class="sub">Rébus du jour</p>
-      <div class="stats">
-        <div class="stat"><div class="n" id="sPlayed">0</div><div class="l">Joués</div></div>
-        <div class="stat"><div class="n" id="sSolved">0</div><div class="l">Trouvés</div></div>
-        <div class="stat"><div class="n" id="sStreak">0</div><div class="l">Série</div></div>
-        <div class="stat"><div class="n" id="sBest">0</div><div class="l">Record</div></div>
-      </div>
-      <button class="btn ghost" data-close>Fermer</button>
-    </div>
-  </div>
 
+<script src="./config.js"></script>
+<script src="./profile.js"></script>
 <script>
 (() => {
   "use strict";
@@ -177,11 +168,11 @@
     { clue:["🐱","T","🌊"], answer:"château", exp:"chat + T + eau" },
     { clue:["🦌","✈️"], answer:"cerf-volant", exp:"cerf + volant (qui vole)" },
     { clue:["2️⃣","✋"], answer:"demain", exp:"deux + main" },
-    { clue:["🍬","📅"], answer:"bonjour", exp:"bonbon (bon) + jour" },
-    { clue:["🪂","🌧️"], answer:"parapluie", exp:"para(chute) + pluie" },
-    { clue:["🪂","☀️"], answer:"parasol", exp:"para + sol(eil)" },
+    { clue:[{v:"🍬",p:1},"📅"], answer:"bonjour", exp:"bonbon (bon) + jour" },
+    { clue:[{v:"🪂",p:1},"🌧️"], answer:"parapluie", exp:"parachute (para) + pluie" },
+    { clue:[{v:"🪂",p:1},{v:"☀️",p:1}], answer:"parasol", exp:"parachute (para) + soleil (sol)" },
     { clue:["🔄","🔩"], answer:"tournevis", exp:"tourne + vis" },
-    { clue:["🔄","☀️"], answer:"tournesol", exp:"tourne + sol(eil)" },
+    { clue:["🔄",{v:"☀️",p:1}], answer:"tournesol", exp:"tourne + soleil (sol)" },
     { clue:["🚪","🧥"], answer:"portemanteau", exp:"porte + manteau" },
     { clue:["🚪","🍂"], answer:"portefeuille", exp:"porte + feuille" },
     { clue:["🏹","en","🌌"], answer:"arc-en-ciel", exp:"arc + en + ciel" },
@@ -231,10 +222,14 @@
   function render(){
     const clue=$("clue"); clue.innerHTML="";
     cur.clue.forEach(tok=>{
-      const isText = /[A-Za-zÀ-ÿ]/.test(tok) && !/\p{Extended_Pictographic}/u.test(tok);
+      const val = (typeof tok==="object") ? tok.v : tok;
+      const part = (typeof tok==="object") && tok.p;
+      const isText = /[A-Za-zÀ-ÿ]/.test(val) && !/\p{Extended_Pictographic}/u.test(val);
       const c=document.createElement("div");
       c.className="card "+(isText?"text":"emoji");
-      c.textContent=tok; clue.appendChild(c);
+      const s=document.createElement("span"); s.textContent=val; c.appendChild(s);
+      if(part){ c.classList.add("partial"); const b=document.createElement("span"); b.className="badge"; b.textContent="½"; c.appendChild(b); }
+      clue.appendChild(c);
     });
     $("puzzleNo").textContent = mode==="daily" ? `Rébus du jour #${dayNum}` : "Rébus libre";
     $("hint").textContent="";
@@ -250,7 +245,15 @@
     cur=PUZZLES[idx]; done=false; solved=false;
     render();
     const d=store.get("rebus.daily",null);
-    if(d && d.day===dayKey && d.done){ solved=d.solved; finish(d.solved, true); }
+    if(d && d.day===dayKey && d.done){
+      // Déjà joué aujourd'hui : on NE réaffiche PAS la solution.
+      done=true;
+      $("guess").disabled=true;
+      $("btnCheck").disabled=false; $("btnCheck").textContent="Rébus suivant";
+      $("btnHint").disabled=true; $("btnReveal").disabled=true;
+      const fb=$("feedback"); fb.className="ok";
+      fb.textContent = d.solved ? "Rébus du jour déjà résolu ✅ — à demain !" : "Rébus du jour déjà joué — à demain !";
+    }
   }
   function loadLibre(next){
     mode="libre"; setSeg();
@@ -293,8 +296,11 @@
         if(won){ stats.solved++; stats.streak++; if(stats.streak>stats.best) stats.best=stats.streak; }
         else stats.streak=0;
         store.set("rebus.stats",stats);
+        if(window.Profile) Profile.addGame({ won, xp: won?25:5 });
       }
       store.set("rebus.daily",{day:dayKey, done:true, solved:won});
+    } else if(mode==="libre" && !restored){
+      if(window.Profile) Profile.addGame({ won, xp: won?8:0 });
     }
     showEnd(won);
   }
@@ -317,7 +323,10 @@
   function copy(t){ try{ navigator.clipboard.writeText(t).then(()=>toast("Copié"),()=>{}); }catch(e){} }
 
   /* ---------- Stats ---------- */
-  function refreshStats(){ $("sPlayed").textContent=stats.played; $("sSolved").textContent=stats.solved; $("sStreak").textContent=stats.streak; $("sBest").textContent=stats.best; }
+  function rebusStatsHTML(){
+    const pct = stats.played ? Math.round(stats.solved/stats.played*100) : 0;
+    return `<div class="dist-title">Rébus du jour — ${stats.played} joués · ${stats.solved} trouvés (${pct}%) · série ${stats.streak} (record ${stats.best})</div>`;
+  }
 
   let tT;
   function toast(m){ let el=$("feedback"); el.textContent=m; el.className="ok"; clearTimeout(tT); tT=setTimeout(()=>{ if(done) return; el.textContent=""; el.className=""; },1400); }
@@ -328,7 +337,7 @@
   $("btnGame").addEventListener("click", ()=>{ location.href="./index.html"; });
   themeBtn.addEventListener("click", toggleTheme);
   $("btnHelp").addEventListener("click", ()=>openOverlay("helpOverlay"));
-  $("btnStats").addEventListener("click", ()=>{ refreshStats(); openOverlay("statsOverlay"); });
+  $("btnProfile").addEventListener("click", ()=>{ if(window.Profile) Profile.open(rebusStatsHTML()); });
   $("btnCheck").addEventListener("click", ()=>{ done ? goNext() : check(); });
   $("btnHint").addEventListener("click", hint);
   $("btnReveal").addEventListener("click", reveal);
@@ -343,8 +352,11 @@
 
   /* ---------- Init ---------- */
   applyTheme();
-  refreshStats();
   loadDaily();
+  // Si le rébus du jour est déjà fait, on démarre directement en mode Libre
+  // (on ne veut pas ouvrir sur un rébus terminé).
+  const dr = store.get("rebus.daily",null);
+  if(dr && dr.day===dayKey && dr.done) loadLibre();
   if(!store.get("rebus.seen",false)){ openOverlay("helpOverlay"); store.set("rebus.seen",true); }
 })();
 </script>

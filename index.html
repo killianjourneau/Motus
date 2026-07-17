@@ -158,7 +158,7 @@
       <button class="icon-btn" id="btnGame" aria-label="Jouer au Rébus">🧩</button>
       <button class="icon-btn" id="btnTheme" aria-label="Thème">☀️</button>
       <button class="icon-btn" id="btnHelp" aria-label="Règles">?</button>
-      <button class="icon-btn" id="btnStats" aria-label="Statistiques">📊</button>
+      <button class="icon-btn" id="btnProfile" aria-label="Profil">👤</button>
       <button class="icon-btn" id="btnNew" aria-label="Nouvelle partie">↻</button>
     </div>
   </header>
@@ -208,24 +208,6 @@
     </div>
   </div>
 
-  <!-- Stats -->
-  <div class="overlay" id="statsOverlay">
-    <div class="modal">
-      <button class="close-x" data-close>&times;</button>
-      <h2>Statistiques</h2>
-      <p class="sub">Votre parcours sur cet appareil</p>
-      <div class="stats">
-        <div class="stat"><div class="n" id="s2Played">0</div><div class="l">Parties</div></div>
-        <div class="stat"><div class="n" id="s2Win">0%</div><div class="l">Victoires</div></div>
-        <div class="stat"><div class="n" id="s2Streak">0</div><div class="l">Série</div></div>
-        <div class="stat"><div class="n" id="s2Best">0</div><div class="l">Record</div></div>
-      </div>
-      <div class="dist-title">Nombre d'essais</div>
-      <div class="dist" id="dist"></div>
-      <button class="btn ghost" data-close>Fermer</button>
-    </div>
-  </div>
-
   <!-- Confirmation -->
   <div class="overlay" id="confirmOverlay">
     <div class="modal">
@@ -236,6 +218,8 @@
     </div>
   </div>
 
+<script src="./config.js"></script>
+<script src="./profile.js"></script>
 <script>
 (() => {
   "use strict";
@@ -379,16 +363,24 @@
     setTimeout(()=>finishRow(guess===answer), (len-1)*180+520);
   }
 
+  const MODE_FACTOR = { court:0.8, normal:1, long:1.4, daily:1.1 };
+  function awardXp(win){
+    if(!window.Profile) return;
+    const f = MODE_FACTOR[mode] || 1;
+    const xp = win ? Math.round((15 + Math.max(0,6-guesses.length)*4) * f) : 5;
+    Profile.addGame({ won:win, xp });
+  }
+
   function finishRow(win){
     if(win){
       over=true; won=true; vibrate([12,40,12]);
       for(let c=0;c<len;c++) setTimeout(()=>tileAt(row,c).classList.add("jump"), c*70);
-      recordResult(true, guesses.length);
+      recordResult(true, guesses.length); awardXp(true);
       save();
       setTimeout(()=>showEnd(true), 720); return;
     }
     row++;
-    if(row>=MAX_ROWS){ over=true; recordResult(false); save(); setTimeout(()=>showEnd(false), 360); return; }
+    if(row>=MAX_ROWS){ over=true; recordResult(false); awardXp(false); save(); setTimeout(()=>showEnd(false), 360); return; }
     col=1; over=false;
     setCell(row,0,answer[0]); tileAt(row,0).classList.add("correct");
     save();
@@ -417,14 +409,13 @@
   }
   function winPct(){ return stats.played ? Math.round(stats.won/stats.played*100) : 0; }
   function refreshStats(){
-    const p=stats.played,w=winPct(),s=stats.streak,b=stats.best;
-    $("sPlayed").textContent=p; $("sWin").textContent=w+"%"; $("sStreak").textContent=s;
-    $("s2Played").textContent=p; $("s2Win").textContent=w+"%"; $("s2Streak").textContent=s; $("s2Best").textContent=b;
+    $("sPlayed").textContent=stats.played; $("sWin").textContent=winPct()+"%"; $("sStreak").textContent=stats.streak;
+  }
+  function motusStatsHTML(){
     const max=Math.max(1,...[1,2,3,4,5,6].map(i=>stats.dist[i]||0));
-    $("dist").innerHTML=[1,2,3,4,5,6].map(i=>{
-      const v=stats.dist[i]||0, pct=Math.round(v/max*100);
-      return `<div class="bar"><span class="k">${i}</span><div class="t" style="width:${Math.max(pct,8)}%">${v}</div></div>`;
-    }).join("");
+    const bars=[1,2,3,4,5,6].map(i=>{ const v=stats.dist[i]||0, pct=Math.round(v/max*100);
+      return `<div class="bar"><span class="k">${i}</span><div class="t" style="width:${Math.max(pct,8)}%">${v}</div></div>`; }).join("");
+    return `<div class="dist-title">Motus — ${stats.played} parties · ${winPct()}% · série ${stats.streak} (record ${stats.best})</div><div class="dist">${bars}</div>`;
   }
 
   /* ---------- Sauvegarde ---------- */
@@ -539,7 +530,7 @@
   themeBtn.addEventListener("click", toggleTheme);
   $("btnGame").addEventListener("click", ()=>{ location.href="./rebus.html"; });
   $("btnHelp").addEventListener("click", ()=>openOverlay("helpOverlay"));
-  $("btnStats").addEventListener("click", ()=>{ refreshStats(); openOverlay("statsOverlay"); });
+  $("btnProfile").addEventListener("click", ()=>{ if(window.Profile) Profile.open(motusStatsHTML()); });
   $("btnNew").addEventListener("click", ()=>{
     closeOverlays();
     if(mode==="daily"){ switchMode("normal"); return; }        // le mot du jour est unique : on lance un mot au hasard
