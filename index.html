@@ -12,7 +12,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Motus">
-<link rel="apple-touch-icon" href="./icon-512.png">
+<link rel="apple-touch-icon" href="./icons/icon-512.png">
 
 <style>
   :root{
@@ -218,8 +218,8 @@
     </div>
   </div>
 
-<script src="./config.js"></script>
-<script src="./profile.js"></script>
+<script src="./profiles/config.js"></script>
+<script src="./profiles/profile.js"></script>
 <script>
 (() => {
   "use strict";
@@ -266,7 +266,7 @@
   function loadDico(l){
     if(dicoByLen[l] !== undefined) return;
     const p = String(l).padStart(2,"0");
-    fetch(`./dico-${p}.txt`).then(r => r.ok ? r.text() : Promise.reject())
+    fetch(`./dico/dico-${p}.txt`).then(r => r.ok ? r.text() : Promise.reject())
       .then(t => { dicoByLen[l] = new Set(t.split("\n").filter(Boolean)); })
       .catch(() => { dicoByLen[l] = null; });
   }

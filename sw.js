@@ -1,16 +1,16 @@
 /* Motus — service worker */
-const CACHE = "motus-v10";
+const CACHE = "motus-v11";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.json",
-  "./icon-512.png",
   "./rebus.html",
-  "./config.js",
-  "./profile.js",
-  "./dico-06.txt",
-  "./dico-07.txt",
-  "./dico-08.txt"
+  "./icons/icon-512.png",
+  "./profiles/config.js",
+  "./profiles/profile.js",
+  "./dico/dico-06.txt",
+  "./dico/dico-07.txt",
+  "./dico/dico-08.txt"
 ];
 
 // Installation : app shell + dicos du mode par défaut
