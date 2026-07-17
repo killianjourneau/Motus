@@ -11,5 +11,5 @@
 // ---------------------------------------------------------------------------
 window.MOTUS_CONFIG = {
   SUPABASE_URL: "https://aqhdjnmdkgsfvfholkcj.supabase.co",
-  SUPABASE_ANON_KEY: "sb_publishable_VRkJVYDF_RekOX0c7ifHhQ_dfjdj_P-"
+  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFxaGRqbm1ka2dzZnZmaG9sa2NqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyOTQ3MDAsImV4cCI6MjA5OTg3MDcwMH0.-xiBYAgH6k1xdRzqhn9ZGzZJxivA_vT53l8UDef8e0g"
 };
