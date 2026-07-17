@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Rébus — devinez la réponse cachée derrière les images.">
+<title>Rébus</title>
+
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#071633">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Rébus">
+<link rel="apple-touch-icon" href="./icon-512.png">
+
+<script>
+  // Applique le thème partagé avec Motus avant le rendu (évite le flash).
+  try{ var t=JSON.parse(localStorage.getItem("motus.theme")); if(t) document.documentElement.dataset.theme=t; }catch(e){}
+</script>
+
+<style>
+  :root{
+    --bg:#071633; --bg-2:#0b2247; --cell:#10305f; --cell-edge:#1d477f;
+    --red:#e23a44; --yellow:#ffcb2e; --ink:#ffffff; --ink-dim:#8aa6cf;
+    --green:#3aa76d; --radius:14px;
+  }
+  :root[data-theme="light"]{
+    --bg:#eef2f9; --bg-2:#dfe7f3; --cell:#cdd8ea; --cell-edge:#b6c5df;
+    --red:#e23a44; --yellow:#f2be14; --ink:#14233c; --ink-dim:#5c6c88; --green:#2f9160;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  html,body{ height:100%; }
+  body{
+    font-family: ui-rounded, "SF Pro Rounded", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    color:var(--ink);
+    background: radial-gradient(120% 90% at 50% 0%, var(--bg-2) 0%, var(--bg) 60%);
+    background-attachment: fixed; min-height:100dvh; display:flex; flex-direction:column;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  header{ display:flex; align-items:center; justify-content:space-between; padding:12px clamp(12px,4vw,22px) 4px; gap:8px; }
+  .brand{ display:flex; align-items:center; gap:8px; font-weight:800; font-size:22px; letter-spacing:.5px; }
+  .brand .p{ width:34px; height:34px; display:grid; place-items:center; background:var(--red); border-radius:9px; font-size:19px; }
+  .tools{ display:flex; gap:6px; }
+  .icon-btn{ width:clamp(34px,9.5vw,40px); height:clamp(34px,9.5vw,40px); border:none; border-radius:10px; background:var(--cell); color:var(--ink); font-size:17px; cursor:pointer; display:grid; place-items:center; transition:.15s; }
+  .icon-btn:active{ transform:scale(.94); }
+
+  #modes{ display:flex; gap:6px; padding:4px clamp(12px,4vw,22px) 2px; }
+  .seg{ flex:1; height:38px; border:none; border-radius:10px; background:var(--cell); color:var(--ink-dim); font-weight:700; font-size:14px; cursor:pointer; box-shadow: inset 0 0 0 1.5px var(--cell-edge); }
+  .seg.active{ background:var(--red); color:#fff; box-shadow:none; }
+
+  main{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; padding:14px clamp(12px,4vw,22px) 20px; min-height:0; }
+
+  .puzzle-no{ color:var(--ink-dim); font-size:13px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; }
+
+  #clue{ display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:10px; max-width:560px; }
+  .card{ min-width:64px; height:74px; padding:0 12px; background:var(--cell); border-radius:var(--radius); box-shadow: inset 0 0 0 1.5px var(--cell-edge); display:grid; place-items:center; }
+  .card.emoji{ font-size:40px; }
+  .card.text{ font-size:24px; font-weight:800; color:var(--ink); }
+
+  #hint{ color:var(--ink-dim); font-size:16px; letter-spacing:3px; font-weight:700; min-height:20px; }
+
+  .answer-area{ width:100%; max-width:420px; display:flex; flex-direction:column; gap:10px; align-items:center; }
+  #guess{ width:100%; height:54px; border:none; border-radius:12px; background:var(--cell); box-shadow: inset 0 0 0 1.5px var(--cell-edge); color:var(--ink); font-size:18px; font-weight:600; text-align:center; padding:0 14px; }
+  #guess:focus{ outline:none; box-shadow: inset 0 0 0 2px var(--red); }
+  #guess:disabled{ opacity:.7; }
+  #guess::placeholder{ color:var(--ink-dim); }
+  .row-btn{ display:flex; gap:10px; width:100%; }
+  .btn{ flex:1; height:52px; border:none; border-radius:12px; background:var(--red); color:#fff; font-weight:800; font-size:16px; cursor:pointer; transition:transform .08s, filter .15s; }
+  .btn:hover{ filter:brightness(1.08); }
+  .btn:active{ transform:scale(.98); }
+  .btn.ghost{ background:transparent; color:var(--ink); box-shadow: inset 0 0 0 1.5px var(--cell-edge); }
+
+  #feedback{ min-height:24px; font-weight:700; font-size:15px; text-align:center; }
+  #feedback.ok{ color:var(--green); }
+  #feedback.no{ color:var(--red); }
+  .shake{ animation:shake .4s; }
+  @keyframes shake{ 10%,90%{transform:translateX(-2px)} 20%,80%{transform:translateX(4px)} 30%,50%,70%{transform:translateX(-6px)} 40%,60%{transform:translateX(6px)} }
+
+  .overlay{ position:fixed; inset:0; background:rgba(2,8,20,.72); backdrop-filter:blur(4px); display:none; z-index:100; align-items:center; justify-content:center; padding:20px; }
+  .overlay.open{ display:flex; }
+  .modal{ position:relative; background:var(--bg-2); border:1px solid var(--cell-edge); border-radius:20px; padding:24px; width:100%; max-width:380px; box-shadow:0 20px 60px rgba(0,0,0,.5); animation:rise .25s ease; }
+  @keyframes rise{ from{opacity:0; transform:translateY(16px)} to{opacity:1; transform:none} }
+  .modal h2{ font-size:24px; margin-bottom:6px; text-align:center; }
+  .modal .sub{ color:var(--ink-dim); text-align:center; font-size:14px; margin-bottom:16px; }
+  .modal p{ font-size:14px; line-height:1.55; color:var(--ink); margin-bottom:12px; text-align:center; }
+  .modal .btn{ width:100%; margin-top:6px; }
+  .modal .big{ font-size:30px; font-weight:800; text-align:center; color:var(--ink); margin:6px 0; }
+  .close-x{ position:absolute; top:12px; right:14px; background:none; border:none; color:var(--ink-dim); font-size:24px; cursor:pointer; }
+  .stats{ display:flex; justify-content:space-around; margin:10px 0 18px; }
+  .stat{ text-align:center; }
+  .stat .n{ font-size:28px; font-weight:800; }
+  .stat .l{ font-size:11px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.5px; }
+  @media (prefers-reduced-motion: reduce){ *{ animation:none !important; transition:none !important; } }
+</style>
+</head>
+<body>
+
+  <header>
+    <div class="brand"><span class="p">🧩</span> RÉBUS</div>
+    <div class="tools">
+      <button class="icon-btn" id="btnGame" aria-label="Jouer à Motus">🔤</button>
+      <button class="icon-btn" id="btnTheme" aria-label="Thème">☀️</button>
+      <button class="icon-btn" id="btnHelp" aria-label="Règles">?</button>
+      <button class="icon-btn" id="btnStats" aria-label="Statistiques">📊</button>
+    </div>
+  </header>
+
+  <div id="modes">
+    <button class="seg active" data-mode="daily">Jour</button>
+    <button class="seg" data-mode="libre">Libre</button>
+  </div>
+
+  <main>
+    <div class="puzzle-no" id="puzzleNo"></div>
+    <div id="clue"></div>
+    <div id="hint"></div>
+    <div class="answer-area">
+      <input id="guess" type="text" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" placeholder="Votre réponse…">
+      <div id="feedback"></div>
+      <button class="btn" id="btnCheck">Valider</button>
+      <div class="row-btn">
+        <button class="btn ghost" id="btnHint">Indice</button>
+        <button class="btn ghost" id="btnReveal">Solution</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Succès / solution -->
+  <div class="overlay" id="endOverlay">
+    <div class="modal">
+      <button class="close-x" data-close>&times;</button>
+      <h2 id="endTitle">Bravo !</h2>
+      <div class="big" id="endAnswer"></div>
+      <p class="sub" id="endExp"></p>
+      <button class="btn" id="btnShare" style="display:none">Partager</button>
+      <button class="btn ghost" id="btnNext">Rébus suivant</button>
+    </div>
+  </div>
+
+  <!-- Règles -->
+  <div class="overlay" id="helpOverlay">
+    <div class="modal">
+      <button class="close-x" data-close>&times;</button>
+      <h2>Comment jouer</h2>
+      <p class="sub">Prononcez chaque image à voix haute et assemblez les sons pour trouver la réponse.</p>
+      <p>Exemple : 🐱 + 🫙 se lit « chat » + « pot » = <b>chapeau</b>.</p>
+      <p>Les accents, tirets et espaces n'ont pas d'importance. Bloqué ? Utilisez <b>Indice</b> puis <b>Solution</b>.</p>
+      <p><b>Jour</b> : le même rébus pour tous, une fois par jour. <b>Libre</b> : enchaînez-en autant que vous voulez.</p>
+      <button class="btn" data-close>C'est parti</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="overlay" id="statsOverlay">
+    <div class="modal">
+      <button class="close-x" data-close>&times;</button>
+      <h2>Statistiques</h2>
+      <p class="sub">Rébus du jour</p>
+      <div class="stats">
+        <div class="stat"><div class="n" id="sPlayed">0</div><div class="l">Joués</div></div>
+        <div class="stat"><div class="n" id="sSolved">0</div><div class="l">Trouvés</div></div>
+        <div class="stat"><div class="n" id="sStreak">0</div><div class="l">Série</div></div>
+        <div class="stat"><div class="n" id="sBest">0</div><div class="l">Record</div></div>
+      </div>
+      <button class="btn ghost" data-close>Fermer</button>
+    </div>
+  </div>
+
+<script>
+(() => {
+  "use strict";
+
+  /* ---------- Rébus (composés à la main : emojis + lettres/mots) ---------- */
+  const PUZZLES = [
+    { clue:["🐱","🫙"], answer:"chapeau", exp:"chat + pot" },
+    { clue:["🐱","T","🌊"], answer:"château", exp:"chat + T + eau" },
+    { clue:["🦌","✈️"], answer:"cerf-volant", exp:"cerf + volant (qui vole)" },
+    { clue:["2️⃣","✋"], answer:"demain", exp:"deux + main" },
+    { clue:["🍬","📅"], answer:"bonjour", exp:"bonbon (bon) + jour" },
+    { clue:["🪂","🌧️"], answer:"parapluie", exp:"para(chute) + pluie" },
+    { clue:["🪂","☀️"], answer:"parasol", exp:"para + sol(eil)" },
+    { clue:["🔄","🔩"], answer:"tournevis", exp:"tourne + vis" },
+    { clue:["🔄","☀️"], answer:"tournesol", exp:"tourne + sol(eil)" },
+    { clue:["🚪","🧥"], answer:"portemanteau", exp:"porte + manteau" },
+    { clue:["🚪","🍂"], answer:"portefeuille", exp:"porte + feuille" },
+    { clue:["🏹","en","🌌"], answer:"arc-en-ciel", exp:"arc + en + ciel" },
+    { clue:["👥","D","🔫"], answer:"gendarme", exp:"gens + D' + arme" },
+    { clue:["👨‍🦲","🐭"], answer:"chauve-souris", exp:"chauve + souris" },
+    { clue:["🌊","re","👁️"], answer:"au revoir", exp:"eau (au) + re + voir (œil)" }
+  ];
+
+  const SHARE_URL = "https://killianjourneau.github.io/Motus/rebus.html";
+  const EPOCH = Math.floor(Date.UTC(2025,0,1)/86400000);
+
+  const store = {
+    get(k,d){ try{ const v=localStorage.getItem(k); return v===null?d:JSON.parse(v); }catch(e){ return d; } },
+    set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+  };
+  let theme = store.get("motus.theme","dark");
+  let stats = store.get("rebus.stats", {played:0,solved:0,streak:0,best:0});
+
+  let mode="daily", idx=0, cur=null, done=false, solved=false, dayNum=0, dayKey="";
+  const $ = id => document.getElementById(id);
+  const themeBtn=$("btnTheme");
+
+  /* Thème (partagé avec Motus) */
+  function applyTheme(){ document.documentElement.dataset.theme=theme; document.querySelector('meta[name=theme-color]').content = theme==="light"?"#eef2f9":"#071633"; themeBtn.textContent = theme==="dark"?"☀️":"🌙"; }
+  function toggleTheme(){ theme = theme==="dark"?"light":"dark"; store.set("motus.theme",theme); applyTheme(); }
+
+  function norm(s){ return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z]/g,""); }
+  function todayKey(){ const d=new Date(),p=n=>String(n).padStart(2,"0"); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; }
+  function dayNumber(k){ const [y,m,d]=k.split("-").map(Number); return Math.floor(Date.UTC(y,m-1,d)/86400000)-EPOCH; }
+
+  /* ---------- Rendu d'un rébus ---------- */
+  function render(){
+    const clue=$("clue"); clue.innerHTML="";
+    cur.clue.forEach(tok=>{
+      const isText = /[A-Za-zÀ-ÿ]/.test(tok) && !/\p{Extended_Pictographic}/u.test(tok);
+      const c=document.createElement("div");
+      c.className="card "+(isText?"text":"emoji");
+      c.textContent=tok; clue.appendChild(c);
+    });
+    $("puzzleNo").textContent = mode==="daily" ? `Rébus du jour #${dayNum}` : "Rébus libre";
+    $("hint").textContent="";
+    const g=$("guess"); g.value=""; g.disabled=false;
+    $("feedback").textContent=""; $("feedback").className="";
+    $("btnCheck").disabled=false;
+  }
+
+  function loadDaily(){
+    mode="daily"; setSeg();
+    dayKey=todayKey(); dayNum=dayNumber(dayKey); idx=((dayNum%PUZZLES.length)+PUZZLES.length)%PUZZLES.length;
+    cur=PUZZLES[idx]; done=false; solved=false;
+    render();
+    const d=store.get("rebus.daily",null);
+    if(d && d.day===dayKey && d.done){ solved=d.solved; finish(d.solved, true); }
+  }
+  function loadLibre(next){
+    mode="libre"; setSeg();
+    let n; do { n=Math.floor(Math.random()*PUZZLES.length); } while(PUZZLES.length>1 && n===idx);
+    idx=n; cur=PUZZLES[idx]; done=false; solved=false;
+    render(); $("guess").focus();
+  }
+  function setSeg(){ document.querySelectorAll(".seg").forEach(s=>s.classList.toggle("active", s.dataset.mode===mode)); }
+
+  /* ---------- Vérification ---------- */
+  function check(){
+    if(done) return;
+    const g=$("guess").value;
+    if(!norm(g)){ return; }
+    if(norm(g)===norm(cur.answer)){ solved=true; finish(true,false); }
+    else {
+      const fb=$("feedback"); fb.textContent="Pas tout à fait…"; fb.className="no";
+      const area=$("guess"); area.classList.remove("shake"); void area.offsetWidth; area.classList.add("shake");
+      try{ navigator.vibrate && navigator.vibrate(20); }catch(e){}
+    }
+  }
+  function hint(){
+    if(done) return;
+    $("hint").textContent = cur.answer.replace(/[a-zàâäéèêëîïôöùûüç]/gi,"•").replace(/[ ]/g," ");
+  }
+  function reveal(){
+    if(done) return;
+    solved=false; finish(false,false);
+  }
+
+  function finish(won, restored){
+    done=true;
+    $("guess").disabled=true; $("btnCheck").disabled=true;
+    if(mode==="daily" && !restored){
+      // enregistre le résultat du jour (une seule fois)
+      const prev=store.get("rebus.daily",null);
+      if(!prev || prev.day!==dayKey){
+        stats.played++;
+        if(won){ stats.solved++; stats.streak++; if(stats.streak>stats.best) stats.best=stats.streak; }
+        else stats.streak=0;
+        store.set("rebus.stats",stats);
+      }
+      store.set("rebus.daily",{day:dayKey, done:true, solved:won});
+    }
+    showEnd(won);
+  }
+
+  function showEnd(won){
+    $("endTitle").textContent = won ? "Bravo !" : "La réponse était :";
+    $("endAnswer").textContent = cur.answer;
+    $("endExp").textContent = "Décomposition : "+cur.exp;
+    $("btnShare").style.display = (mode==="daily") ? "block" : "none";
+    openOverlay("endOverlay");
+  }
+
+  /* ---------- Partage ---------- */
+  function share(){
+    const txt = `Rébus #${dayNum} — ${solved?"trouvé ✅":"raté ❌"}\n${SHARE_URL}`;
+    if(navigator.share){ navigator.share({text:txt}).catch(()=>copy(txt)); }
+    else copy(txt);
+  }
+  function copy(t){ try{ navigator.clipboard.writeText(t).then(()=>toast("Copié"),()=>{}); }catch(e){} }
+
+  /* ---------- Stats ---------- */
+  function refreshStats(){ $("sPlayed").textContent=stats.played; $("sSolved").textContent=stats.solved; $("sStreak").textContent=stats.streak; $("sBest").textContent=stats.best; }
+
+  let tT;
+  function toast(m){ let el=$("feedback"); el.textContent=m; el.className="ok"; clearTimeout(tT); tT=setTimeout(()=>{ if(done) return; el.textContent=""; el.className=""; },1400); }
+  function openOverlay(id){ $(id).classList.add("open"); }
+  function closeOverlays(){ document.querySelectorAll(".overlay").forEach(o=>o.classList.remove("open")); }
+
+  /* ---------- Événements ---------- */
+  $("btnGame").addEventListener("click", ()=>{ location.href="./index.html"; });
+  themeBtn.addEventListener("click", toggleTheme);
+  $("btnHelp").addEventListener("click", ()=>openOverlay("helpOverlay"));
+  $("btnStats").addEventListener("click", ()=>{ refreshStats(); openOverlay("statsOverlay"); });
+  $("btnCheck").addEventListener("click", check);
+  $("btnHint").addEventListener("click", hint);
+  $("btnReveal").addEventListener("click", reveal);
+  $("btnShare").addEventListener("click", share);
+  $("btnNext").addEventListener("click", ()=>{ closeOverlays(); loadLibre(true); });
+  $("guess").addEventListener("keydown", e=>{ if(e.key==="Enter") check(); });
+  document.querySelectorAll(".seg").forEach(s=>s.addEventListener("click", ()=>{ const m=s.dataset.mode; closeOverlays(); m==="daily"?loadDaily():loadLibre(false); }));
+  document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click", closeOverlays));
+  document.querySelectorAll(".overlay").forEach(o=>o.addEventListener("click", e=>{ if(e.target===o) closeOverlays(); }));
+
+  if("serviceWorker" in navigator){ window.addEventListener("load", ()=>navigator.serviceWorker.register("./sw.js").catch(()=>{})); }
+
+  /* ---------- Init ---------- */
+  applyTheme();
+  refreshStats();
+  loadDaily();
+  if(!store.get("rebus.seen",false)){ openOverlay("helpOverlay"); store.set("rebus.seen",true); }
+})();
+</script>
+</body>
+</html>
