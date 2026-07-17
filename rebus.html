@@ -299,6 +299,7 @@
         if(window.Profile) Profile.addGame({ won, xp: won?25:5 });
       }
       store.set("rebus.daily",{day:dayKey, done:true, solved:won});
+      if(window.Profile) Profile.submitDaily({ game:"rebus", day:dayKey, tries: won?1:null, won });
     } else if(mode==="libre" && !restored){
       if(window.Profile) Profile.addGame({ won, xp: won?8:0 });
     }
@@ -351,6 +352,7 @@
   if("serviceWorker" in navigator){ window.addEventListener("load", ()=>navigator.serviceWorker.register("./sw.js").catch(()=>{})); }
 
   /* ---------- Init ---------- */
+  if(window.Profile) Profile.game = "rebus";
   applyTheme();
   loadDaily();
   // Si le rébus du jour est déjà fait, on démarre directement en mode Libre
