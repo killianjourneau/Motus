@@ -68,6 +68,8 @@
   .btn:hover{ filter:brightness(1.08); }
   .btn:active{ transform:scale(.98); }
   .btn.ghost{ background:transparent; color:var(--ink); box-shadow: inset 0 0 0 1.5px var(--cell-edge); }
+  .btn:disabled{ opacity:.4; cursor:default; filter:none; }
+  #btnCheck{ height:60px; font-size:19px; letter-spacing:.3px; box-shadow:0 6px 20px rgba(226,58,68,.45); }
 
   #feedback{ min-height:24px; font-weight:700; font-size:15px; text-align:center; }
   #feedback.ok{ color:var(--green); }
@@ -185,7 +187,15 @@
     { clue:["🏹","en","🌌"], answer:"arc-en-ciel", exp:"arc + en + ciel" },
     { clue:["👥","D","🔫"], answer:"gendarme", exp:"gens + D' + arme" },
     { clue:["👨‍🦲","🐭"], answer:"chauve-souris", exp:"chauve + souris" },
-    { clue:["🌊","re","👁️"], answer:"au revoir", exp:"eau (au) + re + voir (œil)" }
+    { clue:["🌊","re","👁️"], answer:"au revoir", exp:"eau (au) + re + voir (œil)" },
+    { clue:["🍎","D","🌍"], answer:"pomme de terre", exp:"pomme + de + terre" },
+    { clue:["🫙","D","🌸"], answer:"pot de fleurs", exp:"pot + de + fleur" },
+    { clue:["👊","D","⚡"], answer:"coup de foudre", exp:"coup + de + foudre" },
+    { clue:["🗼","D","🇫🇷"], answer:"tour de France", exp:"tour + de + France" },
+    { clue:["🍎","D","🌲"], answer:"pomme de pin", exp:"pomme + de + pin" },
+    { clue:["📦","🌊","✉️"], answer:"boîte aux lettres", exp:"boîte + aux (eau) + lettres" },
+    { clue:["1000","🍂"], answer:"millefeuille", exp:"mille (1000) + feuille" },
+    { clue:["🚪","🍀"], answer:"porte-bonheur", exp:"porte + bonheur (🍀)" }
   ];
 
   const SHARE_URL = "https://killianjourneau.github.io/Motus/rebus.html";
@@ -198,9 +208,16 @@
   let theme = store.get("motus.theme","dark");
   let stats = store.get("rebus.stats", {played:0,solved:0,streak:0,best:0});
 
-  let mode="daily", idx=0, cur=null, done=false, solved=false, dayNum=0, dayKey="";
+  let mode="daily", idx=-1, cur=null, done=false, solved=false, dayNum=0, dayKey="";
+  let queue=[];
   const $ = id => document.getElementById(id);
   const themeBtn=$("btnTheme");
+
+  function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+  function nextIndex(){
+    if(!queue.length){ queue=shuffle([...Array(PUZZLES.length).keys()]); if(queue[0]===idx && queue.length>1) queue.push(queue.shift()); }
+    return queue.shift();
+  }
 
   /* Thème (partagé avec Motus) */
   function applyTheme(){ document.documentElement.dataset.theme=theme; document.querySelector('meta[name=theme-color]').content = theme==="light"?"#eef2f9":"#071633"; themeBtn.textContent = theme==="dark"?"☀️":"🌙"; }
@@ -223,7 +240,8 @@
     $("hint").textContent="";
     const g=$("guess"); g.value=""; g.disabled=false;
     $("feedback").textContent=""; $("feedback").className="";
-    $("btnCheck").disabled=false;
+    $("btnCheck").disabled=false; $("btnCheck").textContent="Valider";
+    $("btnHint").disabled=false; $("btnReveal").disabled=false;
   }
 
   function loadDaily(){
@@ -236,8 +254,7 @@
   }
   function loadLibre(next){
     mode="libre"; setSeg();
-    let n; do { n=Math.floor(Math.random()*PUZZLES.length); } while(PUZZLES.length>1 && n===idx);
-    idx=n; cur=PUZZLES[idx]; done=false; solved=false;
+    idx=nextIndex(); cur=PUZZLES[idx]; done=false; solved=false;
     render(); $("guess").focus();
   }
   function setSeg(){ document.querySelectorAll(".seg").forEach(s=>s.classList.toggle("active", s.dataset.mode===mode)); }
@@ -265,7 +282,9 @@
 
   function finish(won, restored){
     done=true;
-    $("guess").disabled=true; $("btnCheck").disabled=true;
+    $("guess").disabled=true;
+    $("btnCheck").disabled=false; $("btnCheck").textContent="Rébus suivant";
+    $("btnHint").disabled=true; $("btnReveal").disabled=true;
     if(mode==="daily" && !restored){
       // enregistre le résultat du jour (une seule fois)
       const prev=store.get("rebus.daily",null);
@@ -279,6 +298,7 @@
     }
     showEnd(won);
   }
+  function goNext(){ closeOverlays(); loadLibre(true); }
 
   function showEnd(won){
     $("endTitle").textContent = won ? "Bravo !" : "La réponse était :";
@@ -309,11 +329,11 @@
   themeBtn.addEventListener("click", toggleTheme);
   $("btnHelp").addEventListener("click", ()=>openOverlay("helpOverlay"));
   $("btnStats").addEventListener("click", ()=>{ refreshStats(); openOverlay("statsOverlay"); });
-  $("btnCheck").addEventListener("click", check);
+  $("btnCheck").addEventListener("click", ()=>{ done ? goNext() : check(); });
   $("btnHint").addEventListener("click", hint);
   $("btnReveal").addEventListener("click", reveal);
   $("btnShare").addEventListener("click", share);
-  $("btnNext").addEventListener("click", ()=>{ closeOverlays(); loadLibre(true); });
+  $("btnNext").addEventListener("click", goNext);
   $("guess").addEventListener("keydown", e=>{ if(e.key==="Enter") check(); });
   document.querySelectorAll(".seg").forEach(s=>s.addEventListener("click", ()=>{ const m=s.dataset.mode; closeOverlays(); m==="daily"?loadDaily():loadLibre(false); }));
   document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click", closeOverlays));
