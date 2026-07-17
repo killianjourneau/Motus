@@ -43,14 +43,14 @@
   /* Header */
   header{ display:flex; align-items:center; justify-content:space-between; padding:12px clamp(12px,4vw,22px) 4px; gap:8px; }
   .brand{ display:flex; gap:5px; }
-  .brand b{ width:30px; height:34px; display:grid; place-items:center; font-weight:800; font-size:20px; border-radius:7px; background:var(--absent); }
+  .brand b{ width:clamp(24px,7.2vw,30px); height:34px; display:grid; place-items:center; font-weight:800; font-size:clamp(16px,5vw,20px); border-radius:7px; background:var(--absent); }
   .brand b.r{ background:var(--red); }
   .brand b.r span{ color:#fff; }
   .brand b.y{ background:var(--cell); position:relative; }
   .brand b.y::before{ content:""; position:absolute; inset:5px; border-radius:50%; background:var(--yellow); z-index:0; }
   .brand b.y span{ position:relative; z-index:1; color:#1a1a1a; }
-  .tools{ display:flex; gap:6px; }
-  .icon-btn{ width:40px; height:40px; border:none; border-radius:10px; background:var(--cell); color:var(--ink); font-size:17px; cursor:pointer; display:grid; place-items:center; transition:.15s; }
+  .tools{ display:flex; gap:5px; }
+  .icon-btn{ width:clamp(33px,9vw,40px); height:clamp(33px,9vw,40px); border:none; border-radius:10px; background:var(--cell); color:var(--ink); font-size:16px; cursor:pointer; display:grid; place-items:center; transition:.15s; }
   .icon-btn:active{ transform:scale(.94); }
 
   /* Sélecteur de mode */
@@ -155,6 +155,7 @@
       <b class="r"><span>M</span></b><b class="y"><span>O</span></b><b><span>T</span></b><b class="r"><span>U</span></b><b class="y"><span>S</span></b>
     </div>
     <div class="tools">
+      <button class="icon-btn" id="btnGame" aria-label="Jouer au Rébus">🧩</button>
       <button class="icon-btn" id="btnTheme" aria-label="Thème">☀️</button>
       <button class="icon-btn" id="btnHelp" aria-label="Règles">?</button>
       <button class="icon-btn" id="btnStats" aria-label="Statistiques">📊</button>
@@ -222,6 +223,16 @@
       <div class="dist-title">Nombre d'essais</div>
       <div class="dist" id="dist"></div>
       <button class="btn ghost" data-close>Fermer</button>
+    </div>
+  </div>
+
+  <!-- Confirmation -->
+  <div class="overlay" id="confirmOverlay">
+    <div class="modal">
+      <h2 id="confirmTitle">Changer de mode ?</h2>
+      <p class="sub" id="confirmMsg">La partie en cours sera perdue.</p>
+      <button class="btn" id="confirmYes">Continuer</button>
+      <button class="btn ghost" id="confirmNo">Annuler</button>
     </div>
   </div>
 
@@ -369,11 +380,11 @@
   }
 
   function finishRow(win){
-    save();
     if(win){
-      won=true; vibrate([12,40,12]);
+      over=true; won=true; vibrate([12,40,12]);
       for(let c=0;c<len;c++) setTimeout(()=>tileAt(row,c).classList.add("jump"), c*70);
       recordResult(true, guesses.length);
+      save();
       setTimeout(()=>showEnd(true), 720); return;
     }
     row++;
@@ -479,13 +490,34 @@
   }
 
   /* ---------- Fin de partie ---------- */
+  let endAgainMode = "normal";
   function showEnd(win, isDaily){
     refreshStats();
+    const daily = isDaily || mode==="daily";
     $("endTitle").textContent = win ? "Bravo !" : "Dommage…";
     $("endSub").innerHTML = win ? `Trouvé en ${guesses.length} essai${guesses.length>1?"s":""}.` : `Le mot était <b>${answer}</b>.`;
-    $("btnShare").style.display = (isDaily||mode==="daily") ? "block" : "none";
+    $("btnShare").style.display = daily ? "block" : "none";
+    // En mode Jour, le mot est unique : le bouton lance une partie libre au lieu de « rejouer ».
+    $("btnAgain").textContent = daily ? "Jouer un mot au hasard" : "Rejouer";
+    endAgainMode = daily ? "normal" : mode;
     openOverlay("endOverlay");
   }
+
+  /* ---------- Confirmation ---------- */
+  let pendingAction = null;
+  function askConfirm(title, msg, onYes){
+    pendingAction = onYes;
+    $("confirmTitle").textContent = title;
+    $("confirmMsg").textContent = msg;
+    openOverlay("confirmOverlay");
+  }
+  function requestMode(m){
+    if(m===mode){ if(over) switchMode(m); return; }         // même mode : on relance seulement si terminé
+    const risque = mode!=="daily" && !over && guesses.length>0; // on quitte une partie libre en cours
+    if(risque) askConfirm("Changer de mode ?", "La partie en cours sera perdue.", ()=>switchMode(m));
+    else switchMode(m);
+  }
+  function switchMode(m){ closeOverlays(); if(m==="daily") enterDaily(); else startFree(m); }
 
   /* ---------- Helpers UI ---------- */
   let toastTimer;
@@ -505,17 +537,22 @@
   });
 
   themeBtn.addEventListener("click", toggleTheme);
+  $("btnGame").addEventListener("click", ()=>{ location.href="./rebus.html"; });
   $("btnHelp").addEventListener("click", ()=>openOverlay("helpOverlay"));
   $("btnStats").addEventListener("click", ()=>{ refreshStats(); openOverlay("statsOverlay"); });
-  $("btnNew").addEventListener("click", ()=>{ closeOverlays(); mode==="daily" ? enterDaily() : startFree(mode); });
-  $("btnAgain").addEventListener("click", ()=>{ closeOverlays(); mode==="daily" ? enterDaily() : startFree(mode); });
+  $("btnNew").addEventListener("click", ()=>{
+    closeOverlays();
+    if(mode==="daily"){ switchMode("normal"); return; }        // le mot du jour est unique : on lance un mot au hasard
+    if(!over && guesses.length>0) askConfirm("Nouvelle partie ?", "La partie en cours sera perdue.", ()=>startFree(mode));
+    else startFree(mode);
+  });
+  $("btnAgain").addEventListener("click", ()=>{ closeOverlays(); startFree(endAgainMode); });
   $("btnShare").addEventListener("click", share);
 
-  document.querySelectorAll(".seg").forEach(s=>s.addEventListener("click", ()=>{
-    const m=s.dataset.mode; closeOverlays();
-    if(m==="daily") enterDaily();
-    else if(m!==mode || over) startFree(m);
-  }));
+  $("confirmYes").addEventListener("click", ()=>{ closeOverlays(); const a=pendingAction; pendingAction=null; if(a) a(); });
+  $("confirmNo").addEventListener("click", closeOverlays);
+
+  document.querySelectorAll(".seg").forEach(s=>s.addEventListener("click", ()=>requestMode(s.dataset.mode)));
 
   document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click", closeOverlays));
   document.querySelectorAll(".overlay").forEach(o=>o.addEventListener("click", e=>{ if(e.target===o) closeOverlays(); }));
@@ -524,6 +561,9 @@
   if("serviceWorker" in navigator){ window.addEventListener("load", ()=>navigator.serviceWorker.register("./sw.js").catch(()=>{})); }
 
   /* ---------- Init ---------- */
+  // Demande un stockage persistant : réduit le risque que le navigateur efface
+  // les statistiques (sans effet en navigation privée, qui vide tout à la fermeture).
+  try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(e){}
   applyTheme();
   buildKeyboard();
   refreshStats();
