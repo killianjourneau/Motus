@@ -1,11 +1,13 @@
 /* Motus — service worker */
-const CACHE = "motus-v7";
+const CACHE = "motus-v9";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.json",
   "./icon-512.png",
   "./rebus.html",
+  "./config.js",
+  "./profile.js",
   "./dico-06.txt",
   "./dico-07.txt",
   "./dico-08.txt"
