@@ -47,6 +47,10 @@
   .seg{ flex:1; height:38px; border:none; border-radius:10px; background:var(--cell); color:var(--ink-dim); font-weight:700; font-size:14px; cursor:pointer; box-shadow: inset 0 0 0 1.5px var(--cell-edge); }
   .seg.active{ background:var(--red); color:#fff; box-shadow:none; }
 
+  #diffs{ display:flex; gap:5px; padding:2px clamp(12px,4vw,22px) 2px; }
+  .dseg{ flex:1; height:32px; border:none; border-radius:9px; background:var(--cell); color:var(--ink-dim); font-weight:700; font-size:12px; cursor:pointer; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
+  .dseg.active{ background:var(--yellow); color:#1a1a1a; box-shadow:none; }
+  #diffs.off{ display:none; }
   main{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; padding:14px clamp(12px,4vw,22px) 20px; min-height:0; }
 
   .puzzle-no{ color:var(--ink-dim); font-size:13px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; }
@@ -113,6 +117,13 @@
     <button class="seg" data-mode="libre">Libre</button>
   </div>
 
+  <div id="diffs">
+    <button class="dseg active" data-diff="0">Tous</button>
+    <button class="dseg" data-diff="1">Facile</button>
+    <button class="dseg" data-diff="2">Moyen</button>
+    <button class="dseg" data-diff="3">Difficile</button>
+  </div>
+
   <main>
     <div class="puzzle-no" id="puzzleNo"></div>
     <div id="clue"></div>
@@ -156,38 +167,22 @@
 
   <!-- Stats -->
 
+<script src="./rebus/rebus-catalogue.js"></script>
 <script src="./profiles/config.js"></script>
 <script src="./profiles/profile.js"></script>
 <script>
 (() => {
   "use strict";
 
-  /* ---------- Rébus (composés à la main : emojis + lettres/mots) ---------- */
-  const PUZZLES = [
-    { clue:["🐱","🫙"], answer:"chapeau", exp:"chat + pot" },
-    { clue:["🐱","T","🌊"], answer:"château", exp:"chat + T + eau" },
-    { clue:["🦌","✈️"], answer:"cerf-volant", exp:"cerf + volant (qui vole)" },
-    { clue:["2️⃣","✋"], answer:"demain", exp:"deux + main" },
-    { clue:[{v:"🍬",p:1},"📅"], answer:"bonjour", exp:"bonbon (bon) + jour" },
-    { clue:[{v:"🪂",p:1},"🌧️"], answer:"parapluie", exp:"parachute (para) + pluie" },
-    { clue:[{v:"🪂",p:1},{v:"☀️",p:1}], answer:"parasol", exp:"parachute (para) + soleil (sol)" },
-    { clue:["🔄","🔩"], answer:"tournevis", exp:"tourne + vis" },
-    { clue:["🔄",{v:"☀️",p:1}], answer:"tournesol", exp:"tourne + soleil (sol)" },
-    { clue:["🚪","🧥"], answer:"portemanteau", exp:"porte + manteau" },
-    { clue:["🚪","🍂"], answer:"portefeuille", exp:"porte + feuille" },
-    { clue:["🏹","en","🌌"], answer:"arc-en-ciel", exp:"arc + en + ciel" },
-    { clue:["👥","D","🔫"], answer:"gendarme", exp:"gens + D' + arme" },
-    { clue:["👨‍🦲","🐭"], answer:"chauve-souris", exp:"chauve + souris" },
-    { clue:["🌊","re","👁️"], answer:"au revoir", exp:"eau (au) + re + voir (œil)" },
-    { clue:["🍎","D","🌍"], answer:"pomme de terre", exp:"pomme + de + terre" },
-    { clue:["🫙","D","🌸"], answer:"pot de fleurs", exp:"pot + de + fleur" },
-    { clue:["👊","D","⚡"], answer:"coup de foudre", exp:"coup + de + foudre" },
-    { clue:["🗼","D","🇫🇷"], answer:"tour de France", exp:"tour + de + France" },
-    { clue:["🍎","D","🌲"], answer:"pomme de pin", exp:"pomme + de + pin" },
-    { clue:["📦","🌊","✉️"], answer:"boîte aux lettres", exp:"boîte + aux (eau) + lettres" },
-    { clue:["1000","🍂"], answer:"millefeuille", exp:"mille (1000) + feuille" },
-    { clue:["🚪","🍀"], answer:"porte-bonheur", exp:"porte + bonheur (🍀)" }
-  ];
+  /* ---------- Catalogue de rébus (chargé depuis rebus/rebus-catalogue.js) ---------- */
+  // Chaque entrée : {c: briques, a: réponse, e: décomposition, d: difficulté 1-3}
+  const CATALOGUE = (window.REBUS_CATALOGUE || []).map(function(r){
+    return { clue:r.c, answer:r.a, exp:r.e, d:r.d };
+  });
+  // Filtre courant selon la difficulté choisie (0 = toutes)
+  let diff = 0;
+  function pool(){ return diff ? CATALOGUE.filter(function(r){ return r.d===diff; }) : CATALOGUE; }
+  const PUZZLES = CATALOGUE;
 
   const SHARE_URL = "https://killianjourneau.github.io/Motus/rebus.html";
   const EPOCH = Math.floor(Date.UTC(2025,0,1)/86400000);
@@ -199,15 +194,18 @@
   let theme = store.get("motus.theme","dark");
   let stats = store.get("rebus.stats", {played:0,solved:0,streak:0,best:0});
 
-  let mode="daily", idx=-1, cur=null, done=false, solved=false, dayNum=0, dayKey="";
+  let mode="daily", cur=null, done=false, solved=false, dayNum=0, dayKey="";
   let queue=[];
   const $ = id => document.getElementById(id);
   const themeBtn=$("btnTheme");
 
   function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
-  function nextIndex(){
-    if(!queue.length){ queue=shuffle([...Array(PUZZLES.length).keys()]); if(queue[0]===idx && queue.length>1) queue.push(queue.shift()); }
-    return queue.shift();
+  function nextPuzzle(){
+    const p = pool();
+    if(!p.length) return CATALOGUE[0];
+    if(!queue.length){ queue = shuffle(p.slice()); }
+    const n = queue.shift();
+    return (n === cur && queue.length) ? queue.shift() : n;
   }
 
   /* Thème (partagé avec Motus) */
@@ -231,7 +229,8 @@
       if(part){ c.classList.add("partial"); const b=document.createElement("span"); b.className="badge"; b.textContent="½"; c.appendChild(b); }
       clue.appendChild(c);
     });
-    $("puzzleNo").textContent = mode==="daily" ? `Rébus du jour #${dayNum}` : "Rébus libre";
+    const lbl = ["","Facile","Moyen","Difficile"][cur.d||0] || "";
+    $("puzzleNo").textContent = mode==="daily" ? `Rébus du jour #${dayNum}` : ("Rébus libre" + (lbl?" · "+lbl:""));
     $("hint").textContent="";
     const g=$("guess"); g.value=""; g.disabled=false;
     $("feedback").textContent=""; $("feedback").className="";
@@ -241,8 +240,10 @@
 
   function loadDaily(){
     mode="daily"; setSeg();
-    dayKey=todayKey(); dayNum=dayNumber(dayKey); idx=((dayNum%PUZZLES.length)+PUZZLES.length)%PUZZLES.length;
-    cur=PUZZLES[idx]; done=false; solved=false;
+    dayKey=todayKey(); dayNum=dayNumber(dayKey);
+    const dp = CATALOGUE.filter(function(r){ return r.d<=2; });
+    const src = dp.length ? dp : CATALOGUE;
+    cur = src[((dayNum*2654435761)>>>0) % src.length]; done=false; solved=false;
     render();
     const d=store.get("rebus.daily",null);
     if(d && d.day===dayKey && d.done){
@@ -257,10 +258,13 @@
   }
   function loadLibre(next){
     mode="libre"; setSeg();
-    idx=nextIndex(); cur=PUZZLES[idx]; done=false; solved=false;
+    cur=nextPuzzle(); done=false; solved=false;
     render(); $("guess").focus();
   }
-  function setSeg(){ document.querySelectorAll(".seg").forEach(s=>s.classList.toggle("active", s.dataset.mode===mode)); }
+  function setSeg(){
+    document.querySelectorAll(".seg").forEach(s=>s.classList.toggle("active", s.dataset.mode===mode));
+    const d=$("diffs"); if(d) d.classList.toggle("off", mode==="daily");
+  }
 
   /* ---------- Vérification ---------- */
   function check(){
@@ -346,6 +350,12 @@
   $("btnNext").addEventListener("click", goNext);
   $("guess").addEventListener("keydown", e=>{ if(e.key==="Enter") check(); });
   document.querySelectorAll(".seg").forEach(s=>s.addEventListener("click", ()=>{ const m=s.dataset.mode; closeOverlays(); m==="daily"?loadDaily():loadLibre(false); }));
+  document.querySelectorAll(".dseg").forEach(b=>b.addEventListener("click", ()=>{
+    diff=parseInt(b.dataset.diff,10)||0; queue=[];
+    document.querySelectorAll(".dseg").forEach(x=>x.classList.toggle("active", x===b));
+    store.set("rebus.diff", diff);
+    closeOverlays(); loadLibre(false);
+  }));
   document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click", closeOverlays));
   document.querySelectorAll(".overlay").forEach(o=>o.addEventListener("click", e=>{ if(e.target===o) closeOverlays(); }));
 
@@ -353,6 +363,8 @@
 
   /* ---------- Init ---------- */
   if(window.Profile) Profile.game = "rebus";
+  diff = store.get("rebus.diff",0);
+  document.querySelectorAll(".dseg").forEach(b=>b.classList.toggle("active", (parseInt(b.dataset.diff,10)||0)===diff));
   applyTheme();
   loadDaily();
   // Si le rébus du jour est déjà fait, on démarre directement en mode Libre
