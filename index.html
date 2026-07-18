@@ -100,9 +100,9 @@
   #toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
 
   /* Modales */
-  .overlay{ position:fixed; inset:0; background:rgba(2,8,20,.72); backdrop-filter:blur(4px); display:none; z-index:100; align-items:center; justify-content:center; padding:20px; }
+  .overlay{ position:fixed; inset:0; background:rgba(2,8,20,.72); backdrop-filter:blur(4px); display:none; z-index:100; align-items:center; justify-content:center; padding:16px; padding-top:max(16px,env(safe-area-inset-top)); padding-bottom:max(16px,env(safe-area-inset-bottom)); }
   .overlay.open{ display:flex; }
-  .modal{ position:relative; background:var(--bg-2); border:1px solid var(--cell-edge); border-radius:20px; padding:24px; width:100%; max-width:380px; box-shadow:0 20px 60px rgba(0,0,0,.5); animation:rise .25s ease; }
+  .modal{ position:relative; background:var(--bg-2); border:1px solid var(--cell-edge); border-radius:20px; padding:24px; width:100%; max-width:380px; max-height:88dvh; overflow-y:auto; overscroll-behavior:contain; box-shadow:0 20px 60px rgba(0,0,0,.5); animation:rise .25s ease; }
   @keyframes rise{ from{opacity:0; transform:translateY(16px)} to{opacity:1; transform:none} }
   .modal h2{ font-size:24px; margin-bottom:6px; text-align:center; color:var(--ink); }
   .modal .sub{ color:var(--ink-dim); text-align:center; font-size:14px; margin-bottom:18px; }
@@ -218,6 +218,7 @@
     </div>
   </div>
 
+<script src="./dico/motus-words.js"></script>
 <script src="./profiles/config.js"></script>
 <script src="./profiles/profile.js"></script>
 <script>
@@ -225,12 +226,8 @@
   "use strict";
 
   /* ---------- Listes de mots (sans accents, A-Z) ---------- */
-  const POOLS = {
-    court: ["LUNE","ROSE","CHAT","PAIN","MAIN","PIED","NUIT","JOUR","LOUP","OURS","MIEL","VELO","LAIT","ROUE","PONT","FOUR","SOIR","VENT","PORT","TOUR","GARE","RIRE","LIRE","ILES","AMIS","PLAT","BOIS","CIEL","EAUX","ROIS","NEIGE","TABLE","LIVRE","FLEUR","ARBRE","POMME","VERRE","PORTE","CHIEN","TIGRE","ROUTE","PLAGE","NUAGE","ROBOT","PIANO","RADIO","ZEBRE","LAPIN","SUCRE","SALLE","MUSEE","GLACE","VOILE","ECOLE","HERBE","MONDE","TERRE","CHOSE","VILLE","CARTE"],
-    normal: ["MAISON","JARDIN","SOLEIL","VOYAGE","CHEVAL","ORANGE","MIROIR","BALCON","NUAGES","CERISE","CARTON","BOUCHE","DANGER","FUSEES","BONHEUR","SAVANE","BONJOUR","MUSIQUE","FENETRE","TABLEAU","GUITARE","VOITURE","CUISINE","JOURNAL","CHAPEAU","POMPIER","DIAMANT","FROMAGE","CAMPING","LANTERNE","MONTAGNE","CHOCOLAT","ELEPHANT","PAPILLON","CHANTEUR","AVENTURE","PLANETE","COURAGE","LIBERTE","VILLAGE","POUSSIN","RENARDS","FORTUNE","GALAXIE","ORCHIDEE","BOUSSOLE","CARROSSE","TORNADE"],
-    long: ["ORDINATEUR","RESTAURANT","AVENTURIER","ASPIRATEUR","GEOGRAPHIE","UNIVERSITE","APPARTEMENT","TEMPERATURE","ELECTRICITE","PROGRAMMEUR","CHOCOLATIER","VENTILATEUR","PHILOSOPHIE","PSYCHOLOGIE","IMAGINATION","GENERATION","DICTIONNAIRE","BIBLIOTHEQUE","ANNIVERSAIRE","GOUVERNEMENT","INFORMATIQUE","ARCHITECTURE","CIVILISATION","CONSTRUCTION","ORGANISATION","CONSTITUTION","MEDITERRANEE","INTELLIGENCE","EXPERIENCES","MOUVEMENTS","ENVIRONNEMENT","MATHEMATIQUES","INTERNATIONAL","PROFESSIONNEL","REFRIGERATEUR","COMMUNICATION","PARLEMENTAIRE","CIRCONSTANCES","APPARTEMENTS","ADMINISTRATION","RECOMMANDATION","CORRESPONDANCE","REPRESENTATION","RESPONSABILITE","EXTRAORDINAIRE","TRANSFORMATION","BIBLIOTHECAIRE","REVOLUTIONNAIRE"]
-  };
-  const DAILY_POOL = POOLS.normal;
+  const POOLS = window.MOTUS_WORDS || { court:["LUNE"], normal:["MAISON"], long:["ORDINATEUR"] };
+  const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
   const MAX_ROWS = 6;
   const AZERTY = ["AZERTYUIOP","QSDFGHJKLM","WXCVBN"];
