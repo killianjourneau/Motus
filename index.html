@@ -42,7 +42,8 @@
 
   /* Header */
   header{ display:flex; align-items:center; justify-content:space-between; padding:12px clamp(12px,4vw,22px) 4px; gap:8px; }
-  .brand{ display:flex; gap:5px; }
+  .brand{ display:flex; gap:5px; background:none; border:none; padding:0; cursor:pointer; }
+  .brand:active{ transform:scale(.96); }
   .brand b{ width:clamp(24px,7.2vw,30px); height:34px; display:grid; place-items:center; font-weight:800; font-size:clamp(16px,5vw,20px); border-radius:7px; background:var(--absent); }
   .brand b.r{ background:var(--red); }
   .brand b.r span{ color:#fff; }
@@ -60,6 +61,8 @@
   .seg:active{ transform:scale(.97); }
 
   /* Zone de jeu */
+  #hud{ display:flex; align-items:center; justify-content:space-between; padding:6px clamp(12px,4vw,22px) 0; font-size:13px; font-weight:700; color:var(--ink-dim); }
+  #timer{ font-variant-numeric:tabular-nums; letter-spacing:.5px; background:var(--cell); padding:4px 10px; border-radius:8px; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
   main{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:4px 8px; min-height:0; }
   #board{ display:grid; gap:var(--gap); }
   .row{ display:grid; gap:var(--gap); grid-auto-flow:column; }
@@ -151,9 +154,9 @@
   <div id="rotate"><div class="ph">📱</div><p>Tourne ton téléphone à la verticale pour jouer.</p></div>
 
   <header>
-    <div class="brand" aria-label="Motus">
+    <button class="brand" id="btnAbout" aria-label="À propos de Motus">
       <b class="r"><span>M</span></b><b class="y"><span>O</span></b><b><span>T</span></b><b class="r"><span>U</span></b><b class="y"><span>S</span></b>
-    </div>
+    </button>
     <div class="tools">
       <button class="icon-btn" id="btnGame" aria-label="Jouer au Rébus">🧩</button>
       <button class="icon-btn" id="btnTheme" aria-label="Thème">☀️</button>
@@ -165,10 +168,13 @@
 
   <div id="modes">
     <button class="seg" data-mode="daily">Jour</button>
+    <button class="seg" data-mode="defi">Défi</button>
     <button class="seg" data-mode="court">Court</button>
     <button class="seg active" data-mode="normal">Normal</button>
     <button class="seg" data-mode="long">Long</button>
   </div>
+
+  <div id="hud"><span id="hudMode"></span><span id="timer">0:00</span></div>
 
   <main><div id="board" role="grid" aria-label="Grille de jeu"></div></main>
 
@@ -208,6 +214,21 @@
     </div>
   </div>
 
+  <!-- À propos -->
+  <div class="overlay" id="aboutOverlay">
+    <div class="modal">
+      <button class="close-x" data-close>&times;</button>
+      <h2>Motus</h2>
+      <p class="sub">Version <b id="appVersion"></b></p>
+      <p style="text-align:center">Un jeu de mots et de rébus, jouable hors-ligne.<br>Installe-le depuis ton navigateur pour l'avoir en application.</p>
+      <div class="dist-title">Contenu</div>
+      <p style="text-align:center;margin-bottom:6px" id="aboutCounts"></p>
+      <div class="dist-title">Nouveautés</div>
+      <p style="text-align:center;font-size:13px;color:var(--ink-dim)">Défi du jour · chrono · catalogue de rébus élargi · profil communautaire</p>
+      <button class="btn" data-close>Fermer</button>
+    </div>
+  </div>
+
   <!-- Confirmation -->
   <div class="overlay" id="confirmOverlay">
     <div class="modal">
@@ -219,6 +240,7 @@
   </div>
 
 <script src="./dico/motus-words.js"></script>
+<script src="./rebus/rebus-catalogue.js"></script>
 <script src="./profiles/config.js"></script>
 <script src="./profiles/profile.js"></script>
 <script>
@@ -229,7 +251,9 @@
   const POOLS = window.MOTUS_WORDS || { court:["LUNE"], normal:["MAISON"], long:["ORDINATEUR"] };
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
+  const VERSION = "1.3.0";
   const MAX_ROWS = 6;
+  const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const AZERTY = ["AZERTYUIOP","QSDFGHJKLM","WXCVBN"];
   const SHARE_URL = "https://killianjourneau.github.io/Motus/";
   const EPOCH = Math.floor(Date.UTC(2025,0,1)/86400000);
@@ -246,6 +270,10 @@
   /* ---------- État ---------- */
   let mode="normal", answer="", len=0, row=0, col=0, grid=[], over=false, won=false;
   let guesses=[], rowStates=[], dicoByLen={}, dailyKey="", dailyNum=0;
+  // chrono
+  let tStart=0, tElapsed=0, tTimer=null;
+  // défi du jour : 3 mots enchaînés
+  let defiStep=0, defiKey="", defiNum=0, defiTimes=[], defiTries=[], defiFailed=false;
 
   const $ = id => document.getElementById(id);
   const board=$("board"), keyboard=$("keyboard"), toastEl=$("toast"), themeBtn=$("btnTheme");
@@ -371,17 +399,41 @@
 
   function finishRow(win){
     if(win){
-      over=true; won=true; vibrate([12,40,12]);
+      over=true; won=true; timerStop(); vibrate([12,40,12]);
       for(let c=0;c<len;c++) setTimeout(()=>tileAt(row,c).classList.add("jump"), c*70);
       recordResult(true, guesses.length); awardXp(true);
+      if(mode==="defi"){ setTimeout(()=>defiAdvance(true), 720); save(); return; }
       save();
       setTimeout(()=>showEnd(true), 720); return;
     }
     row++;
-    if(row>=MAX_ROWS){ over=true; recordResult(false); awardXp(false); save(); setTimeout(()=>showEnd(false), 360); return; }
+    if(row>=MAX_ROWS){
+      over=true; timerStop(); recordResult(false); awardXp(false);
+      if(mode==="defi"){ save(); setTimeout(()=>defiAdvance(false), 360); return; }
+      save(); setTimeout(()=>showEnd(false), 360); return;
+    }
     col=1; over=false;
     setCell(row,0,answer[0]); tileAt(row,0).classList.add("correct");
     save();
+  }
+
+  /* ---------- Défi : passage au mot suivant ---------- */
+  function defiAdvance(win){
+    defiTimes.push(timerValue());
+    defiTries.push(win ? guesses.length : 0);
+    if(!win) defiFailed = true;
+    defiStep++;
+    const d = store.get("motus.defi",{});
+    d.day=defiKey; d.step=defiStep; d.guesses=[]; d.over=false; d.won=false; d.ms=0;
+    d.times=defiTimes; d.tries=defiTries; d.failed=defiFailed;
+    store.set("motus.defi", d);
+
+    if(defiStep>=DEFI_STEPS.length){ showDefiEnd(); return; }
+    // mot suivant
+    guesses=[]; rowStates=[]; won=false; over=false;
+    answer = defiWords(defiNum)[defiStep];
+    setupBoardForAnswer(); loadDico(len); updateHud(); timerStart(0);
+    toast(win ? "Mot trouvé ! Suivant…" : "Raté — mot suivant");
   }
 
   /* ---------- Rejouer une grille (restauration) ---------- */
@@ -416,21 +468,97 @@
     return `<div class="dist-title">Motus — ${stats.played} parties · ${winPct()}% · série ${stats.streak} (record ${stats.best})</div><div class="dist">${bars}</div>`;
   }
 
+  /* ---------- Chrono ---------- */
+  function fmtTime(ms){
+    const t=Math.max(0,Math.floor(ms/1000));
+    return Math.floor(t/60)+":"+String(t%60).padStart(2,"0");
+  }
+  function timerStart(resumeMs){
+    timerStop();
+    tElapsed = resumeMs || 0;
+    tStart = Date.now();
+    $("timer").textContent = fmtTime(tElapsed);
+    tTimer = setInterval(()=>{ $("timer").textContent = fmtTime(tElapsed + (Date.now()-tStart)); }, 250);
+  }
+  function timerStop(){
+    if(tTimer){ tElapsed += Date.now()-tStart; clearInterval(tTimer); tTimer=null; }
+  }
+  function timerValue(){ return tTimer ? tElapsed + (Date.now()-tStart) : tElapsed; }
+  function updateHud(){
+    const names={court:"Court",normal:"Normal",long:"Long",daily:"Mot du jour",defi:"Défi du jour"};
+    let label = names[mode]||"";
+    if(mode==="defi") label += " — mot "+(defiStep+1)+"/3";
+    $("hudMode").textContent = label;
+  }
+
   /* ---------- Sauvegarde ---------- */
   function save(){
     if(mode==="daily"){
-      store.set("motus.daily", {day:dailyKey, guesses, done:over, won});
+      store.set("motus.daily", {day:dailyKey, guesses, done:over, won, ms:timerValue()});
+      store.set("motus.last","daily");
+    } else if(mode==="defi"){
+      store.set("motus.defi", {day:defiKey, step:defiStep, guesses, over, won,
+                               times:defiTimes, tries:defiTries, failed:defiFailed, ms:timerValue()});
+      store.set("motus.last","defi");
     } else {
-      store.set("motus.free", {mode, answer, len, guesses, over, won});
+      store.set("motus.free", {mode, answer, len, guesses, over, won, ms:timerValue()});
+      store.set("motus.last","free");
     }
-    store.set("motus.last", mode==="daily" ? "daily" : "free");
   }
 
   /* ---------- Démarrage d'une partie ---------- */
   function startFree(m){
     mode=m; over=false; won=false; guesses=[]; rowStates=[];
     const pool=POOLS[m]; answer=pool[Math.floor(Math.random()*pool.length)];
-    setupBoardForAnswer(); loadDico(len); setActiveSeg(m); save();
+    setupBoardForAnswer(); loadDico(len); setActiveSeg(m);
+    timerStart(0); updateHud(); save();
+  }
+
+  /* ---------- Défi du jour : 3 mots (court, moyen, long) ---------- */
+  function defiWords(num){
+    return DEFI_STEPS.map((k,i)=>{
+      const pool=POOLS[k];
+      const h=((num*2654435761)^((i+1)*40503))>>>0;
+      return pool[h % pool.length];
+    });
+  }
+  function enterDefi(){
+    mode="defi"; guesses=[]; rowStates=[]; won=false; over=false;
+    defiKey=todayKey(); defiNum=dayNumber(defiKey);
+    let d=store.get("motus.defi",null);
+    if(!d || d.day!==defiKey){
+      d={day:defiKey, step:0, guesses:[], over:false, won:false, times:[], tries:[], failed:false, ms:0};
+      store.set("motus.defi", d);
+    }
+    defiStep=d.step||0; defiTimes=d.times||[]; defiTries=d.tries||[]; defiFailed=!!d.failed;
+    setActiveSeg("defi");
+
+    // défi entièrement terminé ?
+    if(defiStep>=DEFI_STEPS.length){
+      answer=defiWords(defiNum)[DEFI_STEPS.length-1];
+      setupBoardForAnswer(); over=true; timerStop(); updateHud();
+      showDefiEnd(); return;
+    }
+    answer = defiWords(defiNum)[defiStep];
+    setupBoardForAnswer(); loadDico(len);
+    if((d.guesses||[]).length){ replay(d.guesses); }
+    over = d.over || row>=MAX_ROWS;
+    if(!over){ col=1; setCell(row,0,answer[0]); tileAt(row,0).classList.add("correct"); }
+    updateHud();
+    if(over) timerStop(); else timerStart(d.ms||0);
+    store.set("motus.last","defi");
+  }
+  function showDefiEnd(){
+    const total = defiTimes.reduce((a,b)=>a+b,0);
+    const done = defiTimes.length;
+    $("endTitle").textContent = defiFailed ? "Défi manqué" : "Défi réussi !";
+    $("endSub").innerHTML = defiFailed
+      ? `${done}/3 mots trouvés — retente demain.`
+      : `3 mots en <b>${fmtTime(total)}</b> · ${defiTries.reduce((a,b)=>a+b,0)} essais au total.`;
+    $("btnShare").style.display="block";
+    $("btnAgain").textContent="Jouer un mot au hasard";
+    endAgainMode="normal";
+    openOverlay("endOverlay");
   }
   function enterDaily(){
     mode="daily"; guesses=[]; rowStates=[];
@@ -442,6 +570,8 @@
     over = d.done || row>=MAX_ROWS;
     if(!over){ col=1; setCell(row,0,answer[0]); tileAt(row,0).classList.add("correct"); }
     store.set("motus.last","daily");
+    updateHud();
+    if(over) timerStop(); else timerStart(d.ms||0);
     if(d.done) showEnd(d.won, true);
   }
   function setupBoardForAnswer(){
@@ -457,16 +587,23 @@
     replay(f.guesses||[]);
     over = f.over || row>=MAX_ROWS;
     if(!over){ col=1; setCell(row,0,answer[0]); tileAt(row,0).classList.add("correct"); }
-    loadDico(len); setActiveSeg(mode);
+    loadDico(len); setActiveSeg(mode); updateHud();
+    if(over) timerStop(); else timerStart(f.ms||0);
   }
 
   function setActiveSeg(m){ document.querySelectorAll(".seg").forEach(s=>s.classList.toggle("active", s.dataset.mode===m)); }
 
   /* ---------- Partage ---------- */
   function shareText(){
+    if(mode==="defi"){
+      const total = defiTimes.reduce((a,b)=>a+b,0);
+      const line = defiTries.map(t => t>0 ? t+"/6" : "X").join(" · ");
+      return `Motus — Défi du jour #${defiNum}\n${defiFailed?"":"✅ "}${line} en ${fmtTime(total)}\n${SHARE_URL}`;
+    }
     const tries = won ? guesses.length : "X";
     const grid = rowStates.map(st => st.map(s => s==="correct"?"🟥":s==="present"?"🟡":"⬛").join("")).join("\n");
-    return `Motus #${dailyNum} — ${tries}/6\n${grid}\n${SHARE_URL}`;
+    const t = timerValue();
+    return `Motus #${dailyNum} — ${tries}/6 en ${fmtTime(t)}\n${grid}\n${SHARE_URL}`;
   }
   function share(){
     const text=shareText();
@@ -484,7 +621,9 @@
     refreshStats();
     const daily = isDaily || mode==="daily";
     $("endTitle").textContent = win ? "Bravo !" : "Dommage…";
-    $("endSub").innerHTML = win ? `Trouvé en ${guesses.length} essai${guesses.length>1?"s":""}.` : `Le mot était <b>${answer}</b>.`;
+    $("endSub").innerHTML = win
+      ? `Trouvé en ${guesses.length} essai${guesses.length>1?"s":""} · <b>${fmtTime(timerValue())}</b>`
+      : `Le mot était <b>${answer}</b>.`;
     $("btnShare").style.display = daily ? "block" : "none";
     // En mode Jour, le mot est unique : le bouton lance une partie libre au lieu de « rejouer ».
     $("btnAgain").textContent = daily ? "Jouer un mot au hasard" : "Rejouer";
@@ -502,11 +641,11 @@
   }
   function requestMode(m){
     if(m===mode){ if(over) switchMode(m); return; }         // même mode : on relance seulement si terminé
-    const risque = mode!=="daily" && !over && guesses.length>0; // on quitte une partie libre en cours
+    const risque = mode!=="daily" && mode!=="defi" && !over && guesses.length>0; // on quitte une partie libre en cours
     if(risque) askConfirm("Changer de mode ?", "La partie en cours sera perdue.", ()=>switchMode(m));
     else switchMode(m);
   }
-  function switchMode(m){ closeOverlays(); if(m==="daily") enterDaily(); else startFree(m); }
+  function switchMode(m){ closeOverlays(); if(m==="daily") enterDaily(); else if(m==="defi") enterDefi(); else startFree(m); }
 
   /* ---------- Helpers UI ---------- */
   let toastTimer;
@@ -527,11 +666,19 @@
 
   themeBtn.addEventListener("click", toggleTheme);
   $("btnGame").addEventListener("click", ()=>{ location.href="./rebus.html"; });
+  $("btnAbout").addEventListener("click", ()=>{
+    $("appVersion").textContent = VERSION;
+    const nW = (POOLS.court.length+POOLS.normal.length+POOLS.long.length);
+    const nR = (window.REBUS_CATALOGUE||[]).length;
+    $("aboutCounts").innerHTML = `<b>${nW.toLocaleString("fr-FR")}</b> mots · <b>${nR||"—"}</b> rébus`;
+    openOverlay("aboutOverlay");
+  });
   $("btnHelp").addEventListener("click", ()=>openOverlay("helpOverlay"));
   $("btnProfile").addEventListener("click", ()=>{ if(window.Profile) Profile.open(motusStatsHTML()); });
   $("btnNew").addEventListener("click", ()=>{
     closeOverlays();
     if(mode==="daily"){ switchMode("normal"); return; }        // le mot du jour est unique : on lance un mot au hasard
+    if(mode==="defi"){ switchMode("normal"); return; }         // le défi est unique aussi
     if(!over && guesses.length>0) askConfirm("Nouvelle partie ?", "La partie en cours sera perdue.", ()=>startFree(mode));
     else startFree(mode);
   });
@@ -559,6 +706,7 @@
   refreshStats();
   const last = store.get("motus.last","free");
   if(last==="daily"){ enterDaily(); }
+  else if(last==="defi"){ enterDefi(); }
   else {
     const f = store.get("motus.free",null);
     if(f && f.answer && !f.over && (f.guesses||[]).length < MAX_ROWS && (f.guesses||[])[(f.guesses||[]).length-1] !== f.answer){ restoreFree(f); }
