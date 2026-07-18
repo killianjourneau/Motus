@@ -104,7 +104,10 @@
   function set(id, v) { var e = el(id); if (e) e.textContent = v; }
 
   var STYLE = `
-#profileOverlay .modal{ max-width:410px; }
+#profileOverlay .modal{ max-width:410px; max-height:88dvh; display:flex; flex-direction:column; }
+#profileOverlay .pane{ overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; flex:1; min-height:0; padding-right:2px; }
+#profileOverlay .prof-tabs{ flex:none; }
+#profileOverlay .modal > .btn{ flex:none; }
 .prof-tabs{ display:flex; gap:6px; margin:2px 0 16px; }
 .ptab{ flex:1; height:38px; border:none; border-radius:10px; background:var(--cell); color:var(--ink-dim); font-weight:700; font-size:13px; cursor:pointer; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
 .ptab.active{ background:var(--red); color:#fff; box-shadow:none; }
