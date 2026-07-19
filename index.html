@@ -237,6 +237,7 @@
         <div class="li"><div class="mini present"><span>B</span></div> Lettre présente, mal placée</div>
         <div class="li"><div class="mini absent"><span>C</span></div> Lettre absente du mot</div>
       </div>
+      <p><b>Modes à thème</b> : en Prénoms et Maladies, seules les propositions du thème sont acceptées.</p>
       <p><b>Jour</b> : le même mot pour tout le monde, une fois par jour.<br>
          <b>Court</b> 4-5 lettres · <b>Normal</b> 6-8 · <b>Long</b> 10-15.</p>
       <button class="btn" data-close>C'est parti</button>
@@ -279,14 +280,24 @@
   /* ---------- Listes de mots (sans accents, A-Z) ---------- */
   const POOLS = window.MOTUS_WORDS || { court:["LUNE"], normal:["MAISON"], long:["ORDINATEUR"] };
   const THEMES = window.MOTUS_THEMES || { prenoms:["MARIE"], maladies:["GRIPPE"] };
-  POOLS.prenoms = THEMES.prenoms;
-  POOLS.maladies = THEMES.maladies;
   const THEME_MODES = ["prenoms","maladies"];
-  // Recherche rapide pour la validation des propositions en mode thème
+  // Toutes les propositions acceptées dans le mode (recherche rapide)
   const THEME_SETS = { prenoms:new Set(THEMES.prenoms), maladies:new Set(THEMES.maladies) };
+  // Les solutions n'utilisent que les longueurs offrant assez de mots :
+  // sinon le joueur n'aurait presque aucune proposition possible.
+  const MIN_PER_LEN = 12;
+  function playableWords(list){
+    const byLen = {};
+    list.forEach(w => (byLen[w.length] = byLen[w.length] || []).push(w));
+    const ok = Object.keys(byLen).filter(L => byLen[L].length >= MIN_PER_LEN);
+    const out = [].concat(...ok.map(L => byLen[L]));
+    return out.length ? out : list;
+  }
+  POOLS.prenoms = playableWords(THEMES.prenoms);
+  POOLS.maladies = playableWords(THEMES.maladies);
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.4.0";
+  const VERSION = "1.4.1";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const AZERTY = ["AZERTYUIOP","QSDFGHJKLM","WXCVBN"];
@@ -304,6 +315,8 @@
 
   /* ---------- État ---------- */
   let mode="normal", answer="", len=0, row=0, col=0, grid=[], over=false, won=false;
+  // "over" = saisie bloquée (aussi pendant l'animation) ; "ended" = partie réellement finie
+  let ended=false;
   let guesses=[], rowStates=[], dicoByLen={}, dailyKey="", dailyNum=0;
   // chrono
   let tStart=0, tElapsed=0, tTimer=null;
@@ -331,9 +344,11 @@
       .catch(() => { dicoByLen[l] = null; });
   }
   function isValid(w){
-    if(THEME_MODES.includes(mode) && THEME_SETS[mode].has(w)) return true;
+    // En mode thème, SEULS les mots du thème sont acceptés.
+    if(THEME_MODES.includes(mode)) return THEME_SETS[mode].has(w);
     const s = dicoByLen[w.length]; return s ? s.has(w) : true;
   }
+  const REJECT_MSG = { prenoms:"Ce prénom n'existe pas", maladies:"Pathologie inconnue" };
 
   /* ---------- Mot du jour ---------- */
   function todayKey(){ const d=new Date(), p=n=>String(n).padStart(2,"0"); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; }
@@ -415,7 +430,7 @@
   function submit(){
     if(col<len){ shake(); toast("Pas assez de lettres"); return; }
     const guess=grid[row].join("");
-    if(!isValid(guess) && guess!==answer){ shake(); toast("Mot inconnu"); return; }
+    if(!isValid(guess) && guess!==answer){ shake(); toast(REJECT_MSG[mode] || "Mot inconnu"); return; }
     over=true;
     const states=evaluate(guess);
     guesses.push(guess); rowStates.push(states);
@@ -437,7 +452,7 @@
 
   function finishRow(win){
     if(win){
-      over=true; won=true; timerStop(); vibrate([12,40,12]);
+      over=true; ended=true; won=true; timerStop(); vibrate([12,40,12]);
       for(let c=0;c<len;c++) setTimeout(()=>tileAt(row,c).classList.add("jump"), c*70);
       recordResult(true, guesses.length); awardXp(true);
       if(mode==="defi"){ setTimeout(()=>defiAdvance(true), 720); save(); return; }
@@ -446,7 +461,7 @@
     }
     row++;
     if(row>=MAX_ROWS){
-      over=true; timerStop(); recordResult(false); awardXp(false);
+      over=true; ended=true; timerStop(); recordResult(false); awardXp(false);
       if(mode==="defi"){ save(); setTimeout(()=>defiAdvance(false), 360); return; }
       save(); setTimeout(()=>showEnd(false), 360); return;
     }
@@ -468,7 +483,7 @@
 
     if(defiStep>=DEFI_STEPS.length){ showDefiEnd(); return; }
     // mot suivant
-    guesses=[]; rowStates=[]; won=false; over=false;
+    guesses=[]; rowStates=[]; won=false; over=false; ended=false;
     answer = defiWords(defiNum)[defiStep];
     setupBoardForAnswer(); loadDico(len); updateHud(); timerStart(0);
     toast(win ? "Mot trouvé ! Suivant…" : "Raté — mot suivant");
@@ -546,7 +561,7 @@
 
   /* ---------- Démarrage d'une partie ---------- */
   function startFree(m){
-    mode=m; over=false; won=false; guesses=[]; rowStates=[];
+    mode=m; over=false; ended=false; won=false; guesses=[]; rowStates=[];
     const pool=POOLS[m]; answer=pool[Math.floor(Math.random()*pool.length)];
     setupBoardForAnswer(); loadDico(len); setActiveSeg(m);
     timerStart(0); updateHud(); save();
@@ -561,7 +576,7 @@
     });
   }
   function enterDefi(){
-    mode="defi"; guesses=[]; rowStates=[]; won=false; over=false;
+    mode="defi"; guesses=[]; rowStates=[]; won=false; over=false; ended=false;
     defiKey=todayKey(); defiNum=dayNumber(defiKey);
     let d=store.get("motus.defi",null);
     if(!d || d.day!==defiKey){
@@ -574,13 +589,13 @@
     // défi entièrement terminé ?
     if(defiStep>=DEFI_STEPS.length){
       answer=defiWords(defiNum)[DEFI_STEPS.length-1];
-      setupBoardForAnswer(); over=true; timerStop(); updateHud();
+      setupBoardForAnswer(); over=true; ended=true; timerStop(); updateHud();
       showDefiEnd(); return;
     }
     answer = defiWords(defiNum)[defiStep];
     setupBoardForAnswer(); loadDico(len);
     if((d.guesses||[]).length){ replay(d.guesses); }
-    over = d.over || row>=MAX_ROWS;
+    over = d.over || row>=MAX_ROWS; ended = over;
     if(!over){ col=1; setCell(row,0,answer[0]); tileAt(row,0).classList.add("correct"); }
     updateHud();
     if(over) timerStop(); else timerStart(d.ms||0);
@@ -599,13 +614,13 @@
     openOverlay("endOverlay");
   }
   function enterDaily(){
-    mode="daily"; guesses=[]; rowStates=[];
+    mode="daily"; guesses=[]; rowStates=[]; ended=false;
     dailyKey=todayKey(); dailyNum=dayNumber(dailyKey); answer=dailyWord(dailyNum);
     setupBoardForAnswer(); loadDico(len); setActiveSeg("daily");
     let d=store.get("motus.daily",null);
     if(!d || d.day!==dailyKey){ d={day:dailyKey,guesses:[],done:false,won:false}; store.set("motus.daily",d); }
     if(d.guesses.length){ replay(d.guesses); }
-    over = d.done || row>=MAX_ROWS;
+    over = d.done || row>=MAX_ROWS; ended = over;
     if(!over){ col=1; setCell(row,0,answer[0]); tileAt(row,0).classList.add("correct"); }
     store.set("motus.last","daily");
     updateHud();
@@ -619,11 +634,11 @@
     setCell(0,0,answer[0]); tileAt(0,0).classList.add("correct");
   }
   function restoreFree(f){
-    mode=f.mode; answer=f.answer; guesses=[]; rowStates=[]; won=false;
+    mode=f.mode; answer=f.answer; guesses=[]; rowStates=[]; won=false; ended=false;
     len=answer.length; grid=Array.from({length:MAX_ROWS},()=>Array(len).fill(""));
     computeSizing(); buildBoard(); resetKeyboardColors();
     replay(f.guesses||[]);
-    over = f.over || row>=MAX_ROWS;
+    over = f.over || row>=MAX_ROWS; ended = over;
     if(!over){ col=1; setCell(row,0,answer[0]); tileAt(row,0).classList.add("correct"); }
     loadDico(len); setActiveSeg(mode); updateHud();
     if(over) timerStop(); else timerStart(f.ms||0);
@@ -682,8 +697,9 @@
     openOverlay("confirmOverlay");
   }
   function requestMode(m){
-    if(m===mode){ if(over) switchMode(m); return; }         // même mode : on relance seulement si terminé
-    const risque = mode!=="daily" && mode!=="defi" && !over && guesses.length>0; // on quitte une partie libre en cours
+    if(m===mode){ if(ended) switchMode(m); return; }   // même mode : on relance seulement si la partie est finie
+    // on quitte une partie libre en cours (dès le 1er coup joué, même si aucun mot valide n'a été soumis)
+    const risque = mode!=="daily" && mode!=="defi" && !ended;
     if(risque) askConfirm("Changer de mode ?", "La partie en cours sera perdue.", ()=>switchMode(m));
     else switchMode(m);
   }
@@ -720,7 +736,7 @@
     closeOverlays();
     if(mode==="daily"){ switchMode("normal"); return; }        // le mot du jour est unique : on lance un mot au hasard
     if(mode==="defi"){ switchMode("normal"); return; }         // le défi est unique aussi
-    if(!over && guesses.length>0) askConfirm("Nouvelle partie ?", "La partie en cours sera perdue.", ()=>startFree(mode));
+    if(!ended) askConfirm("Nouvelle partie ?", "La partie en cours sera perdue.", ()=>startFree(mode));
     else startFree(mode);
   });
   $("btnAgain").addEventListener("click", ()=>{ closeOverlays(); startFree(endAgainMode); });
