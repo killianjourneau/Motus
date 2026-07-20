@@ -277,20 +277,27 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.6.0"></script>
-<script src="./dico/motus-prenoms.js?v=1.6.0"></script>
-<script src="./dico/motus-maladies.js?v=1.6.0"></script>
-<script src="./profiles/config.js?v=1.6.0"></script>
-<script src="./profiles/profile.js?v=1.6.0"></script>
+<script src="./dico/motus-words.js?v=1.6.1"></script>
+<script src="./dico/motus-prenoms.js?v=1.6.1"></script>
+<script src="./dico/motus-maladies.js?v=1.6.1"></script>
+<script src="./profiles/config.js?v=1.6.1"></script>
+<script src="./profiles/profile.js?v=1.6.1"></script>
 <script>
 (() => {
   "use strict";
 
   /* ---------- Listes de mots (sans accents, A-Z) ---------- */
   const POOLS = window.MOTUS_WORDS || { court:["LUNE"], normal:["MAISON"], long:["ORDINATEUR"] };
+  // THEMES = propositions acceptées ; THEME_SOL = mots à deviner.
+  // Pour les prénoms, on accepte largement (toutes origines) mais on ne fait
+  // deviner que des prénoms répandus en France.
   const THEMES = {
     prenoms:  window.MOTUS_PRENOMS  || ["MARIE"],
     maladies: window.MOTUS_MALADIES || ["GRIPPE"]
+  };
+  const THEME_SOL = {
+    prenoms:  window.MOTUS_PRENOMS_SOL || THEMES.prenoms,
+    maladies: THEMES.maladies
   };
   const THEME_MODES = ["prenoms","maladies"];
   // Toutes les propositions acceptées dans le mode (recherche rapide)
@@ -305,11 +312,11 @@
     const out = [].concat(...ok.map(L => byLen[L]));
     return out.length ? out : list;
   }
-  POOLS.prenoms = playableWords(THEMES.prenoms);
-  POOLS.maladies = playableWords(THEMES.maladies);
+  POOLS.prenoms = playableWords(THEME_SOL.prenoms);
+  POOLS.maladies = playableWords(THEME_SOL.maladies);
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.6.0";
+  const VERSION = "1.6.1";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
