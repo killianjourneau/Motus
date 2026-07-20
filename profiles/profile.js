@@ -166,7 +166,9 @@
       method: "POST",
       headers: headers({ "Prefer": "resolution=merge-duplicates,return=minimal" }),
       body: JSON.stringify({ id: state.id, pseudo: state.pseudo, xp: state.xp, games: state.games,
-                             wins: state.wins, level: state.level, badge: emblemEmoji(), updated_at: state.updated_at })
+                             wins: state.wins, level: state.level, badge: emblemEmoji(),
+                             data: { b: state.b, badges: state.badges, emblem: state.emblem },
+                             updated_at: state.updated_at })
     }).catch(function () {});
   }
   var pushTimer;
@@ -184,19 +186,50 @@
       .then(function (r) { var cr = r.headers.get("content-range") || "*/0"; return parseInt(cr.split("/")[1], 10) || 0; })
       .catch(function () { return null; });
   }
-  function syncInit() {
-    if (!configured) return;
-    fetchRemote(state.id).then(function (rem) {
-      if (rem) {
-        state.xp = Math.max(state.xp, rem.xp || 0);
-        state.games = Math.max(state.games, rem.games || 0);
-        state.wins = Math.max(state.wins, rem.wins || 0);
-        if (!state.pseudo && rem.pseudo) state.pseudo = rem.pseudo;
-        state.level = levelFromXp(state.xp); saveLocal(); pushRemote();
-      } else { pushRemote(); }
-      refreshOpen();
+  /* Fusionne le profil distant avec le profil local.
+     Règle : on ne perd jamais rien — on garde la plus grande valeur de chaque
+     compteur et l'union des jours joués et des badges. */
+  function mergeRemote(rem) {
+    if (!rem) return;
+    state.xp = Math.max(state.xp || 0, rem.xp || 0);
+    state.games = Math.max(state.games || 0, rem.games || 0);
+    state.wins = Math.max(state.wins || 0, rem.wins || 0);
+    if (!state.pseudo && rem.pseudo) state.pseudo = rem.pseudo;
+
+    var d = rem.data || {};
+    var rb = d.b || {}, lb = state.b;
+    Object.keys(lb).forEach(function (k) {
+      if (k === "days" || k === "modes") return;
+      if (typeof lb[k] === "number") lb[k] = Math.max(lb[k] || 0, rb[k] || 0);
     });
+    // jours joués et modes essayés : union
+    (rb.days || []).forEach(function (x) { if (lb.days.indexOf(x) < 0) lb.days.push(x); });
+    (rb.modes || []).forEach(function (x) { if (lb.modes.indexOf(x) < 0) lb.modes.push(x); });
+    if (lb.days.length > 500) lb.days = lb.days.slice(-500);
+    lb.dayBest = Math.max(lb.dayBest || 0, dayStreak(lb.days));
+    // badges : union
+    (d.badges || []).forEach(function (id) { if (state.badges.indexOf(id) < 0) state.badges.push(id); });
+    if (!state.emblem && d.emblem) state.emblem = d.emblem;
+
+    state.level = levelFromXp(state.xp);
+    checkBadges(true);
+    saveLocal();
   }
+
+  var syncing = false;
+  function syncNow(cb) {
+    if (!configured) { if (cb) cb(false); return; }
+    if (syncing) return;
+    syncing = true;
+    fetchRemote(state.id).then(function (rem) {
+      mergeRemote(rem);
+      pushRemote();
+      syncing = false;
+      refreshOpen();
+      if (cb) cb(true);
+    }).catch(function () { syncing = false; if (cb) cb(false); });
+  }
+  function syncInit() { syncNow(); }
 
   /* ---------- Helpers ---------- */
   function escapeHtml(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
@@ -304,7 +337,9 @@
         <summary>Synchroniser sur un autre appareil</summary>
         <p>Ton code (à coller sur l'autre appareil) :</p>
         <div class="prof-row"><code id="syncCode"></code><button class="btn ghost" id="copyCode">Copier</button></div>
-        <div class="prof-row"><input id="restoreCode" placeholder="Coller un code…" autocomplete="off"><button class="btn ghost" id="restoreBtn">Restaurer</button></div>
+        <div class="prof-row"><input id="restoreCode" placeholder="Coller un code…" autocomplete="off"><button class="btn ghost" id="restoreBtn">Lier</button></div>
+        <button class="btn ghost" id="syncBtn" style="width:100%">Synchroniser maintenant</button>
+        <div id="syncMsg" style="text-align:center;margin-top:6px;font-size:12px"></div>
       </details>
     </div>
 
@@ -348,16 +383,24 @@
     el("copyCode").addEventListener("click", function () {
       try { navigator.clipboard.writeText(state.id); el("copyCode").textContent = "Copié"; setTimeout(function () { el("copyCode").textContent = "Copier"; }, 1200); } catch (e) {}
     });
+    el("syncBtn").addEventListener("click", function () {
+      var m = el("syncMsg");
+      if (!configured) { m.textContent = "Base non configurée"; return; }
+      m.textContent = "Synchronisation…";
+      syncNow(function (ok) { m.textContent = ok ? "À jour ✓" : "Échec — réessaie"; fillProfil(); });
+    });
     el("restoreBtn").addEventListener("click", function () {
       var code = (el("restoreCode").value || "").trim();
       if (!/^[0-9a-f-]{16,}$/i.test(code)) { el("restoreCode").value = ""; el("restoreCode").placeholder = "Code invalide"; return; }
       if (!configured) { el("restoreCode").placeholder = "Base non configurée"; el("restoreCode").value = ""; return; }
       fetchRemote(code).then(function (rem) {
         if (!rem) { el("restoreCode").value = ""; el("restoreCode").placeholder = "Code introuvable"; return; }
-        var b = state.b, bg = state.badges, em = state.emblem;
-        state = { id: code, pseudo: rem.pseudo || "", xp: rem.xp || 0, games: rem.games || 0, wins: rem.wins || 0,
-                  level: levelFromXp(rem.xp || 0), b: b, badges: bg, emblem: em };
-        saveLocal(); el("restoreCode").value = ""; fillProfil();
+        state.id = code;            // les deux appareils partagent désormais le même profil
+        mergeRemote(rem);           // et on garde le meilleur des deux
+        pushRemote();
+        el("restoreCode").value = "";
+        el("syncMsg").textContent = "Profil lié ✓";
+        fillProfil();
       });
     });
   }
@@ -501,7 +544,13 @@
   }
 
   function setPseudo(n) { state.pseudo = (n || "").slice(0, 16); saveLocal(); pushDebounced(); fillProfil(); }
-  function open(gameStatsHTML) { mount(); var g = el("gameStats"); if (g) g.innerHTML = gameStatsHTML || ""; showTab("profil"); el("profileOverlay").classList.add("open"); }
+  function open(gameStatsHTML) {
+    mount();
+    var g = el("gameStats"); if (g) g.innerHTML = gameStatsHTML || "";
+    showTab("profil");
+    el("profileOverlay").classList.add("open");
+    syncNow();                        // on récupère ce qui a été joué ailleurs
+  }
 
   /* ---------- API publique ---------- */
   var CLASSIC = ["court", "normal", "long", "prenoms", "maladies"];
@@ -600,6 +649,11 @@
 
   checkBadges(true);   // rattrape les badges mérités par un profil existant
   saveLocal();
+
+  // resynchronise au retour sur l'application (autre appareil entre-temps)
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden) syncNow();
+  });
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { mount(); syncInit(); });
   else { mount(); syncInit(); }
