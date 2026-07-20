@@ -1,5 +1,5 @@
 /* Motus — service worker */
-const CACHE = "motus-v17";
+const CACHE = "motus-v18";
 const ASSETS = [
   "./",
   "./index.html",
@@ -8,7 +8,8 @@ const ASSETS = [
   "./profiles/config.js",
   "./profiles/profile.js",
   "./dico/motus-words.js",
-  "./dico/motus-themes.js",
+  "./dico/motus-prenoms.js",
+  "./dico/motus-maladies.js",
   "./dico/dico-06.txt",
   "./dico/dico-07.txt",
   "./dico/dico-08.txt"

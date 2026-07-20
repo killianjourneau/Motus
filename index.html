@@ -71,6 +71,8 @@
 
   /* Zone de jeu */
   #hud{ display:flex; align-items:center; justify-content:space-between; padding:6px clamp(12px,4vw,22px) 0; font-size:13px; font-weight:700; color:var(--ink-dim); }
+  #timer.warn{ background:var(--red); color:#fff; box-shadow:none; animation:pulse 1s ease-in-out infinite; }
+  @keyframes pulse{ 0%,100%{opacity:1} 50%{opacity:.6} }
   #timer{ font-variant-numeric:tabular-nums; letter-spacing:.5px; background:var(--cell); padding:4px 10px; border-radius:8px; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
   main{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:4px 8px; min-height:0; }
   #board{ display:grid; gap:var(--gap); }
@@ -82,6 +84,9 @@
     box-shadow: inset 0 0 0 1.5px var(--cell-edge); transition: transform .12s ease;
   }
   .tile span{ position:relative; z-index:2; line-height:1; }
+  .tile.cursor{ box-shadow: inset 0 0 0 2.5px var(--yellow); }
+  .tile{ cursor:pointer; }
+  .key.dash{ flex:.7; font-size:20px; }
   .tile.filled{ animation:pop .12s ease; box-shadow: inset 0 0 0 2px var(--cell-edge); }
   @keyframes pop{ 0%{transform:scale(.85)} 100%{transform:scale(1)} }
   .tile.correct{ background:var(--red); box-shadow:none; color:#fff; }
@@ -187,7 +192,7 @@
       <div class="mode-cat">Quotidien</div>
       <div class="mode-grid">
         <button class="mode-item" data-mode="daily"><span class="mi">📅</span><b>Mot du jour</b><i>Le même pour tous</i></button>
-        <button class="mode-item" data-mode="defi"><span class="mi">🔥</span><b>Défi du jour</b><i>3 mots chronométrés</i></button>
+        <button class="mode-item" data-mode="defi"><span class="mi">🔥</span><b>Défi du jour</b><i>3 mots · 15 min</i></button>
       </div>
       <div class="mode-cat">Classique</div>
       <div class="mode-grid">
@@ -237,7 +242,9 @@
         <div class="li"><div class="mini present"><span>B</span></div> Lettre présente, mal placée</div>
         <div class="li"><div class="mini absent"><span>C</span></div> Lettre absente du mot</div>
       </div>
-      <p><b>Modes à thème</b> : en Prénoms et Maladies, seules les propositions du thème sont acceptées.</p>
+      <p><b>Astuce</b> : touchez une case pour y écrire directement — pas besoin de remplir dans l'ordre.</p>
+      <p><b>Modes à thème</b> : en Prénoms et Maladies, seules les propositions du thème sont acceptées. En Prénoms, le <b>tiret</b> est une lettre (Jean-Pierre).</p>
+      <p><b>Défi</b> : 3 mots à trouver en <b>15 minutes</b> au total.</p>
       <p><b>Jour</b> : le même mot pour tout le monde, une fois par jour.<br>
          <b>Court</b> 4-5 lettres · <b>Normal</b> 6-8 · <b>Long</b> 10-15.</p>
       <button class="btn" data-close>C'est parti</button>
@@ -270,7 +277,8 @@
   </div>
 
 <script src="./dico/motus-words.js"></script>
-<script src="./dico/motus-themes.js"></script>
+<script src="./dico/motus-prenoms.js"></script>
+<script src="./dico/motus-maladies.js"></script>
 <script src="./profiles/config.js"></script>
 <script src="./profiles/profile.js"></script>
 <script>
@@ -279,7 +287,10 @@
 
   /* ---------- Listes de mots (sans accents, A-Z) ---------- */
   const POOLS = window.MOTUS_WORDS || { court:["LUNE"], normal:["MAISON"], long:["ORDINATEUR"] };
-  const THEMES = window.MOTUS_THEMES || { prenoms:["MARIE"], maladies:["GRIPPE"] };
+  const THEMES = {
+    prenoms:  window.MOTUS_PRENOMS  || ["MARIE"],
+    maladies: window.MOTUS_MALADIES || ["GRIPPE"]
+  };
   const THEME_MODES = ["prenoms","maladies"];
   // Toutes les propositions acceptées dans le mode (recherche rapide)
   const THEME_SETS = { prenoms:new Set(THEMES.prenoms), maladies:new Set(THEMES.maladies) };
@@ -297,10 +308,12 @@
   POOLS.maladies = playableWords(THEMES.maladies);
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.4.1";
+  const VERSION = "1.5.0";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
+  const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
   const AZERTY = ["AZERTYUIOP","QSDFGHJKLM","WXCVBN"];
+  const DASH = "-";   // le tiret compte comme une lettre (prénoms composés)
   const SHARE_URL = "https://killianjourneau.github.io/Motus/";
   const EPOCH = Math.floor(Date.UTC(2025,0,1)/86400000);
 
@@ -337,6 +350,7 @@
 
   /* ---------- Dictionnaire (une longueur par partie) ---------- */
   function loadDico(l){
+    if(THEME_MODES.includes(mode)) return;   // en mode thème, seule la liste du thème compte
     if(dicoByLen[l] !== undefined) return;
     const p = String(l).padStart(2,"0");
     fetch(`./dico/dico-${p}.txt`).then(r => r.ok ? r.text() : Promise.reject())
@@ -388,6 +402,12 @@
     }
   }
   function tileAt(r,c){ return board.querySelector(`.row[data-r="${r}"] .tile[data-c="${c}"]`); }
+  board.addEventListener("click", e=>{
+    const t=e.target.closest(".tile"); if(!t) return;
+    const r=parseInt(t.parentElement.dataset.r,10), c=parseInt(t.dataset.c,10);
+    if(r!==row) return;              // seule la ligne en cours est modifiable
+    moveCursor(c);
+  });
   function setCell(r,c,ch){
     grid[r][c]=ch; const t=tileAt(r,c); t.querySelector("span").textContent=ch;
     t.classList.toggle("filled", !!ch);
@@ -400,6 +420,7 @@
       const kr=document.createElement("div"); kr.className="krow";
       if(i===2) kr.appendChild(makeKey("ENTRÉE","enter",true));
       for(const ch of line){ const k=makeKey(ch,ch,false); keyEls[ch]=k; kr.appendChild(k); }
+      if(i===2){ const kd=makeKey(DASH,DASH,false); kd.classList.add("dash"); keyEls[DASH]=kd; kr.appendChild(kd); }
       if(i===2) kr.appendChild(makeKey("⌫","back",true));
       keyboard.appendChild(kr);
     });
@@ -409,6 +430,10 @@
     b.addEventListener("click",()=>handleKey(action)); return b;
   }
   function resetKeyboardColors(){ for(const k in keyEls) keyEls[k].classList.remove("correct","present","absent"); }
+  function updateDashKey(){
+    const k = keyEls[DASH]; if(!k) return;
+    k.style.display = (mode==="prenoms") ? "" : "none";
+  }
   function paintKey(ch,state){
     const k=keyEls[ch]; if(!k) return;
     const rank={absent:0,present:1,correct:2};
@@ -422,13 +447,42 @@
     if(over) return;
     if(a==="enter") return submit();
     if(a==="back")  return backspace();
-    if(/^[A-Z]$/.test(a)) return type(a);
+    if(/^[A-Z-]$/.test(a)) return type(a);
   }
-  function type(ch){ if(col>=len) return; setCell(row,col,ch); col++; }
-  function backspace(){ if(col<=1) return; col--; setCell(row,col,""); }
+  // --- curseur : la case active, déplaçable au clic ---
+  function firstEmpty(from){
+    for(let c=from;c<len;c++) if(!grid[row][c]) return c;
+    for(let c=1;c<len;c++) if(!grid[row][c]) return c;
+    return -1;
+  }
+  function isRowFull(){ for(let c=1;c<len;c++) if(!grid[row][c]) return false; return true; }
+  function drawCursor(){
+    board.querySelectorAll(".tile.cursor").forEach(t=>t.classList.remove("cursor"));
+    if(over || col<1 || col>=len) return;
+    const t=tileAt(row,col); if(t) t.classList.add("cursor");
+  }
+  function moveCursor(c){
+    if(over || c<1 || c>=len) return;
+    col=c; drawCursor();
+  }
+  function type(ch){
+    if(col<1 || col>=len){ const e=firstEmpty(1); if(e<0) return; col=e; }
+    setCell(row,col,ch);
+    const nxt=firstEmpty(col+1);
+    col = (nxt<0) ? len : nxt;
+    drawCursor();
+  }
+  function backspace(){
+    // efface la case courante si elle contient une lettre, sinon la précédente remplie
+    if(col<len && col>=1 && grid[row][col]){ setCell(row,col,""); drawCursor(); return; }
+    let c=Math.min(col,len)-1;
+    while(c>=1 && !grid[row][c]) c--;
+    if(c<1){ col=Math.max(col,1); drawCursor(); return; }
+    col=c; setCell(row,col,""); drawCursor();
+  }
 
   function submit(){
-    if(col<len){ shake(); toast("Pas assez de lettres"); return; }
+    if(!isRowFull()){ shake(); toast("Pas assez de lettres"); return; }
     const guess=grid[row].join("");
     if(!isValid(guess) && guess!==answer){ shake(); toast(REJECT_MSG[mode] || "Mot inconnu"); return; }
     over=true;
@@ -467,7 +521,24 @@
     }
     col=1; over=false;
     setCell(row,0,answer[0]); tileAt(row,0).classList.add("correct");
+    drawCursor();
     save();
+  }
+
+  /* ---------- Défi : temps écoulé ---------- */
+  function defiTimeout(){
+    if(ended) return;
+    timerStop(); over=true; ended=true; defiFailed=true;
+    defiTimes.push(timerValue()); defiTries.push(0);
+    recordResult(false); awardXp(false);
+    defiStep = DEFI_STEPS.length;
+    const d = store.get("motus.defi",{});
+    d.day=defiKey; d.step=defiStep; d.guesses=[]; d.over=true; d.won=false; d.ms=0;
+    d.times=defiTimes; d.tries=defiTries; d.failed=true; d.timeout=true;
+    store.set("motus.defi", d);
+    $("timer").textContent = "⏳ 0:00";
+    toast("Temps écoulé !");
+    setTimeout(()=>showDefiEnd(true), 400);
   }
 
   /* ---------- Défi : passage au mot suivant ---------- */
@@ -526,12 +597,25 @@
     const t=Math.max(0,Math.floor(ms/1000));
     return Math.floor(t/60)+":"+String(t%60).padStart(2,"0");
   }
+  function defiTotalMs(){ return defiTimes.reduce((a,b)=>a+b,0) + timerValue(); }
+  function renderTimer(){
+    const el=$("timer"); if(!el) return;
+    if(mode==="defi"){
+      const left = DEFI_LIMIT - defiTotalMs();
+      el.textContent = "⏳ " + fmtTime(Math.max(0,left));
+      el.classList.toggle("warn", left<=60000);
+      if(left<=0) defiTimeout();
+    } else {
+      el.classList.remove("warn");
+      el.textContent = fmtTime(timerValue());
+    }
+  }
   function timerStart(resumeMs){
     timerStop();
     tElapsed = resumeMs || 0;
     tStart = Date.now();
-    $("timer").textContent = fmtTime(tElapsed);
-    tTimer = setInterval(()=>{ $("timer").textContent = fmtTime(tElapsed + (Date.now()-tStart)); }, 250);
+    renderTimer();
+    tTimer = setInterval(renderTimer, 250);
   }
   function timerStop(){
     if(tTimer){ tElapsed += Date.now()-tStart; clearInterval(tTimer); tTimer=null; }
@@ -590,7 +674,13 @@
     if(defiStep>=DEFI_STEPS.length){
       answer=defiWords(defiNum)[DEFI_STEPS.length-1];
       setupBoardForAnswer(); over=true; ended=true; timerStop(); updateHud();
-      showDefiEnd(); return;
+      $("timer").textContent = "⏳ " + fmtTime(Math.max(0, DEFI_LIMIT - defiTimes.reduce((a,b)=>a+b,0)));
+      showDefiEnd(!!d.timeout); return;
+    }
+    // le temps imparti est-il déjà dépassé ?
+    if(defiTimes.reduce((a,b)=>a+b,0) + (d.ms||0) >= DEFI_LIMIT){
+      answer=defiWords(defiNum)[defiStep]; setupBoardForAnswer(); updateHud();
+      timerStop(); tElapsed = d.ms||0; defiTimeout(); return;
     }
     answer = defiWords(defiNum)[defiStep];
     setupBoardForAnswer(); loadDico(len);
@@ -601,13 +691,15 @@
     if(over) timerStop(); else timerStart(d.ms||0);
     store.set("motus.last","defi");
   }
-  function showDefiEnd(){
+  function showDefiEnd(timeout){
     const total = defiTimes.reduce((a,b)=>a+b,0);
-    const done = defiTimes.length;
-    $("endTitle").textContent = defiFailed ? "Défi manqué" : "Défi réussi !";
-    $("endSub").innerHTML = defiFailed
-      ? `${done}/3 mots trouvés — retente demain.`
-      : `3 mots en <b>${fmtTime(total)}</b> · ${defiTries.reduce((a,b)=>a+b,0)} essais au total.`;
+    const found = defiTries.filter(t=>t>0).length;
+    $("endTitle").textContent = timeout ? "Temps écoulé !" : (defiFailed ? "Défi manqué" : "Défi réussi !");
+    $("endSub").innerHTML = timeout
+      ? `${found}/3 mots trouvés avant la fin des 15 minutes.`
+      : (defiFailed
+          ? `${found}/3 mots trouvés en <b>${fmtTime(total)}</b> — retente demain.`
+          : `3 mots en <b>${fmtTime(total)}</b> · ${defiTries.reduce((a,b)=>a+b,0)} essais au total.`);
     $("btnShare").style.display="block";
     $("btnAgain").textContent="Jouer un mot au hasard";
     endAgainMode="normal";
@@ -632,6 +724,7 @@
     grid=Array.from({length:MAX_ROWS},()=>Array(len).fill(""));
     computeSizing(); buildBoard(); resetKeyboardColors();
     setCell(0,0,answer[0]); tileAt(0,0).classList.add("correct");
+    drawCursor(); updateDashKey();
   }
   function restoreFree(f){
     mode=f.mode; answer=f.answer; guesses=[]; rowStates=[]; won=false; ended=false;
@@ -640,7 +733,7 @@
     replay(f.guesses||[]);
     over = f.over || row>=MAX_ROWS; ended = over;
     if(!over){ col=1; setCell(row,0,answer[0]); tileAt(row,0).classList.add("correct"); }
-    loadDico(len); setActiveSeg(mode); updateHud();
+    drawCursor(); loadDico(len); setActiveSeg(mode); updateHud();
     if(over) timerStop(); else timerStart(f.ms||0);
   }
 
@@ -648,6 +741,7 @@
   function setActiveSeg(m){
     $("modeBtnLabel").textContent = MODE_LABELS[m] || m;
     document.querySelectorAll(".mode-item").forEach(b=>b.classList.toggle("active", b.dataset.mode===m));
+    updateDashKey();
   }
 
   /* ---------- Partage ---------- */
@@ -655,7 +749,7 @@
     if(mode==="defi"){
       const total = defiTimes.reduce((a,b)=>a+b,0);
       const line = defiTries.map(t => t>0 ? t+"/6" : "X").join(" · ");
-      return `Motus — Défi du jour #${defiNum}\n${defiFailed?"":"✅ "}${line} en ${fmtTime(total)}\n${SHARE_URL}`;
+      return `Motus — Défi du jour #${defiNum}\n${defiFailed?"":"✅ "}${line} en ${fmtTime(total)} / 15:00\n${SHARE_URL}`;
     }
     const tries = won ? guesses.length : "X";
     const grid = rowStates.map(st => st.map(s => s==="correct"?"🟥":s==="present"?"🟡":"⬛").join("")).join("\n");
@@ -720,6 +814,7 @@
     if(k==="Enter") handleKey("enter");
     else if(k==="Backspace") handleKey("back");
     else if(/^[a-zA-Z]$/.test(k)) handleKey(k.toUpperCase());
+    else if(k==="-" || k==="_") handleKey(DASH);
   });
 
   themeBtn.addEventListener("click", toggleTheme);
