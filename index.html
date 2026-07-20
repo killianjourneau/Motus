@@ -262,7 +262,7 @@
       <div class="dist-title">Contenu</div>
       <p style="text-align:center;margin-bottom:6px" id="aboutCounts"></p>
       <div class="dist-title">Nouveautés</div>
-      <p style="text-align:center;font-size:13px;color:var(--ink-dim)">Défi du jour · chrono · profil communautaire</p>
+      <p style="text-align:center;font-size:13px;color:var(--ink-dim)">Badges à collectionner · emblème de profil · défi chronométré</p>
       <button class="btn" data-close>Fermer</button>
     </div>
   </div>
@@ -309,7 +309,7 @@
   POOLS.maladies = playableWords(THEMES.maladies);
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.5.1";
+  const VERSION = "1.6.0";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -513,7 +513,17 @@
     if(!window.Profile) return;
     const f = MODE_FACTOR[mode] || 1;
     const xp = win ? Math.round((15 + Math.max(0,6-guesses.length)*4) * f) : 5;
-    Profile.addGame({ won:win, xp });
+    // victoire sans aucune lettre jaune (uniquement du rouge et du gris)
+    const noYellow = win && !rowStates.some(st => st.indexOf("present") >= 0);
+    // longueur réelle jouée (le défi et le mot du jour empruntent un autre mode)
+    const sub = (mode==="defi")  ? DEFI_STEPS[Math.min(defiStep, DEFI_STEPS.length-1)]
+              : (mode==="daily") ? "normal"
+              : mode;
+    Profile.addGame({
+      won:win, xp, mode, sub,
+      tries: win ? guesses.length : 0,
+      ms: timerValue(), answer, noYellow
+    });
     if(mode==="daily") Profile.submitDaily({ game:"motus", day:dailyKey, tries: win?guesses.length:6, won:win });
   }
 
@@ -565,7 +575,10 @@
     d.times=defiTimes; d.tries=defiTries; d.failed=defiFailed;
     store.set("motus.defi", d);
 
-    if(defiStep>=DEFI_STEPS.length){ showDefiEnd(); return; }
+    if(defiStep>=DEFI_STEPS.length){
+      if(window.Profile) Profile.defiDone({ success:!defiFailed, ms:defiTimes.reduce((a,b)=>a+b,0) });
+      showDefiEnd(); return;
+    }
     // mot suivant
     guesses=[]; rowStates=[]; won=false; over=false; ended=false;
     answer = defiWords(defiNum)[defiStep];

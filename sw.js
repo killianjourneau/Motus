@@ -1,5 +1,5 @@
 /* Motus — service worker */
-const CACHE = "motus-v19";
+const CACHE = "motus-v20";
 const ASSETS = [
   "./",
   "./index.html",
