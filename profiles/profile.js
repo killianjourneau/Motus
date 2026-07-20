@@ -172,7 +172,7 @@
     }).catch(function () {});
   }
   var pushTimer;
-  function pushDebounced() { clearTimeout(pushTimer); pushTimer = setTimeout(pushRemote, 800); }
+  function pushDebounced() { clearTimeout(pushTimer); pushTimer = setTimeout(pushRemote, 300); }
   function fetchRemote(id) {
     if (!configured) return Promise.resolve(null);
     return fetch(API + "/rest/v1/profiles?select=*&id=eq." + encodeURIComponent(id), { headers: headers() })
@@ -293,6 +293,8 @@
 #syncCode{ flex:1; font-size:11px; word-break:break-all; color:var(--ink-dim); background:var(--cell); padding:8px 10px; border-radius:8px; }
 .prof-sync .btn{ width:auto; padding:0 14px; height:40px; margin:0; font-size:13px; flex:none; }
 #savePseudo{ width:auto; padding:0 16px; height:44px; margin:0; flex:none; }
+.refresh-btn{ width:100%; height:38px; margin:0 0 12px; font-size:13px; }
+.refresh-btn.spin{ opacity:.6; pointer-events:none; }
 .muted{ color:var(--ink-dim); text-align:center; font-size:14px; padding:10px 0; }
 .dist-title{ font-size:12px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.4px; margin:4px 0 8px; }
 .dist{ display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
@@ -350,10 +352,12 @@
 
     <div class="pane" id="pane-rank" style="display:none">
       <div class="myrank" id="myRank"></div>
+      <button class="btn ghost refresh-btn" id="btnRefreshRank">↻ Actualiser</button>
       <div id="leaderboard" class="lb"></div>
     </div>
 
     <div class="pane" id="pane-today" style="display:none">
+      <button class="btn ghost refresh-btn" id="btnRefreshToday">↻ Actualiser</button>
       <div id="todayStats"></div>
     </div>
 
@@ -388,6 +392,14 @@
       if (!configured) { m.textContent = "Base non configurée"; return; }
       m.textContent = "Synchronisation…";
       syncNow(function (ok) { m.textContent = ok ? "À jour ✓" : "Échec — réessaie"; fillProfil(); });
+    });
+    el("btnRefreshRank").addEventListener("click", function () {
+      var b = el("btnRefreshRank"); b.classList.add("spin"); b.textContent = "Actualisation…";
+      loadRank(function () { b.classList.remove("spin"); b.textContent = "↻ Actualiser"; });
+    });
+    el("btnRefreshToday").addEventListener("click", function () {
+      var b = el("btnRefreshToday"); b.classList.add("spin"); b.textContent = "Actualisation…";
+      loadToday(function () { b.classList.remove("spin"); b.textContent = "↻ Actualiser"; });
     });
     el("restoreBtn").addEventListener("click", function () {
       var code = (el("restoreCode").value || "").trim();
@@ -475,9 +487,9 @@
     });
   }
 
-  function loadRank() {
+  function loadRank(done) {
     var box = el("leaderboard"), mr = el("myRank");
-    if (!configured) { mr.textContent = ""; box.innerHTML = '<div class="muted">Classement disponible une fois la base configurée.</div>'; return; }
+    if (!configured) { mr.textContent = ""; box.innerHTML = '<div class="muted">Classement disponible une fois la base configurée.</div>'; if (done) done(); return; }
     mr.textContent = "…"; box.innerHTML = '<div class="muted">Chargement…</div>';
     Promise.all([countQuery("profiles?select=id&xp=gt." + state.xp), countQuery("profiles?select=id")])
       .then(function (r) {
@@ -496,14 +508,15 @@
                  '<span class="lv">Niv. ' + (p.level || 1) + " · " + (p.xp || 0) + " XP</span></div>";
         }).join("");
       })
-      .catch(function () { box.innerHTML = '<div class="muted">Classement indisponible</div>'; });
+      .catch(function () { box.innerHTML = '<div class="muted">Classement indisponible</div>'; })
+      .then(function () { if (done) done(); });
   }
 
-  function loadToday() {
+  function loadToday(done) {
     var box = el("todayStats");
     var g = window.Profile.game || "motus", d = todayStr();
     var label = g === "rebus" ? "rébus du jour" : "mot du jour";
-    if (!configured) { box.innerHTML = '<div class="muted">Stats communautaires disponibles une fois la base configurée.</div>'; return; }
+    if (!configured) { box.innerHTML = '<div class="muted">Stats communautaires disponibles une fois la base configurée.</div>'; if (done) done(); return; }
     box.innerHTML = '<div class="muted">Chargement…</div>';
     var base = API + "/rest/v1/daily_results?game=eq." + g + "&day=eq." + d;
     Promise.all([
@@ -534,7 +547,7 @@
       box.innerHTML = html;
     }).catch(function () {
       box.innerHTML = '<div class="muted">Stats du jour indisponibles.<br>(La table <b>daily_results</b> existe-t-elle ?)</div>';
-    });
+    }).then(function () { if (done) done(); });
   }
 
   function refreshOpen() {
