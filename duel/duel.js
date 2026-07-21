@@ -155,17 +155,29 @@
       return { r: "draw", why: "Même nombre d'essais et même temps !" };
     },
 
-    /* Interrogation régulière de l'état du duel. */
+    /* Interrogation régulière de l'état du duel.
+       Les navigateurs mobiles ralentissent fortement les minuteurs quand
+       l'écran s'éteint : on relance donc aussi au retour sur l'application. */
     watch: function (code, cb) {
       var stop = false, t = null;
       function tick() {
         if (stop) return;
+        clearTimeout(t);
         API_OBJ.fetch(code).then(function (d) { if (!stop) cb(null, d); })
           .catch(function (e) { if (!stop) cb(e); })
           .then(function () { if (!stop) t = setTimeout(tick, POLL_MS); });
       }
+      function onVis() { if (!document.hidden && !stop) tick(); }
+      document.addEventListener("visibilitychange", onVis);
+      window.addEventListener("focus", onVis);
       tick();
-      return function () { stop = true; clearTimeout(t); };
+      var stopper = function () {
+        stop = true; clearTimeout(t);
+        document.removeEventListener("visibilitychange", onVis);
+        window.removeEventListener("focus", onVis);
+      };
+      stopper.now = tick;          // permet de forcer une vérification
+      return stopper;
     }
   };
 
