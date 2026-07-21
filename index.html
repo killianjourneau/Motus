@@ -347,13 +347,13 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.8.2"></script>
-<script src="./dico/motus-prenoms.js?v=1.8.2"></script>
-<script src="./dico/motus-maladies.js?v=1.8.2"></script>
-<script src="./dico/motus-villes.js?v=1.8.2"></script>
-<script src="./profiles/config.js?v=1.8.2"></script>
-<script src="./profiles/profile.js?v=1.8.2"></script>
-<script src="./duel/duel.js?v=1.8.2"></script>
+<script src="./dico/motus-words.js?v=1.8.3"></script>
+<script src="./dico/motus-prenoms.js?v=1.8.3"></script>
+<script src="./dico/motus-maladies.js?v=1.8.3"></script>
+<script src="./dico/motus-villes.js?v=1.8.3"></script>
+<script src="./profiles/config.js?v=1.8.3"></script>
+<script src="./profiles/profile.js?v=1.8.3"></script>
+<script src="./duel/duel.js?v=1.8.3"></script>
 <script>
 (() => {
   "use strict";
@@ -391,7 +391,7 @@
   POOLS.villes = playableWords(THEME_SOL.villes);
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.8.2";
+  const VERSION = "1.8.3";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -695,9 +695,10 @@
         duelShowOpponent(d);
       }).catch(e=>{
         const m = e && e.message;
-        duelSetMsg(m==="introuvable" ? "Aucun duel avec ce code"
-                 : m==="complet"     ? "Ce duel est déjà complet"
-                 : m==="soi-meme"    ? "Tu ne peux pas rejoindre ton propre duel"
+        duelSetMsg(m==="introuvable"     ? "Aucun duel avec ce code"
+                 : m==="complet"         ? "Ce duel est déjà complet"
+                 : m==="soi-meme"        ? "Tu ne peux pas rejoindre ton propre duel"
+                 : m==="ecriture-refusee"? "La base refuse d'enregistrer le duel. Vérifie la règle de modification (UPDATE) de la table duels."
                  : "Connexion impossible", true);
         $("duelGo").disabled=false;
       });
@@ -718,6 +719,9 @@
     duelStop = Duel.watch(duelCode, (err,d)=>{
       if(err || !d){ if(err) $("duelWait").textContent="Connexion perdue, nouvelle tentative…"; return; }
       duelRow=d;
+      if(!duelStarted && d.status!=="playing"){
+        $("duelWait").textContent = "En attente d'un adversaire… (statut : " + (d.status||"?") + ")";
+      }
       // l'adversaire a rejoint et je n'ai pas encore commencé : on affiche sa fiche
       if(d.status==="playing" && d.target && !duelStarted){
         vibrate([12,40,12]);
@@ -766,7 +770,11 @@
     const side = duelRow.side;
     Duel.report(duelCode, side, { tries: win?guesses.length:0, ms: timerValue(), won:win })
       .then(()=>{ duelRow.mine={tries:win?guesses.length:0, ms:timerValue(), done:true, won:win}; duelMaybeFinish(); })
-      .catch(()=>{ duelMaybeFinish(); });
+      .catch(()=>{
+        duelRow.mine={tries:win?guesses.length:0, ms:timerValue(), done:true, won:win};
+        toast("Résultat non transmis — vérifie les droits de la table duels", 3000);
+        duelMaybeFinish();
+      });
   }
 
   function duelMaybeFinish(){
