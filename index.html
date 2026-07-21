@@ -205,6 +205,7 @@
       <div class="mode-grid">
         <button class="mode-item" data-mode="prenoms"><span class="mi">👶</span><b>Prénoms</b><i>Prénoms français</i></button>
         <button class="mode-item" data-mode="maladies"><span class="mi">🩺</span><b>Maladies</b><i>Pathologies connues</i></button>
+        <button class="mode-item" data-mode="villes"><span class="mi">🏙️</span><b>Villes</b><i>France et monde</i></button>
       </div>
     </div>
   </div>
@@ -244,7 +245,7 @@
         <div class="li"><div class="mini absent"><span>C</span></div> Lettre absente du mot</div>
       </div>
       <p><b>Astuce</b> : touchez une case pour y écrire directement — pas besoin de remplir dans l'ordre.</p>
-      <p><b>Modes à thème</b> : en Prénoms et Maladies, seules les propositions du thème sont acceptées. En Prénoms, le <b>tiret</b> est une lettre (Jean-Pierre).</p>
+      <p><b>Modes à thème</b> : en Prénoms et Maladies, seules les propositions du thème sont acceptées. En Prénoms et Villes, le <b>tiret</b> est une lettre : les espaces s'écrivent avec un tiret (Jean-Pierre, Le-Mans).</p>
       <p><b>Défi</b> : 3 mots à trouver en <b>15 minutes</b> au total.</p>
       <p><b>Jour</b> : le même mot pour tout le monde, une fois par jour.<br>
          <b>Court</b> 4-5 lettres · <b>Normal</b> 6-8 · <b>Long</b> 10-15.</p>
@@ -277,11 +278,12 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.6.3"></script>
-<script src="./dico/motus-prenoms.js?v=1.6.3"></script>
-<script src="./dico/motus-maladies.js?v=1.6.3"></script>
-<script src="./profiles/config.js?v=1.6.3"></script>
-<script src="./profiles/profile.js?v=1.6.3"></script>
+<script src="./dico/motus-words.js?v=1.7.0"></script>
+<script src="./dico/motus-prenoms.js?v=1.7.0"></script>
+<script src="./dico/motus-maladies.js?v=1.7.0"></script>
+<script src="./dico/motus-villes.js?v=1.7.0"></script>
+<script src="./profiles/config.js?v=1.7.0"></script>
+<script src="./profiles/profile.js?v=1.7.0"></script>
 <script>
 (() => {
   "use strict";
@@ -293,15 +295,17 @@
   // deviner que des prénoms répandus en France.
   const THEMES = {
     prenoms:  window.MOTUS_PRENOMS  || ["MARIE"],
-    maladies: window.MOTUS_MALADIES || ["GRIPPE"]
+    maladies: window.MOTUS_MALADIES || ["GRIPPE"],
+    villes:   window.MOTUS_VILLES   || ["PARIS"]
   };
   const THEME_SOL = {
     prenoms:  window.MOTUS_PRENOMS_SOL || THEMES.prenoms,
-    maladies: THEMES.maladies
+    maladies: THEMES.maladies,
+    villes:   window.MOTUS_VILLES_SOL  || THEMES.villes
   };
-  const THEME_MODES = ["prenoms","maladies"];
+  const THEME_MODES = ["prenoms","maladies","villes"];
   // Toutes les propositions acceptées dans le mode (recherche rapide)
-  const THEME_SETS = { prenoms:new Set(THEMES.prenoms), maladies:new Set(THEMES.maladies) };
+  const THEME_SETS = { prenoms:new Set(THEMES.prenoms), maladies:new Set(THEMES.maladies), villes:new Set(THEMES.villes) };
   // Les solutions n'utilisent que les longueurs offrant assez de mots :
   // sinon le joueur n'aurait presque aucune proposition possible.
   const MIN_PER_LEN = 12;
@@ -314,9 +318,10 @@
   }
   POOLS.prenoms = playableWords(THEME_SOL.prenoms);
   POOLS.maladies = playableWords(THEME_SOL.maladies);
+  POOLS.villes = playableWords(THEME_SOL.villes);
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.6.3";
+  const VERSION = "1.7.0";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -372,7 +377,8 @@
   }
   const REJECT_HINT = {
     prenoms:"Seuls les prénoms de la liste sont acceptés",
-    maladies:"Seules les maladies de la liste sont acceptées"
+    maladies:"Seules les maladies de la liste sont acceptées",
+    villes:"Seules les villes de la liste sont acceptées"
   };
 
   /* ---------- Mot du jour ---------- */
@@ -443,7 +449,7 @@
   function resetKeyboardColors(){ for(const k in keyEls) keyEls[k].classList.remove("correct","present","absent"); }
   function updateDashKey(){
     const k = keyEls[DASH]; if(!k) return;
-    k.style.display = (mode==="prenoms") ? "" : "none";
+    k.style.display = (mode==="prenoms" || mode==="villes") ? "" : "none";
   }
   function paintKey(ch,state){
     const k=keyEls[ch]; if(!k) return;
@@ -515,7 +521,7 @@
     setTimeout(()=>finishRow(guess===answer), (len-1)*180+520);
   }
 
-  const MODE_FACTOR = { court:0.8, normal:1, long:1.4, daily:1.1, defi:1.2, prenoms:0.9, maladies:1.1 };
+  const MODE_FACTOR = { court:0.8, normal:1, long:1.4, daily:1.1, defi:1.2, prenoms:0.9, maladies:1.1, villes:1.1 };
   function awardXp(win){
     if(!window.Profile) return;
     const f = MODE_FACTOR[mode] || 1;
@@ -655,7 +661,7 @@
   }
   function timerValue(){ return tTimer ? tElapsed + (Date.now()-tStart) : tElapsed; }
   function updateHud(){
-    const names={court:"Court",normal:"Normal",long:"Long",daily:"Mot du jour",defi:"Défi du jour",prenoms:"Prénoms",maladies:"Maladies"};
+    const names={court:"Court",normal:"Normal",long:"Long",daily:"Mot du jour",defi:"Défi du jour",prenoms:"Prénoms",maladies:"Maladies",villes:"Villes"};
     let label = names[mode]||"";
     if(mode==="defi") label += " — mot "+(defiStep+1)+"/3";
     if(THEME_MODES.includes(mode) && len){
@@ -774,7 +780,7 @@
     if(over) timerStop(); else timerStart(f.ms||0);
   }
 
-  const MODE_LABELS={daily:"📅 Mot du jour",defi:"🔥 Défi du jour",court:"🐤 Court",normal:"🎯 Normal",long:"🐘 Long",prenoms:"👶 Prénoms",maladies:"🩺 Maladies"};
+  const MODE_LABELS={daily:"📅 Mot du jour",defi:"🔥 Défi du jour",court:"🐤 Court",normal:"🎯 Normal",long:"🐘 Long",prenoms:"👶 Prénoms",maladies:"🩺 Maladies",villes:"🏙️ Villes"};
   function setActiveSeg(m){
     $("modeBtnLabel").textContent = MODE_LABELS[m] || m;
     document.querySelectorAll(".mode-item").forEach(b=>b.classList.toggle("active", b.dataset.mode===m));
