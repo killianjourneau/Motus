@@ -90,8 +90,22 @@
               p2_id: m.id, p2_pseudo: m.pseudo, p2_level: m.level, p2_badge: m.badge,
               word2: hide(word), status: "playing", started_at: new Date().toISOString()
             })
-          }).then(function (r) { return API_OBJ.parse((r && r[0]) || d); });
+          }).then(function (r) {
+            var row = r && r[0];
+            // Vérification : la mise à jour a-t-elle vraiment été enregistrée ?
+            if (row && row.word2 && row.status === "playing") return API_OBJ.parse(row);
+            return API_OBJ.raw(code).then(function (fresh) {
+              if (fresh && fresh.word2 && fresh.status === "playing") return API_OBJ.parse(fresh);
+              throw new Error("ecriture-refusee");
+            });
+          });
         });
+    },
+
+    /* Lit la ligne telle quelle, sans interprétation. */
+    raw: function (code) {
+      return req("duels?id=eq." + encodeURIComponent(String(code).toUpperCase()) + "&select=*", { headers: headers() })
+        .then(function (rows) { return (rows && rows[0]) || null; });
     },
 
     fetch: function (code) {
@@ -111,8 +125,12 @@
       patch["p" + side + "_won"] = !!res.won;
       patch["p" + side + "_done"] = true;
       return req("duels?id=eq." + encodeURIComponent(code), {
-        method: "PATCH", headers: headers({ "Prefer": "return=minimal" }),
+        method: "PATCH", headers: headers({ "Prefer": "return=representation" }),
         body: JSON.stringify(patch)
+      }).then(function (r) {
+        var row = r && r[0];
+        if (row && row["p" + side + "_done"]) return row;
+        throw new Error("ecriture-refusee");
       });
     },
 
