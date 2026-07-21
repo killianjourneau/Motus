@@ -347,13 +347,13 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.8.1"></script>
-<script src="./dico/motus-prenoms.js?v=1.8.1"></script>
-<script src="./dico/motus-maladies.js?v=1.8.1"></script>
-<script src="./dico/motus-villes.js?v=1.8.1"></script>
-<script src="./profiles/config.js?v=1.8.1"></script>
-<script src="./profiles/profile.js?v=1.8.1"></script>
-<script src="./duel/duel.js?v=1.8.1"></script>
+<script src="./dico/motus-words.js?v=1.8.2"></script>
+<script src="./dico/motus-prenoms.js?v=1.8.2"></script>
+<script src="./dico/motus-maladies.js?v=1.8.2"></script>
+<script src="./dico/motus-villes.js?v=1.8.2"></script>
+<script src="./profiles/config.js?v=1.8.2"></script>
+<script src="./profiles/profile.js?v=1.8.2"></script>
+<script src="./duel/duel.js?v=1.8.2"></script>
 <script>
 (() => {
   "use strict";
@@ -391,7 +391,7 @@
   POOLS.villes = playableWords(THEME_SOL.villes);
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.8.1";
+  const VERSION = "1.8.2";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -420,7 +420,7 @@
   // défi du jour : 3 mots enchaînés
   let defiStep=0, defiKey="", defiNum=0, defiTimes=[], defiTries=[], defiFailed=false;
   // duel
-  let duelCode="", duelRow=null, duelStop=null, duelReported=false, duelMode="new", duelDeadline=0;
+  let duelCode="", duelRow=null, duelStop=null, duelReported=false, duelMode="new", duelDeadline=0, duelStarted=false;
 
   const $ = id => document.getElementById(id);
   const board=$("board"), keyboard=$("keyboard"), toastEl=$("toast"), themeBtn=$("btnTheme");
@@ -644,12 +644,22 @@
   function duelOpen(){
     if(!window.Duel || !Duel.configured){ toast("Le duel nécessite la base de données"); return; }
     duelStopWatch();
-    duelReported=false; duelRow=null; duelCode="";
+    duelReported=false; duelRow=null; duelCode=""; duelStarted=false; duelDeadline=0;
     duelShowStep(1); duelSetMsg(""); $("duelWord").value=""; $("duelCode").value="";
     [6,7,8].forEach(loadDicoForce);        // pour valider le mot proposé
     openOverlay("duelOverlay");
   }
   function duelStopWatch(){ if(duelStop){ duelStop(); duelStop=null; } }
+
+  /* Quitter un duel en cours : on prévient l'adversaire en enregistrant
+     un abandon, sinon il attendrait jusqu'à la fin des 5 minutes. */
+  function duelAbandon(){
+    if(duelStarted && !duelReported && duelCode && duelRow){
+      duelReported=true;
+      try{ Duel.report(duelCode, duelRow.side, { tries:0, ms:timerValue(), won:false }); }catch(e){}
+    }
+    duelStarted=false; duelStopWatch();
+  }
 
   // le mot proposé doit être un vrai mot de 6 à 8 lettres
   function duelCheckWord(w){
@@ -708,15 +718,18 @@
     duelStop = Duel.watch(duelCode, (err,d)=>{
       if(err || !d){ if(err) $("duelWait").textContent="Connexion perdue, nouvelle tentative…"; return; }
       duelRow=d;
-      // l'adversaire a rejoint : on affiche sa fiche, même si la fenêtre était fermée
-      if(d.status==="playing" && d.target && mode!=="duel" && !ended){
+      // l'adversaire a rejoint et je n'ai pas encore commencé : on affiche sa fiche
+      if(d.status==="playing" && d.target && !duelStarted){
         vibrate([12,40,12]);
         openOverlay("duelOverlay");
         duelShowOpponent(d);
         return;
       }
-      // pendant la partie : dès que l'adversaire a fini ET que j'ai fini
-      if(mode==="duel" && d.his && d.his.done && ended) duelMaybeFinish();
+      // j'ai fini : on conclut dès que l'adversaire a fini, ou à la fin du temps
+      if(duelStarted && ended){
+        const dl = d.deadline || duelDeadline;
+        if((d.his && d.his.done) || (dl && Date.now() > dl)) duelMaybeFinish();
+      }
     });
   }
 
@@ -733,6 +746,7 @@
     mode="duel"; over=false; ended=false; won=false; guesses=[]; rowStates=[];
     duelReported=false;
     answer = duelRow.target;
+    duelStarted = true;
     duelDeadline = duelRow.deadline || (Date.now() + DUEL_LIMIT);   // secours si l'heure de départ manque
     setupBoardForAnswer(); loadDico(len); setActiveSeg("duel");
     timerStart(0); updateHud();
@@ -1066,6 +1080,10 @@
     openOverlay("confirmOverlay");
   }
   function requestMode(m){
+    if(mode==="duel" && m!=="duel" && duelStarted && !ended){
+      askConfirm("Quitter le duel ?", "Ton adversaire gagnera la manche.", ()=>switchMode(m));
+      return;
+    }
     if(m===mode){ if(ended) switchMode(m); return; }   // même mode : on relance seulement si la partie est finie
     // on quitte une partie libre en cours (dès le 1er coup joué, même si aucun mot valide n'a été soumis)
     const risque = mode!=="daily" && mode!=="defi" && !ended;
@@ -1077,7 +1095,7 @@
     if(m==="daily") enterDaily();
     else if(m==="defi") enterDefi();
     else if(m==="duel") duelOpen();
-    else { duelStopWatch(); startFree(m); }
+    else { duelAbandon(); startFree(m); }
   }
 
   /* ---------- Helpers UI ---------- */
@@ -1115,7 +1133,7 @@
     else if(duelCode) duelWatch();
     setTimeout(()=>{ if(!duelRow || !duelRow.target) $("duelWait").textContent="Toujours en attente d'un adversaire…"; }, 1500);
   });
-  $("duelAgain").addEventListener("click", duelOpen);
+  $("duelAgain").addEventListener("click", ()=>{ duelAbandon(); duelOpen(); });
   $("duelShare").addEventListener("click", ()=>{
     const txt = "Duel Motus ! Code : " + duelCode + "\n" + SHARE_URL;
     if(navigator.share) navigator.share({text:txt}).catch(()=>copy(txt)); else copy(txt);
@@ -1149,6 +1167,8 @@
   document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click", closeOverlays));
   document.querySelectorAll(".overlay").forEach(o=>o.addEventListener("click", e=>{ if(e.target===o) closeOverlays(); }));
   window.addEventListener("resize", ()=>{ if(len) computeSizing(); });
+
+  window.addEventListener("pagehide", ()=>{ if(duelStarted && !ended) duelAbandon(); });
 
   if("serviceWorker" in navigator){ window.addEventListener("load", ()=>navigator.serviceWorker.register("./sw.js").catch(()=>{})); }
 
