@@ -68,6 +68,23 @@
   .mode-item i{ font-style:normal; font-size:11px; color:var(--ink-dim); }
   .mode-item.active{ background:var(--red); box-shadow:none; }
   .mode-item.active i{ color:rgba(255,255,255,.75); }
+  .duel-tabs{ display:flex; gap:6px; margin-bottom:12px; }
+  .dtab{ flex:1; height:36px; border:none; border-radius:9px; background:var(--cell); color:var(--ink-dim); font-weight:700; font-size:13px; cursor:pointer; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
+  .dtab.active{ background:var(--red); color:#fff; box-shadow:none; }
+  .duel-in{ width:100%; height:48px; border:none; border-radius:11px; background:var(--cell); box-shadow:inset 0 0 0 1.5px var(--cell-edge); color:var(--ink); padding:0 14px; font-size:17px; font-weight:700; letter-spacing:2px; text-align:center; text-transform:uppercase; margin-bottom:10px; }
+  .duel-in:focus{ outline:none; box-shadow:inset 0 0 0 2px var(--red); }
+  .duel-msg{ text-align:center; font-size:13px; color:var(--ink-dim); min-height:20px; margin-bottom:8px; }
+  .duel-msg.err{ color:var(--red); font-weight:700; }
+  .duel-code{ text-align:center; font-size:38px; font-weight:800; letter-spacing:8px; background:var(--cell); border-radius:12px; padding:14px 0; margin-bottom:12px; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
+  .opp-card{ display:flex; align-items:center; gap:12px; background:var(--cell); border-radius:12px; padding:12px 14px; margin-bottom:14px; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
+  .opp-em{ font-size:30px; }
+  .opp-card b{ font-size:17px; }
+  .opp-card span{ color:var(--ink-dim); font-size:13px; }
+  .duel-res{ text-align:center; font-size:30px; font-weight:800; margin-bottom:4px; }
+  .duel-score{ display:flex; gap:8px; margin:14px 0; }
+  .duel-score>div{ flex:1; background:var(--cell); border-radius:10px; padding:10px; text-align:center; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
+  .duel-score .who{ font-size:11px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.5px; }
+  .duel-score .val{ font-size:19px; font-weight:800; margin-top:2px; }
 
   /* Zone de jeu */
   #hud{ display:flex; align-items:center; justify-content:space-between; padding:6px clamp(12px,4vw,22px) 0; font-size:13px; font-weight:700; color:var(--ink-dim); }
@@ -201,6 +218,10 @@
         <button class="mode-item" data-mode="normal"><span class="mi">🎯</span><b>Normal</b><i>6-8 lettres</i></button>
         <button class="mode-item" data-mode="long"><span class="mi">🐘</span><b>Long</b><i>10-15 lettres</i></button>
       </div>
+      <div class="mode-cat">Multijoueur</div>
+      <div class="mode-grid">
+        <button class="mode-item" data-mode="duel"><span class="mi">⚔️</span><b>Duel</b><i>Contre un ami</i></button>
+      </div>
       <div class="mode-cat">Thèmes</div>
       <div class="mode-grid">
         <button class="mode-item" data-mode="prenoms"><span class="mi">👶</span><b>Prénoms</b><i>Prénoms français</i></button>
@@ -268,6 +289,53 @@
     </div>
   </div>
 
+  <!-- Duel -->
+  <div class="overlay" id="duelOverlay">
+    <div class="modal">
+      <button class="close-x" data-close>&times;</button>
+      <h2>Duel</h2>
+
+      <div id="duelStep1">
+        <p class="sub">Chacun choisit le mot que l'autre devra deviner.</p>
+        <div class="duel-tabs">
+          <button class="dtab active" data-dt="new">Créer</button>
+          <button class="dtab" data-dt="join">Rejoindre</button>
+        </div>
+        <div id="duelJoinBox" style="display:none">
+          <input id="duelCode" class="duel-in" placeholder="Code du duel" maxlength="5" autocomplete="off" autocapitalize="characters" spellcheck="false">
+        </div>
+        <input id="duelWord" class="duel-in" placeholder="Ton mot (6 à 8 lettres)" maxlength="8" autocomplete="off" autocapitalize="characters" spellcheck="false">
+        <div id="duelMsg" class="duel-msg"></div>
+        <button class="btn" id="duelGo">Valider</button>
+      </div>
+
+      <div id="duelStep2" style="display:none">
+        <p class="sub">Transmets ce code à ton adversaire :</p>
+        <div class="duel-code" id="duelCodeShow">—</div>
+        <button class="btn ghost" id="duelShare">Partager le code</button>
+        <div class="duel-msg" id="duelWait">En attente d'un adversaire…</div>
+      </div>
+
+      <div id="duelStep3" style="display:none">
+        <p class="sub">Adversaire</p>
+        <div class="opp-card">
+          <div class="opp-em" id="oppBadge">🎖️</div>
+          <div><b id="oppName">—</b><br><span id="oppLevel">Niveau 1</span></div>
+        </div>
+        <p style="text-align:center">Vous avez <b>5 minutes</b>. Le moins d'essais gagne ; à égalité, le plus rapide.</p>
+        <button class="btn" id="duelStart">C'est parti</button>
+      </div>
+
+      <div id="duelStep4" style="display:none">
+        <div class="duel-res" id="duelResTitle">—</div>
+        <p class="sub" id="duelResWhy"></p>
+        <div class="duel-score" id="duelScore"></div>
+        <button class="btn" id="duelAgain">Nouveau duel</button>
+        <button class="btn ghost" data-close>Fermer</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Confirmation -->
   <div class="overlay" id="confirmOverlay">
     <div class="modal">
@@ -278,12 +346,13 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.7.0"></script>
-<script src="./dico/motus-prenoms.js?v=1.7.0"></script>
-<script src="./dico/motus-maladies.js?v=1.7.0"></script>
-<script src="./dico/motus-villes.js?v=1.7.0"></script>
-<script src="./profiles/config.js?v=1.7.0"></script>
-<script src="./profiles/profile.js?v=1.7.0"></script>
+<script src="./dico/motus-words.js?v=1.8.0"></script>
+<script src="./dico/motus-prenoms.js?v=1.8.0"></script>
+<script src="./dico/motus-maladies.js?v=1.8.0"></script>
+<script src="./dico/motus-villes.js?v=1.8.0"></script>
+<script src="./profiles/config.js?v=1.8.0"></script>
+<script src="./profiles/profile.js?v=1.8.0"></script>
+<script src="./duel/duel.js?v=1.8.0"></script>
 <script>
 (() => {
   "use strict";
@@ -321,10 +390,11 @@
   POOLS.villes = playableWords(THEME_SOL.villes);
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.7.0";
+  const VERSION = "1.8.0";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
+  const DUEL_LIMIT = 5*60*1000;                  // 5 minutes pour le duel
   const AZERTY = ["AZERTYUIOP","QSDFGHJKLM","WXCVBN"];
   const DASH = "-";   // le tiret compte comme une lettre (prénoms composés)
   const SHARE_URL = "https://killianjourneau.github.io/Motus/";
@@ -348,6 +418,8 @@
   let tStart=0, tElapsed=0, tTimer=null;
   // défi du jour : 3 mots enchaînés
   let defiStep=0, defiKey="", defiNum=0, defiTimes=[], defiTries=[], defiFailed=false;
+  // duel
+  let duelCode="", duelRow=null, duelStop=null, duelReported=false, duelMode="new";
 
   const $ = id => document.getElementById(id);
   const board=$("board"), keyboard=$("keyboard"), toastEl=$("toast"), themeBtn=$("btnTheme");
@@ -521,7 +593,7 @@
     setTimeout(()=>finishRow(guess===answer), (len-1)*180+520);
   }
 
-  const MODE_FACTOR = { court:0.8, normal:1, long:1.4, daily:1.1, defi:1.2, prenoms:0.9, maladies:1.1, villes:1.1 };
+  const MODE_FACTOR = { court:0.8, normal:1, long:1.4, daily:1.1, defi:1.2, prenoms:0.9, maladies:1.1, villes:1.1, duel:1.2 };
   function awardXp(win){
     if(!window.Profile) return;
     const f = MODE_FACTOR[mode] || 1;
@@ -545,6 +617,7 @@
       over=true; ended=true; won=true; timerStop(); vibrate([12,40,12]);
       for(let c=0;c<len;c++) setTimeout(()=>tileAt(row,c).classList.add("jump"), c*70);
       recordResult(true, guesses.length); awardXp(true);
+      if(mode==="duel"){ setTimeout(()=>duelReport(true), 720); return; }
       if(mode==="defi"){ setTimeout(()=>defiAdvance(true), 720); save(); return; }
       save();
       setTimeout(()=>showEnd(true), 720); return;
@@ -552,6 +625,7 @@
     row++;
     if(row>=MAX_ROWS){
       over=true; ended=true; timerStop(); recordResult(false); awardXp(false);
+      if(mode==="duel"){ setTimeout(()=>duelReport(false), 360); return; }
       if(mode==="defi"){ save(); setTimeout(()=>defiAdvance(false), 360); return; }
       save(); setTimeout(()=>showEnd(false), 360); return;
     }
@@ -559,6 +633,142 @@
     setCell(row,0,answer[0]); tileAt(row,0).classList.add("correct");
     drawCursor();
     save();
+  }
+
+
+  /* ---------- Duel joueur contre joueur ---------- */
+  function duelSetMsg(t, err){ const m=$("duelMsg"); m.textContent=t||""; m.classList.toggle("err", !!err); }
+  function duelShowStep(n){ [1,2,3,4].forEach(i=>{ const e=$("duelStep"+i); if(e) e.style.display = (i===n)?"":"none"; }); }
+
+  function duelOpen(){
+    if(!window.Duel || !Duel.configured){ toast("Le duel nécessite la base de données"); return; }
+    duelStopWatch();
+    duelReported=false; duelRow=null; duelCode="";
+    duelShowStep(1); duelSetMsg(""); $("duelWord").value=""; $("duelCode").value="";
+    [6,7,8].forEach(loadDicoForce);        // pour valider le mot proposé
+    openOverlay("duelOverlay");
+  }
+  function duelStopWatch(){ if(duelStop){ duelStop(); duelStop=null; } }
+
+  // le mot proposé doit être un vrai mot de 6 à 8 lettres
+  function duelCheckWord(w){
+    w=(w||"").toUpperCase().replace(/[^A-Z]/g,"");
+    if(w.length<6 || w.length>8) return { ok:false, msg:"Le mot doit faire 6 à 8 lettres" };
+    const d=dicoByLen[w.length];
+    if(d===undefined) return { ok:false, msg:"Dictionnaire en cours de chargement…", retry:true };
+    if(d && !d.has(w)) return { ok:false, msg:"« "+w+" » n'est pas dans le dictionnaire" };
+    return { ok:true, word:w };
+  }
+
+  function duelSubmit(){
+    const chk = duelCheckWord($("duelWord").value);
+    if(!chk.ok){
+      duelSetMsg(chk.msg, true);
+      if(chk.retry){ [6,7,8].forEach(loadDicoForce); }
+      return;
+    }
+    $("duelGo").disabled=true;
+    if(duelMode==="new"){
+      duelSetMsg("Création du duel…");
+      Duel.create(chk.word).then(code=>{
+        duelCode=code; $("duelCodeShow").textContent=code;
+        duelShowStep(2); $("duelGo").disabled=false;
+        duelWatch();
+      }).catch(()=>{ duelSetMsg("Impossible de créer le duel", true); $("duelGo").disabled=false; });
+    } else {
+      const code=($("duelCode").value||"").trim().toUpperCase();
+      if(code.length<4){ duelSetMsg("Code invalide", true); $("duelGo").disabled=false; return; }
+      duelSetMsg("Connexion…");
+      Duel.join(code, chk.word).then(d=>{
+        duelCode=code; duelRow=d; $("duelGo").disabled=false;
+        duelShowOpponent(d);
+      }).catch(e=>{
+        const m = e && e.message;
+        duelSetMsg(m==="introuvable" ? "Aucun duel avec ce code"
+                 : m==="complet"     ? "Ce duel est déjà complet"
+                 : m==="soi-meme"    ? "Tu ne peux pas rejoindre ton propre duel"
+                 : "Connexion impossible", true);
+        $("duelGo").disabled=false;
+      });
+    }
+  }
+
+  // force le chargement d'un dictionnaire même hors mode normal
+  function loadDicoForce(l){
+    if(dicoByLen[l] !== undefined) return;
+    const pd=String(l).padStart(2,"0");
+    fetch(`./dico/dico-${pd}.txt`).then(r=>r.ok?r.text():Promise.reject())
+      .then(t=>{ dicoByLen[l]=new Set(t.split("\n").filter(Boolean)); })
+      .catch(()=>{ dicoByLen[l]=null; });
+  }
+
+  function duelWatch(){
+    duelStopWatch();
+    duelStop = Duel.watch(duelCode, (err,d)=>{
+      if(err || !d) return;
+      duelRow=d;
+      if(d.status==="playing" && d.target && !ended && mode!=="duel"){ duelShowOpponent(d); }
+      if(mode==="duel" && d.his && d.his.done && ended) duelMaybeFinish();
+    });
+  }
+
+  function duelShowOpponent(d){
+    $("oppName").textContent = d.opp.pseudo || "Anonyme";
+    $("oppLevel").textContent = "Niveau " + (d.opp.level||1);
+    $("oppBadge").textContent = d.opp.badge || "🎖️";
+    duelShowStep(3);
+  }
+
+  function duelStartGame(){
+    if(!duelRow || !duelRow.target){ toast("Le duel n'est pas prêt"); return; }
+    closeOverlays();
+    mode="duel"; over=false; ended=false; won=false; guesses=[]; rowStates=[];
+    duelReported=false;
+    answer = duelRow.target;
+    setupBoardForAnswer(); loadDico(len); setActiveSeg("duel");
+    timerStart(0); updateHud();
+    if(!duelStop) duelWatch();
+  }
+
+  function duelTimeout(){
+    if(ended) return;
+    over=true; ended=true; timerStop();
+    toast("Temps écoulé !");
+    duelReport(false);
+  }
+
+  function duelReport(win){
+    if(duelReported) return;
+    duelReported=true;
+    const side = duelRow.side;
+    Duel.report(duelCode, side, { tries: win?guesses.length:0, ms: timerValue(), won:win })
+      .then(()=>{ duelRow.mine={tries:win?guesses.length:0, ms:timerValue(), done:true, won:win}; duelMaybeFinish(); })
+      .catch(()=>{ duelMaybeFinish(); });
+  }
+
+  function duelMaybeFinish(){
+    if(!duelRow) return;
+    const expired = duelRow.deadline && Date.now() > duelRow.deadline;
+    if(!(duelRow.his && duelRow.his.done) && !expired){
+      $("duelResTitle").textContent = "En attente…";
+      $("duelResWhy").textContent = "Ton adversaire est encore en train de jouer.";
+      $("duelScore").innerHTML = duelScoreHTML();
+      duelShowStep(4); openOverlay("duelOverlay");
+      return;
+    }
+    duelStopWatch();
+    const v = Duel.verdict(duelRow);
+    $("duelResTitle").textContent = v.r==="win" ? "Victoire ! 🏆" : v.r==="lose" ? "Défaite" : "Égalité";
+    $("duelResWhy").textContent = v.why;
+    $("duelScore").innerHTML = duelScoreHTML();
+    duelShowStep(4); openOverlay("duelOverlay");
+  }
+
+  function duelScoreHTML(){
+    const f=x=>!x || !x.done ? "—" : (x.won ? x.tries+" essais · "+fmtTime(x.ms) : "échec");
+    const oppName = (duelRow.opp && duelRow.opp.pseudo) || "Adversaire";
+    return '<div><div class="who">Toi</div><div class="val">'+f(duelRow.mine)+'</div></div>'+
+           '<div><div class="who">'+oppName.replace(/[<>]/g,"")+'</div><div class="val">'+f(duelRow.his)+'</div></div>';
   }
 
   /* ---------- Défi : temps écoulé ---------- */
@@ -639,6 +849,13 @@
   function defiTotalMs(){ return defiTimes.reduce((a,b)=>a+b,0) + timerValue(); }
   function renderTimer(){
     const el=$("timer"); if(!el) return;
+    if(mode==="duel"){
+      const left = duelRow && duelRow.deadline ? (duelRow.deadline - Date.now()) : DUEL_LIMIT;
+      el.textContent = "⏳ " + fmtTime(Math.max(0,left));
+      el.classList.toggle("warn", left<=60000);
+      if(left<=0 && !ended) duelTimeout();
+      return;
+    }
     if(mode==="defi"){
       const left = DEFI_LIMIT - defiTotalMs();
       el.textContent = "⏳ " + fmtTime(Math.max(0,left));
@@ -661,7 +878,7 @@
   }
   function timerValue(){ return tTimer ? tElapsed + (Date.now()-tStart) : tElapsed; }
   function updateHud(){
-    const names={court:"Court",normal:"Normal",long:"Long",daily:"Mot du jour",defi:"Défi du jour",prenoms:"Prénoms",maladies:"Maladies",villes:"Villes"};
+    const names={court:"Court",normal:"Normal",long:"Long",daily:"Mot du jour",defi:"Défi du jour",prenoms:"Prénoms",maladies:"Maladies",villes:"Villes",duel:"Duel"};
     let label = names[mode]||"";
     if(mode==="defi") label += " — mot "+(defiStep+1)+"/3";
     if(THEME_MODES.includes(mode) && len){
@@ -680,6 +897,8 @@
       store.set("motus.defi", {day:defiKey, step:defiStep, guesses, over, won,
                                times:defiTimes, tries:defiTries, failed:defiFailed, ms:timerValue()});
       store.set("motus.last","defi");
+    } else if(mode==="duel"){
+      // rien à sauvegarder : un duel se joue d'une traite
     } else {
       store.set("motus.free", {mode, answer, len, guesses, over, won, ms:timerValue()});
       store.set("motus.last","free");
@@ -780,7 +999,7 @@
     if(over) timerStop(); else timerStart(f.ms||0);
   }
 
-  const MODE_LABELS={daily:"📅 Mot du jour",defi:"🔥 Défi du jour",court:"🐤 Court",normal:"🎯 Normal",long:"🐘 Long",prenoms:"👶 Prénoms",maladies:"🩺 Maladies",villes:"🏙️ Villes"};
+  const MODE_LABELS={daily:"📅 Mot du jour",defi:"🔥 Défi du jour",court:"🐤 Court",normal:"🎯 Normal",long:"🐘 Long",prenoms:"👶 Prénoms",maladies:"🩺 Maladies",villes:"🏙️ Villes",duel:"⚔️ Duel"};
   function setActiveSeg(m){
     $("modeBtnLabel").textContent = MODE_LABELS[m] || m;
     document.querySelectorAll(".mode-item").forEach(b=>b.classList.toggle("active", b.dataset.mode===m));
@@ -840,7 +1059,13 @@
     if(risque) askConfirm("Changer de mode ?", "La partie en cours sera perdue.", ()=>switchMode(m));
     else switchMode(m);
   }
-  function switchMode(m){ closeOverlays(); if(m==="daily") enterDaily(); else if(m==="defi") enterDefi(); else startFree(m); }
+  function switchMode(m){
+    closeOverlays();
+    if(m==="daily") enterDaily();
+    else if(m==="defi") enterDefi();
+    else if(m==="duel") duelOpen();
+    else { duelStopWatch(); startFree(m); }
+  }
 
   /* ---------- Helpers UI ---------- */
   let toastTimer;
@@ -862,6 +1087,21 @@
 
   themeBtn.addEventListener("click", toggleTheme);
   $("btnGame").addEventListener("click", ()=>{ toast("Sera disponible dans une prochaine mise à jour"); });
+  document.querySelectorAll(".dtab").forEach(b=>b.addEventListener("click", ()=>{
+    duelMode=b.dataset.dt;
+    document.querySelectorAll(".dtab").forEach(x=>x.classList.toggle("active", x===b));
+    $("duelJoinBox").style.display = (duelMode==="join") ? "" : "none";
+    duelSetMsg("");
+  }));
+  $("duelGo").addEventListener("click", duelSubmit);
+  $("duelWord").addEventListener("keydown", e=>{ if(e.key==="Enter") duelSubmit(); });
+  $("duelStart").addEventListener("click", duelStartGame);
+  $("duelAgain").addEventListener("click", duelOpen);
+  $("duelShare").addEventListener("click", ()=>{
+    const txt = "Duel Motus ! Code : " + duelCode + "\n" + SHARE_URL;
+    if(navigator.share) navigator.share({text:txt}).catch(()=>copy(txt)); else copy(txt);
+  });
+
   $("btnAbout").addEventListener("click", ()=>{
     $("appVersion").textContent = VERSION;
     const nW = (POOLS.court.length+POOLS.normal.length+POOLS.long.length+POOLS.prenoms.length+POOLS.maladies.length);
@@ -874,6 +1114,7 @@
     closeOverlays();
     if(mode==="daily"){ switchMode("normal"); return; }        // le mot du jour est unique : on lance un mot au hasard
     if(mode==="defi"){ switchMode("normal"); return; }         // le défi est unique aussi
+    if(mode==="duel"){ duelOpen(); return; }                   // le duel se relance depuis sa fenêtre
     if(!ended) askConfirm("Nouvelle partie ?", "La partie en cours sera perdue.", ()=>startFree(mode));
     else startFree(mode);
   });
