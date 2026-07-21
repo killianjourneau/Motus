@@ -314,6 +314,7 @@
         <div class="duel-code" id="duelCodeShow">—</div>
         <button class="btn ghost" id="duelShare">Partager le code</button>
         <div class="duel-msg" id="duelWait">En attente d'un adversaire…</div>
+        <button class="btn ghost" id="duelCheck">Vérifier maintenant</button>
       </div>
 
       <div id="duelStep3" style="display:none">
@@ -346,13 +347,13 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.8.0"></script>
-<script src="./dico/motus-prenoms.js?v=1.8.0"></script>
-<script src="./dico/motus-maladies.js?v=1.8.0"></script>
-<script src="./dico/motus-villes.js?v=1.8.0"></script>
-<script src="./profiles/config.js?v=1.8.0"></script>
-<script src="./profiles/profile.js?v=1.8.0"></script>
-<script src="./duel/duel.js?v=1.8.0"></script>
+<script src="./dico/motus-words.js?v=1.8.1"></script>
+<script src="./dico/motus-prenoms.js?v=1.8.1"></script>
+<script src="./dico/motus-maladies.js?v=1.8.1"></script>
+<script src="./dico/motus-villes.js?v=1.8.1"></script>
+<script src="./profiles/config.js?v=1.8.1"></script>
+<script src="./profiles/profile.js?v=1.8.1"></script>
+<script src="./duel/duel.js?v=1.8.1"></script>
 <script>
 (() => {
   "use strict";
@@ -390,7 +391,7 @@
   POOLS.villes = playableWords(THEME_SOL.villes);
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.8.0";
+  const VERSION = "1.8.1";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -419,7 +420,7 @@
   // défi du jour : 3 mots enchaînés
   let defiStep=0, defiKey="", defiNum=0, defiTimes=[], defiTries=[], defiFailed=false;
   // duel
-  let duelCode="", duelRow=null, duelStop=null, duelReported=false, duelMode="new";
+  let duelCode="", duelRow=null, duelStop=null, duelReported=false, duelMode="new", duelDeadline=0;
 
   const $ = id => document.getElementById(id);
   const board=$("board"), keyboard=$("keyboard"), toastEl=$("toast"), themeBtn=$("btnTheme");
@@ -705,9 +706,16 @@
   function duelWatch(){
     duelStopWatch();
     duelStop = Duel.watch(duelCode, (err,d)=>{
-      if(err || !d) return;
+      if(err || !d){ if(err) $("duelWait").textContent="Connexion perdue, nouvelle tentative…"; return; }
       duelRow=d;
-      if(d.status==="playing" && d.target && !ended && mode!=="duel"){ duelShowOpponent(d); }
+      // l'adversaire a rejoint : on affiche sa fiche, même si la fenêtre était fermée
+      if(d.status==="playing" && d.target && mode!=="duel" && !ended){
+        vibrate([12,40,12]);
+        openOverlay("duelOverlay");
+        duelShowOpponent(d);
+        return;
+      }
+      // pendant la partie : dès que l'adversaire a fini ET que j'ai fini
       if(mode==="duel" && d.his && d.his.done && ended) duelMaybeFinish();
     });
   }
@@ -725,6 +733,7 @@
     mode="duel"; over=false; ended=false; won=false; guesses=[]; rowStates=[];
     duelReported=false;
     answer = duelRow.target;
+    duelDeadline = duelRow.deadline || (Date.now() + DUEL_LIMIT);   // secours si l'heure de départ manque
     setupBoardForAnswer(); loadDico(len); setActiveSeg("duel");
     timerStart(0); updateHud();
     if(!duelStop) duelWatch();
@@ -748,12 +757,14 @@
 
   function duelMaybeFinish(){
     if(!duelRow) return;
-    const expired = duelRow.deadline && Date.now() > duelRow.deadline;
+    const dl = duelRow.deadline || duelDeadline;
+    const expired = dl && Date.now() > dl;
     if(!(duelRow.his && duelRow.his.done) && !expired){
       $("duelResTitle").textContent = "En attente…";
       $("duelResWhy").textContent = "Ton adversaire est encore en train de jouer.";
       $("duelScore").innerHTML = duelScoreHTML();
       duelShowStep(4); openOverlay("duelOverlay");
+      if(!duelStop && duelCode) duelWatch();     // on garde l'œil sur son résultat
       return;
     }
     duelStopWatch();
@@ -850,7 +861,9 @@
   function renderTimer(){
     const el=$("timer"); if(!el) return;
     if(mode==="duel"){
-      const left = duelRow && duelRow.deadline ? (duelRow.deadline - Date.now()) : DUEL_LIMIT;
+      // on prend l'échéance partagée si elle existe, sinon celle calculée en local
+      const dl = (duelRow && duelRow.deadline) ? duelRow.deadline : duelDeadline;
+      const left = dl ? (dl - Date.now()) : DUEL_LIMIT;
       el.textContent = "⏳ " + fmtTime(Math.max(0,left));
       el.classList.toggle("warn", left<=60000);
       if(left<=0 && !ended) duelTimeout();
@@ -1096,6 +1109,12 @@
   $("duelGo").addEventListener("click", duelSubmit);
   $("duelWord").addEventListener("keydown", e=>{ if(e.key==="Enter") duelSubmit(); });
   $("duelStart").addEventListener("click", duelStartGame);
+  $("duelCheck").addEventListener("click", ()=>{
+    $("duelWait").textContent="Vérification…";
+    if(duelStop && duelStop.now) duelStop.now();
+    else if(duelCode) duelWatch();
+    setTimeout(()=>{ if(!duelRow || !duelRow.target) $("duelWait").textContent="Toujours en attente d'un adversaire…"; }, 1500);
+  });
   $("duelAgain").addEventListener("click", duelOpen);
   $("duelShare").addEventListener("click", ()=>{
     const txt = "Duel Motus ! Code : " + duelCode + "\n" + SHARE_URL;
