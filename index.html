@@ -347,13 +347,13 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.8.3"></script>
-<script src="./dico/motus-prenoms.js?v=1.8.3"></script>
-<script src="./dico/motus-maladies.js?v=1.8.3"></script>
-<script src="./dico/motus-villes.js?v=1.8.3"></script>
-<script src="./profiles/config.js?v=1.8.3"></script>
-<script src="./profiles/profile.js?v=1.8.3"></script>
-<script src="./duel/duel.js?v=1.8.3"></script>
+<script src="./dico/motus-words.js?v=1.9.0"></script>
+<script src="./dico/motus-prenoms.js?v=1.9.0"></script>
+<script src="./dico/motus-maladies.js?v=1.9.0"></script>
+<script src="./dico/motus-villes.js?v=1.9.0"></script>
+<script src="./profiles/config.js?v=1.9.0"></script>
+<script src="./profiles/profile.js?v=1.9.0"></script>
+<script src="./duel/duel.js?v=1.9.0"></script>
 <script>
 (() => {
   "use strict";
@@ -391,7 +391,7 @@
   POOLS.villes = playableWords(THEME_SOL.villes);
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.8.3";
+  const VERSION = "1.9.0";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -638,6 +638,15 @@
 
 
   /* ---------- Duel joueur contre joueur ---------- */
+  function duelErr(e){
+    const m = (e && e.message) || "";
+    if(m==="introuvable")       return "Aucun duel avec ce code";
+    if(m==="complet")           return "Ce duel a déjà un adversaire";
+    if(m==="soi-meme")          return "Tu ne peux pas rejoindre ton propre duel";
+    if(m==="fonctions-absentes")return "Le duel n'est pas installé sur la base : exécute schema.sql dans Supabase.";
+    if(m==="non-configure")     return "Base de données non configurée";
+    return "Connexion impossible (" + (m||"erreur") + ")";
+  }
   function duelSetMsg(t, err){ const m=$("duelMsg"); m.textContent=t||""; m.classList.toggle("err", !!err); }
   function duelShowStep(n){ [1,2,3,4].forEach(i=>{ const e=$("duelStep"+i); if(e) e.style.display = (i===n)?"":"none"; }); }
 
@@ -656,7 +665,7 @@
   function duelAbandon(){
     if(duelStarted && !duelReported && duelCode && duelRow){
       duelReported=true;
-      try{ Duel.report(duelCode, duelRow.side, { tries:0, ms:timerValue(), won:false }); }catch(e){}
+      try{ Duel.report(duelCode, { tries:0, ms:timerValue(), won:false }); }catch(e){}
     }
     duelStarted=false; duelStopWatch();
   }
@@ -681,27 +690,20 @@
     $("duelGo").disabled=true;
     if(duelMode==="new"){
       duelSetMsg("Création du duel…");
-      Duel.create(chk.word).then(code=>{
-        duelCode=code; $("duelCodeShow").textContent=code;
+      Duel.create(chk.word).then(d=>{
+        duelRow=d; duelCode=d.id; $("duelCodeShow").textContent=d.id;
         duelShowStep(2); $("duelGo").disabled=false;
         duelWatch();
-      }).catch(()=>{ duelSetMsg("Impossible de créer le duel", true); $("duelGo").disabled=false; });
+      }).catch(e=>{ duelSetMsg(duelErr(e), true); $("duelGo").disabled=false; });
     } else {
       const code=($("duelCode").value||"").trim().toUpperCase();
       if(code.length<4){ duelSetMsg("Code invalide", true); $("duelGo").disabled=false; return; }
       duelSetMsg("Connexion…");
       Duel.join(code, chk.word).then(d=>{
-        duelCode=code; duelRow=d; $("duelGo").disabled=false;
+        duelCode=d.id; duelRow=d; $("duelGo").disabled=false;
+        duelWatch();
         duelShowOpponent(d);
-      }).catch(e=>{
-        const m = e && e.message;
-        duelSetMsg(m==="introuvable"     ? "Aucun duel avec ce code"
-                 : m==="complet"         ? "Ce duel est déjà complet"
-                 : m==="soi-meme"        ? "Tu ne peux pas rejoindre ton propre duel"
-                 : m==="ecriture-refusee"? "La base refuse d'enregistrer le duel. Vérifie la règle de modification (UPDATE) de la table duels."
-                 : "Connexion impossible", true);
-        $("duelGo").disabled=false;
-      });
+      }).catch(e=>{ duelSetMsg(duelErr(e), true); $("duelGo").disabled=false; });
     }
   }
 
@@ -719,11 +721,11 @@
     duelStop = Duel.watch(duelCode, (err,d)=>{
       if(err || !d){ if(err) $("duelWait").textContent="Connexion perdue, nouvelle tentative…"; return; }
       duelRow=d;
-      if(!duelStarted && d.status!=="playing"){
-        $("duelWait").textContent = "En attente d'un adversaire… (statut : " + (d.status||"?") + ")";
+      if(!duelStarted && !d.ready){
+        $("duelWait").textContent = "En attente d'un adversaire…";
       }
       // l'adversaire a rejoint et je n'ai pas encore commencé : on affiche sa fiche
-      if(d.status==="playing" && d.target && !duelStarted){
+      if(d.ready && !duelStarted){
         vibrate([12,40,12]);
         openOverlay("duelOverlay");
         duelShowOpponent(d);
@@ -767,12 +769,11 @@
   function duelReport(win){
     if(duelReported) return;
     duelReported=true;
-    const side = duelRow.side;
-    Duel.report(duelCode, side, { tries: win?guesses.length:0, ms: timerValue(), won:win })
-      .then(()=>{ duelRow.mine={tries:win?guesses.length:0, ms:timerValue(), done:true, won:win}; duelMaybeFinish(); })
-      .catch(()=>{
+    Duel.report(duelCode, { tries: win?guesses.length:0, ms: timerValue(), won:win })
+      .then(d=>{ if(d) duelRow=d; else duelRow.mine={tries:win?guesses.length:0, ms:timerValue(), done:true, won:win}; duelMaybeFinish(); })
+      .catch(e=>{
         duelRow.mine={tries:win?guesses.length:0, ms:timerValue(), done:true, won:win};
-        toast("Résultat non transmis — vérifie les droits de la table duels", 3000);
+        toast("Résultat non transmis : " + duelErr(e), 3000);
         duelMaybeFinish();
       });
   }
