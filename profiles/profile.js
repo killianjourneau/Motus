@@ -36,9 +36,12 @@
   /* ---------- Compteurs détaillés (alimentés par addGame/defiDone) ---------- */
   function freshCounters(){
     return { daily:0, defi:0, one:0, two:0, last:0, f5:0, f10:0, f15:0, slow:0,
-             mC:0, mN:0, mL:0, mP:0, mM:0, modes:[], streak:0, best:0,
+             mC:0, mN:0, mL:0, mP:0, mM:0, mV:0, modes:[], streak:0, best:0,
              hyph:0, night:0, dawn:0, wknd:0, days:[], dayBest:0,
-             defiFast:0, dailyOne:0, allDiff:0, longFast:0, comeback:0, noYellow:0 };
+             defiFast:0, dailyOne:0, allDiff:0, longFast:0, comeback:0, noYellow:0,
+             villeCap:0, villeMonde:0,
+             duelPlay:0, duelWin:0, duelWinStreak:0, duelBestStreak:0, duelPerfect:0, duelRevenge:0,
+             duelLostTo:[] };
   }
 
   /* ---------- Les 50 badges ----------
@@ -49,62 +52,76 @@
     {id:"win1",  e:"🏆", n:"Première victoire",  d:"Trouver un premier mot",        c:"Débuts", t:function(b,s){return s.wins>=1;}},
     {id:"day1",  e:"📅", n:"Rituel",             d:"Trouver un mot du jour",        c:"Débuts", t:function(b){return b.daily>=1;}},
     {id:"defi1", e:"🔥", n:"Relevé",             d:"Réussir un défi du jour",       c:"Débuts", t:function(b){return b.defi>=1;}},
-    {id:"tour",  e:"🧭", n:"Touche-à-tout",      d:"Jouer les 5 modes classiques",  c:"Débuts", t:function(b){return b.modes.length>=5;}},
+    {id:"tour",  e:"🧭", n:"Touche-à-tout",      d:"Jouer les 5 modes classiques",  c:"Débuts", t:function(b){return b.modes.length>=5;}, p:[function(b){return b.modes.length;},5]},
 
     // — Volume —
-    {id:"g25",   e:"🎖️", n:"Habitué",            d:"25 parties jouées",             c:"Volume", t:function(b,s){return s.games>=25;}},
-    {id:"g100",  e:"🏅", n:"Pilier",             d:"100 parties jouées",            c:"Volume", t:function(b,s){return s.games>=100;}},
-    {id:"g500",  e:"💯", n:"Increvable",         d:"500 parties jouées",            c:"Volume", t:function(b,s){return s.games>=500;}},
-    {id:"w10",   e:"🔟", n:"Dix sur dix",        d:"10 victoires",                  c:"Volume", t:function(b,s){return s.wins>=10;}},
-    {id:"w50",   e:"🥇", n:"Cinquantenaire",     d:"50 victoires",                  c:"Volume", t:function(b,s){return s.wins>=50;}},
-    {id:"w200",  e:"👑", n:"Couronné",           d:"200 victoires",                 c:"Volume", t:function(b,s){return s.wins>=200;}},
+    {id:"g25",   e:"🎖️", n:"Habitué",            d:"25 parties jouées",             c:"Volume", t:function(b,s){return s.games>=25;}, p:[function(b,s){return s.games;},25]},
+    {id:"g100",  e:"🏅", n:"Pilier",             d:"100 parties jouées",            c:"Volume", t:function(b,s){return s.games>=100;}, p:[function(b,s){return s.games;},100]},
+    {id:"g500",  e:"💯", n:"Increvable",         d:"500 parties jouées",            c:"Volume", t:function(b,s){return s.games>=500;}, p:[function(b,s){return s.games;},500]},
+    {id:"w10",   e:"🔟", n:"Dix sur dix",        d:"10 victoires",                  c:"Volume", t:function(b,s){return s.wins>=10;}, p:[function(b,s){return s.wins;},10]},
+    {id:"w50",   e:"🥇", n:"Cinquantenaire",     d:"50 victoires",                  c:"Volume", t:function(b,s){return s.wins>=50;}, p:[function(b,s){return s.wins;},50]},
+    {id:"w200",  e:"👑", n:"Couronné",           d:"200 victoires",                 c:"Volume", t:function(b,s){return s.wins>=200;}, p:[function(b,s){return s.wins;},200]},
 
     // — Niveau —
-    {id:"lv5",   e:"⭐", n:"Étoile montante",    d:"Atteindre le niveau 5",         c:"Niveau", t:function(b,s){return s.level>=5;}},
-    {id:"lv10",  e:"💎", n:"Diamant",            d:"Atteindre le niveau 10",        c:"Niveau", t:function(b,s){return s.level>=10;}},
-    {id:"xp500", e:"🚀", n:"Décollage",          d:"500 XP cumulés",                c:"Niveau", t:function(b,s){return s.xp>=500;}},
-    {id:"xp2k",  e:"🌟", n:"Supernova",          d:"2 000 XP cumulés",              c:"Niveau", t:function(b,s){return s.xp>=2000;}},
-    {id:"xp5k",  e:"☄️", n:"Comète",             d:"5 000 XP cumulés",              c:"Niveau", t:function(b,s){return s.xp>=5000;}},
+    {id:"lv5",   e:"⭐", n:"Étoile montante",    d:"Atteindre le niveau 5",         c:"Niveau", t:function(b,s){return s.level>=5;}, p:[function(b,s){return s.level;},5]},
+    {id:"lv10",  e:"💎", n:"Diamant",            d:"Atteindre le niveau 10",        c:"Niveau", t:function(b,s){return s.level>=10;}, p:[function(b,s){return s.level;},10]},
+    {id:"xp500", e:"🚀", n:"Décollage",          d:"500 XP cumulés",                c:"Niveau", t:function(b,s){return s.xp>=500;}, p:[function(b,s){return s.xp;},500]},
+    {id:"xp2k",  e:"🌟", n:"Supernova",          d:"2 000 XP cumulés",              c:"Niveau", t:function(b,s){return s.xp>=2000;}, p:[function(b,s){return s.xp;},2000]},
+    {id:"xp5k",  e:"☄️", n:"Comète",             d:"5 000 XP cumulés",              c:"Niveau", t:function(b,s){return s.xp>=5000;}, p:[function(b,s){return s.xp;},5000]},
 
     // — Précision —
     {id:"one1",  e:"🎱", n:"Coup de génie",      d:"Trouver un mot du premier coup",c:"Précision", t:function(b){return b.one>=1;}},
-    {id:"one5",  e:"🔮", n:"Voyant",             d:"5 mots du premier coup",        c:"Précision", t:function(b){return b.one>=5;}},
-    {id:"one20", e:"🧿", n:"Devin",              d:"20 mots du premier coup",       c:"Précision", t:function(b){return b.one>=20;}},
-    {id:"two10", e:"✌️", n:"Deux temps",         d:"10 mots en 2 essais",           c:"Précision", t:function(b){return b.two>=10;}},
+    {id:"one5",  e:"🔮", n:"Voyant",             d:"5 mots du premier coup",        c:"Précision", t:function(b){return b.one>=5;}, p:[function(b){return b.one;},5]},
+    {id:"one20", e:"🧿", n:"Devin",              d:"20 mots du premier coup",       c:"Précision", t:function(b){return b.one>=20;}, p:[function(b){return b.one;},20]},
+    {id:"two10", e:"✌️", n:"Deux temps",         d:"10 mots en 2 essais",           c:"Précision", t:function(b){return b.two>=10;}, p:[function(b){return b.two;},10]},
     {id:"nyel",  e:"🩸", n:"Sans détour",        d:"Gagner sans aucune lettre jaune",c:"Précision", t:function(b){return b.noYellow>=1;}},
 
     // — Vitesse —
     {id:"f10",   e:"⚡", n:"Réflexe",            d:"Un mot en moins de 10 secondes",c:"Vitesse", t:function(b){return b.f10>=1;}},
     {id:"f5",    e:"💨", n:"Éclair",             d:"Un mot en moins de 5 secondes", c:"Vitesse", t:function(b){return b.f5>=1;}},
-    {id:"f15x10",e:"🌪️", n:"Tourbillon",         d:"10 mots en moins de 15 s",      c:"Vitesse", t:function(b){return b.f15>=10;}},
+    {id:"f15x10",e:"🌪️", n:"Tourbillon",         d:"10 mots en moins de 15 s",      c:"Vitesse", t:function(b){return b.f15>=10;}, p:[function(b){return b.f15;},10]},
     {id:"lfast", e:"🏎️", n:"Grande vitesse",     d:"Un mot long en moins de 30 s",  c:"Vitesse", t:function(b){return b.longFast>=1;}},
     {id:"dfast", e:"⏱️", n:"Chrono maîtrisé",    d:"Un défi bouclé en moins de 5 min",c:"Vitesse", t:function(b){return b.defiFast>=1;}},
 
     // — Modes —
-    {id:"c10",   e:"🐤", n:"Petit format",       d:"10 mots courts trouvés",        c:"Modes", t:function(b){return b.mC>=10;}},
-    {id:"c50",   e:"🐥", n:"Concis",             d:"50 mots courts trouvés",        c:"Modes", t:function(b){return b.mC>=50;}},
-    {id:"n50",   e:"🎯", n:"Régulier",           d:"50 mots normaux trouvés",       c:"Modes", t:function(b){return b.mN>=50;}},
-    {id:"l10",   e:"🐘", n:"Grand format",       d:"10 mots longs trouvés",         c:"Modes", t:function(b){return b.mL>=10;}},
-    {id:"l50",   e:"🦕", n:"Colosse",            d:"50 mots longs trouvés",         c:"Modes", t:function(b){return b.mL>=50;}},
-    {id:"p10",   e:"👶", n:"Baptême",            d:"10 prénoms trouvés",            c:"Modes", t:function(b){return b.mP>=10;}},
-    {id:"p50",   e:"👨‍👩‍👧", n:"Généalogiste",  d:"50 prénoms trouvés",            c:"Modes", t:function(b){return b.mP>=50;}},
-    {id:"m10",   e:"🩺", n:"Externe",            d:"10 maladies trouvées",          c:"Modes", t:function(b){return b.mM>=10;}},
-    {id:"m50",   e:"🧬", n:"Professeur",         d:"50 maladies trouvées",          c:"Modes", t:function(b){return b.mM>=50;}},
+    {id:"c10",   e:"🐤", n:"Petit format",       d:"10 mots courts trouvés",        c:"Modes", t:function(b){return b.mC>=10;}, p:[function(b){return b.mC;},10]},
+    {id:"c50",   e:"🐥", n:"Concis",             d:"50 mots courts trouvés",        c:"Modes", t:function(b){return b.mC>=50;}, p:[function(b){return b.mC;},50]},
+    {id:"n50",   e:"🎯", n:"Régulier",           d:"50 mots normaux trouvés",       c:"Modes", t:function(b){return b.mN>=50;}, p:[function(b){return b.mN;},50]},
+    {id:"l10",   e:"🐘", n:"Grand format",       d:"10 mots longs trouvés",         c:"Modes", t:function(b){return b.mL>=10;}, p:[function(b){return b.mL;},10]},
+    {id:"l50",   e:"🦕", n:"Colosse",            d:"50 mots longs trouvés",         c:"Modes", t:function(b){return b.mL>=50;}, p:[function(b){return b.mL;},50]},
+    {id:"p10",   e:"👶", n:"Baptême",            d:"10 prénoms trouvés",            c:"Modes", t:function(b){return b.mP>=10;}, p:[function(b){return b.mP;},10]},
+    {id:"p50",   e:"👨‍👩‍👧", n:"Généalogiste",  d:"50 prénoms trouvés",            c:"Modes", t:function(b){return b.mP>=50;}, p:[function(b){return b.mP;},50]},
+    {id:"m10",   e:"🩺", n:"Externe",            d:"10 maladies trouvées",          c:"Modes", t:function(b){return b.mM>=10;}, p:[function(b){return b.mM;},10]},
+    {id:"m50",   e:"🧬", n:"Professeur",         d:"50 maladies trouvées",          c:"Modes", t:function(b){return b.mM>=50;}, p:[function(b){return b.mM;},50]},
+    {id:"v10",   e:"🏙️", n:"Voyageur",           d:"10 villes trouvées",            c:"Modes", t:function(b){return b.mV>=10;}, p:[function(b){return b.mV;},10]},
+    {id:"v50",   e:"🗺️", n:"Géographe",          d:"50 villes trouvées",            c:"Modes", t:function(b){return b.mV>=50;}, p:[function(b){return b.mV;},50]},
+    {id:"vcap",  e:"🏛️", n:"Tour du monde",      d:"10 capitales trouvées",         c:"Modes", t:function(b){return b.villeCap>=10;}, p:[function(b){return b.villeCap;},10]},
+    {id:"vmonde",e:"🌍", n:"Globe-trotteur",     d:"15 villes étrangères trouvées", c:"Modes", t:function(b){return b.villeMonde>=15;}, p:[function(b){return b.villeMonde;},15]},
+
+    // — Duel —
+    {id:"duel1",  e:"⚔️", n:"Provocateur",       d:"Jouer un premier duel",         c:"Duel", t:function(b){return b.duelPlay>=1;}},
+    {id:"duelw1", e:"🤝", n:"Premier sang",      d:"Gagner un duel",                c:"Duel", t:function(b){return b.duelWin>=1;}},
+    {id:"duelw10",e:"🎗️", n:"Duelliste",         d:"Gagner 10 duels",               c:"Duel", t:function(b){return b.duelWin>=10;}, p:[function(b){return b.duelWin;},10]},
+    {id:"duelw25",e:"⚜️", n:"Bretteur",          d:"Gagner 25 duels",               c:"Duel", t:function(b){return b.duelWin>=25;}, p:[function(b){return b.duelWin;},25]},
+    {id:"duels3", e:"🔥", n:"En feu",            d:"3 victoires de duel d'affilée", c:"Duel", t:function(b){return b.duelBestStreak>=3;}, p:[function(b){return b.duelBestStreak;},3]},
+    {id:"duels10",e:"👑", n:"Invaincu",          d:"10 victoires de duel d'affilée",c:"Duel", t:function(b){return b.duelBestStreak>=10;}, p:[function(b){return b.duelBestStreak;},10]},
+    {id:"duelperf",e:"🎯", n:"Sans appel",       d:"Gagner un duel en trouvant le mot du premier coup", c:"Duel", h:1, t:function(b){return b.duelPerfect>=1;}},
+    {id:"duelrev", e:"🗡️", n:"Vengeance",        d:"Battre un joueur qui t'avait vaincu", c:"Duel", h:1, t:function(b){return b.duelRevenge>=1;}},
 
     // — Quotidien —
-    {id:"d7",    e:"🗓️", n:"Semaine pleine",     d:"7 mots du jour trouvés",        c:"Quotidien", t:function(b){return b.daily>=7;}},
-    {id:"d30",   e:"📆", n:"Mois complet",       d:"30 mots du jour trouvés",       c:"Quotidien", t:function(b){return b.daily>=30;}},
-    {id:"d100",  e:"🏛️", n:"Centenaire",         d:"100 mots du jour trouvés",      c:"Quotidien", t:function(b){return b.daily>=100;}},
-    {id:"df5",   e:"🔥", n:"Feu sacré",          d:"5 défis réussis",               c:"Quotidien", t:function(b){return b.defi>=5;}},
-    {id:"df25",  e:"🌋", n:"Volcan",             d:"25 défis réussis",              c:"Quotidien", t:function(b){return b.defi>=25;}},
-    {id:"days7", e:"🧱", n:"Assidu",             d:"Jouer 7 jours différents",      c:"Quotidien", t:function(b){return b.days.length>=7;}},
-    {id:"days30",e:"🗿", n:"Monument",           d:"Jouer 30 jours différents",     c:"Quotidien", t:function(b){return b.days.length>=30;}},
-    {id:"ds5",   e:"🔗", n:"Chaîne",             d:"5 jours consécutifs",           c:"Quotidien", t:function(b){return b.dayBest>=5;}},
+    {id:"d7",    e:"🗓️", n:"Semaine pleine",     d:"7 mots du jour trouvés",        c:"Quotidien", t:function(b){return b.daily>=7;}, p:[function(b){return b.daily;},7]},
+    {id:"d30",   e:"📆", n:"Mois complet",       d:"30 mots du jour trouvés",       c:"Quotidien", t:function(b){return b.daily>=30;}, p:[function(b){return b.daily;},30]},
+    {id:"d100",  e:"🏛️", n:"Centenaire",         d:"100 mots du jour trouvés",      c:"Quotidien", t:function(b){return b.daily>=100;}, p:[function(b){return b.daily;},100]},
+    {id:"df5",   e:"🔥", n:"Feu sacré",          d:"5 défis réussis",               c:"Quotidien", t:function(b){return b.defi>=5;}, p:[function(b){return b.defi;},5]},
+    {id:"df25",  e:"🌋", n:"Volcan",             d:"25 défis réussis",              c:"Quotidien", t:function(b){return b.defi>=25;}, p:[function(b){return b.defi;},25]},
+    {id:"days7", e:"🧱", n:"Assidu",             d:"Jouer 7 jours différents",      c:"Quotidien", t:function(b){return b.days.length>=7;}, p:[function(b){return b.days.length;},7]},
+    {id:"days30",e:"🗿", n:"Monument",           d:"Jouer 30 jours différents",     c:"Quotidien", t:function(b){return b.days.length>=30;}, p:[function(b){return b.days.length;},30]},
+    {id:"ds5",   e:"🔗", n:"Chaîne",             d:"5 jours consécutifs",           c:"Quotidien", t:function(b){return b.dayBest>=5;}, p:[function(b){return b.dayBest;},5]},
 
     // — Séries —
-    {id:"st5",   e:"🎢", n:"Sur sa lancée",      d:"5 victoires d'affilée",         c:"Séries", t:function(b){return b.best>=5;}},
-    {id:"st10",  e:"🌊", n:"Vague",              d:"10 victoires d'affilée",        c:"Séries", t:function(b){return b.best>=10;}},
-    {id:"st25",  e:"🏔️", n:"Sommet",             d:"25 victoires d'affilée",        c:"Séries", t:function(b){return b.best>=25;}},
+    {id:"st5",   e:"🎢", n:"Sur sa lancée",      d:"5 victoires d'affilée",         c:"Séries", t:function(b){return b.best>=5;}, p:[function(b){return b.best;},5]},
+    {id:"st10",  e:"🌊", n:"Vague",              d:"10 victoires d'affilée",        c:"Séries", t:function(b){return b.best>=10;}, p:[function(b){return b.best;},10]},
+    {id:"st25",  e:"🏔️", n:"Sommet",             d:"25 victoires d'affilée",        c:"Séries", t:function(b){return b.best>=25;}, p:[function(b){return b.best;},25]},
 
     // — Cachés —
     {id:"night", e:"🦉", n:"Oiseau de nuit",     d:"Jouer entre minuit et 5 h",     c:"Cachés", h:1, t:function(b){return b.night>=1;}},
@@ -205,6 +222,8 @@
     // jours joués et modes essayés : union
     (rb.days || []).forEach(function (x) { if (lb.days.indexOf(x) < 0) lb.days.push(x); });
     (rb.modes || []).forEach(function (x) { if (lb.modes.indexOf(x) < 0) lb.modes.push(x); });
+    if (!lb.duelLostTo) lb.duelLostTo = [];
+    (rb.duelLostTo || []).forEach(function (x) { if (lb.duelLostTo.indexOf(x) < 0) lb.duelLostTo.push(x); });
     if (lb.days.length > 500) lb.days = lb.days.slice(-500);
     lb.dayBest = Math.max(lb.dayBest || 0, dayStreak(lb.days));
     // badges : union
@@ -265,7 +284,32 @@
 .emb-line{ display:flex; align-items:center; gap:8px; background:var(--cell); border-radius:10px; padding:8px 12px; margin-bottom:14px; font-size:13px; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
 .emb-line .ee{ font-size:22px; }
 .emb-line span{ color:var(--ink-dim); }
-.bcat{ font-size:11px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.6px; font-weight:800; margin:14px 0 8px; }
+.bcat{ font-size:11px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.6px; font-weight:800; margin:14px 0 8px; display:flex; justify-content:space-between; align-items:baseline; }
+.bcat-n{ font-size:11px; color:var(--ink-dim); font-weight:800; letter-spacing:0; }
+.badge2.secret{ filter:none; opacity:.5; }
+#nextGoals{ margin:4px 0 8px; }
+.ng-title{ font-size:11px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.6px; font-weight:800; margin:0 0 8px; }
+.ng-row{ display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+.ng-em{ font-size:22px; width:26px; text-align:center; }
+.ng-body{ flex:1; min-width:0; }
+.ng-name{ font-size:13px; font-weight:700; margin-bottom:3px; }
+.ng-bar{ height:8px; background:var(--cell); border-radius:5px; overflow:hidden; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
+.ng-bar>div{ height:100%; background:var(--red); border-radius:5px; transition:width .5s ease; }
+.ng-num{ font-size:12px; font-weight:800; color:var(--ink-dim); font-variant-numeric:tabular-nums; }
+#badgeDetailOverlay .bd-modal{ max-width:340px; text-align:center; }
+.bd-emoji{ font-size:60px; line-height:1; margin:8px 0 6px; }
+.bd-name{ font-size:22px; font-weight:800; }
+.bd-cat{ font-size:12px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.5px; font-weight:700; margin-top:2px; }
+.bd-status{ margin:12px 0 4px; font-size:14px; font-weight:800; }
+.bd-done{ color:#39d98a; }
+.bd-lock{ color:var(--ink-dim); }
+.bd-desc{ font-size:15px; color:var(--ink); margin:6px 4px 4px; line-height:1.4; }
+.bd-prog{ margin:12px 4px 0; }
+.bd-bar{ height:12px; background:var(--cell); border-radius:7px; overflow:hidden; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
+.bd-bar>div{ height:100%; background:var(--red); border-radius:7px; transition:width .5s ease; }
+.bd-pnum{ font-size:13px; font-weight:800; color:var(--ink-dim); margin-top:5px; font-variant-numeric:tabular-nums; }
+.bd-actions{ margin-top:16px; }
+.bd-actions .btn{ margin:0; }
 .badges{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
 .badge2{ aspect-ratio:1; border-radius:12px; background:var(--cell); box-shadow:inset 0 0 0 1.5px var(--cell-edge); display:grid; place-items:center; font-size:24px; position:relative; cursor:pointer; border:none; color:var(--ink); padding:0; }
 .badge2.off{ filter:grayscale(1); opacity:.3; cursor:default; }
@@ -334,6 +378,7 @@
         <div class="stat"><div class="n" id="pWins">0</div><div class="l">Victoires</div></div>
         <div class="stat"><div class="n" id="pXp">0</div><div class="l">XP total</div></div>
       </div>
+      <div id="nextGoals"></div>
       <div id="gameStats"></div>
       <details class="prof-sync">
         <summary>Synchroniser sur un autre appareil</summary>
@@ -364,6 +409,18 @@
     <button class="btn ghost" data-close-prof style="margin-top:16px">Fermer</button>
   </div>
 </div>
+<div class="overlay" id="badgeDetailOverlay">
+  <div class="modal bd-modal">
+    <button class="close-x" id="bdClose">&times;</button>
+    <div class="bd-emoji" id="bdEmoji">🏆</div>
+    <div class="bd-name" id="bdName"></div>
+    <div class="bd-cat" id="bdCat"></div>
+    <div class="bd-status" id="bdStatus"></div>
+    <div class="bd-desc" id="bdDesc"></div>
+    <div class="bd-prog" id="bdProg"></div>
+    <div class="bd-actions" id="bdActions"></div>
+  </div>
+</div>
 <div id="badgeToast"><span class="be"></span><div><b></b><small></small></div></div>`;
 
   var mounted = false, curTab = "profil";
@@ -374,9 +431,14 @@
     var wrap = document.createElement("div"); wrap.innerHTML = MODAL.trim();
     while (wrap.firstElementChild) document.body.appendChild(wrap.firstElementChild);
 
-    function close() { el("profileOverlay").classList.remove("open"); }
+    function close() { closeBadgeDetail(); el("profileOverlay").classList.remove("open"); }
     var ov = el("profileOverlay");
     ov.addEventListener("click", function (e) { if (e.target === ov) close(); });
+    var bdo = el("badgeDetailOverlay");
+    if (bdo) {
+      bdo.addEventListener("click", function (e) { if (e.target === bdo) closeBadgeDetail(); });
+      var bx = el("bdClose"); if (bx) bx.addEventListener("click", closeBadgeDetail);
+    }
     Array.prototype.forEach.call(document.querySelectorAll("[data-close-prof]"), function (b) { b.addEventListener("click", close); });
     Array.prototype.forEach.call(document.querySelectorAll(".ptab"), function (b) {
       b.addEventListener("click", function () { showTab(b.getAttribute("data-tab")); });
@@ -453,24 +515,33 @@
     var bd = BADGE_BY_ID[state.emblem];
     set("embEmoji", bd ? bd.e : "🎖️");
     set("embName", bd ? bd.n : "Aucun emblème");
+    fillNextGoals();
+  }
+
+  function badgeUnlocked(id) { return state.badges.indexOf(id) >= 0; }
+  function badgeProgress(bd) {
+    if (!bd.p) return null;
+    var cur = 0; try { cur = bd.p[0](state.b, state) || 0; } catch (e) {}
+    var tgt = bd.p[1];
+    return { cur: Math.min(cur, tgt), tgt: tgt, ratio: tgt ? Math.min(cur / tgt, 1) : 1 };
   }
 
   function fillBadges() {
     var box = el("badgeList"); if (!box) return;
     var got = state.badges.length;
-    el("bCount").innerHTML = got + " / " + BADGES.length + " badges<small>Touche un badge débloqué pour en faire ton emblème</small>";
+    el("bCount").innerHTML = got + " / " + BADGES.length + " badges<small>Touche un badge pour voir à quoi il correspond</small>";
     var html = "";
     CATS.forEach(function (cat) {
       var list = BADGES.filter(function (b) { return b.c === cat; });
-      html += '<div class="bcat">' + escapeHtml(cat) + "</div><div class=\"badges\">";
+      var owned = list.filter(function (b) { return badgeUnlocked(b.id); }).length;
+      html += '<div class="bcat">' + escapeHtml(cat) + '<span class="bcat-n">' + owned + '/' + list.length + '</span></div><div class="badges">';
       list.forEach(function (b) {
-        var on = state.badges.indexOf(b.id) >= 0;
-        var hide = b.h && !on;
-        var emo = hide ? "❓" : b.e;
-        var nm = hide ? "Caché" : b.n;
-        var tip = hide ? "Badge caché" : b.d;
-        html += '<div class="bwrap"><button class="badge2' + (on ? " on" : " off") + (state.emblem === b.id ? " sel" : "") +
-                '" data-badge="' + b.id + '" title="' + escapeHtml(tip) + '">' + emo +
+        var on = badgeUnlocked(b.id);
+        var secret = b.h && !on;
+        var emo = secret ? "❓" : b.e;
+        var nm = secret ? "Secret" : b.n;
+        html += '<div class="bwrap"><button class="badge2' + (on ? " on" : " off") + (secret ? " secret" : "") + (state.emblem === b.id ? " sel" : "") +
+                '" data-badge="' + b.id + '">' + emo +
                 (state.emblem === b.id ? '<span class="pin">📌</span>' : "") + "</button>" +
                 '<div class="bname">' + escapeHtml(nm) + "</div></div>";
       });
@@ -478,13 +549,63 @@
     });
     box.innerHTML = html;
     Array.prototype.forEach.call(box.querySelectorAll(".badge2"), function (btn) {
-      btn.addEventListener("click", function () {
-        var id = btn.getAttribute("data-badge");
-        if (state.badges.indexOf(id) < 0) return;          // badge non débloqué
-        state.emblem = (state.emblem === id) ? "" : id;    // re-cliquer retire l'emblème
-        saveLocal(); pushDebounced(); fillBadges();
-      });
+      btn.addEventListener("click", function () { openBadgeDetail(btn.getAttribute("data-badge")); });
     });
+  }
+
+  function closeBadgeDetail() { var o = el("badgeDetailOverlay"); if (o) o.classList.remove("open"); }
+  function openBadgeDetail(id) {
+    var bd = BADGE_BY_ID[id]; if (!bd) return;
+    var on = badgeUnlocked(id);
+    var secret = bd.h && !on;
+    el("bdEmoji").textContent = secret ? "❓" : bd.e;
+    el("bdName").textContent = secret ? "Badge secret" : bd.n;
+    el("bdCat").textContent = bd.c + (bd.h ? " · caché" : "");
+    var desc = el("bdDesc"), prog = el("bdProg"), act = el("bdActions"), status = el("bdStatus");
+    if (secret) {
+      desc.textContent = "Continue à jouer pour le découvrir…";
+      status.textContent = ""; prog.innerHTML = ""; act.innerHTML = "";
+    } else {
+      desc.textContent = bd.d;
+      var pr = badgeProgress(bd);
+      if (on) {
+        status.innerHTML = '<span class="bd-done">✓ Débloqué</span>';
+        prog.innerHTML = "";
+        var isE = state.emblem === id;
+        act.innerHTML = '<button class="btn" id="bdEmblem">' + (isE ? "Retirer l'emblème" : "Définir comme emblème") + "</button>";
+        el("bdEmblem").addEventListener("click", function () {
+          state.emblem = isE ? "" : id;
+          saveLocal(); pushDebounced();
+          fillBadges(); fillProfil(); closeBadgeDetail();
+        });
+      } else {
+        status.innerHTML = '<span class="bd-lock">🔒 Verrouillé</span>';
+        prog.innerHTML = pr ? ('<div class="bd-bar"><div style="width:' + Math.round(pr.ratio * 100) + '%"></div></div><div class="bd-pnum">' + pr.cur + " / " + pr.tgt + "</div>") : "";
+        act.innerHTML = "";
+      }
+    }
+    el("badgeDetailOverlay").classList.add("open");
+  }
+
+  function fillNextGoals() {
+    var box = el("nextGoals"); if (!box) return;
+    var cand = [];
+    BADGES.forEach(function (bd) {
+      if (badgeUnlocked(bd.id) || bd.h) return;   // ni obtenus, ni cachés
+      var pr = badgeProgress(bd);
+      if (pr) cand.push({ bd: bd, pr: pr });
+    });
+    cand.sort(function (a, b) { return (b.pr.ratio - a.pr.ratio) || (a.pr.tgt - b.pr.tgt); });
+    var top = cand.slice(0, 3);
+    if (!top.length) { box.innerHTML = ""; return; }
+    var html = '<div class="ng-title">Prochains objectifs</div>';
+    top.forEach(function (x) {
+      html += '<div class="ng-row"><span class="ng-em">' + x.bd.e + '</span>' +
+              '<div class="ng-body"><div class="ng-name">' + escapeHtml(x.bd.n) + '</div>' +
+              '<div class="ng-bar"><div style="width:' + Math.round(x.pr.ratio * 100) + '%"></div></div></div>' +
+              '<span class="ng-num">' + x.pr.cur + "/" + x.pr.tgt + "</span></div>";
+    });
+    box.innerHTML = html;
   }
 
   function loadRank(done) {
@@ -620,6 +741,7 @@
         else if (key === "long") b.mL++;
         else if (key === "prenoms") b.mP++;
         else if (key === "maladies") b.mM++;
+        else if (key === "villes") { b.mV++; if (o.capital) b.villeCap++; if (o.foreign) b.villeMonde++; }
 
         if (m === "daily") { b.daily++; if (t === 1) b.dailyOne++; }
         if (key === "long" && ms > 0 && ms < 30000) b.longFast++;
@@ -635,6 +757,31 @@
         b.streak = 0;
       }
 
+      saveLocal(); checkBadges(); pushDebounced(); refreshOpen();
+    },
+
+    /* Duel terminé. {won, perfect, oppId} — 'won' = a gagné le duel, pas juste trouvé le mot. */
+    duelDone: function (o) {
+      o = o || {};
+      var b = state.b;
+      if (!b.duelLostTo) b.duelLostTo = [];
+      b.duelPlay++;
+      if (o.won) {
+        b.duelWin++;
+        b.duelWinStreak++;
+        if (b.duelWinStreak > b.duelBestStreak) b.duelBestStreak = b.duelWinStreak;
+        if (o.perfect) b.duelPerfect++;
+        if (o.oppId && b.duelLostTo.indexOf(o.oppId) >= 0) {
+          b.duelRevenge++;
+          b.duelLostTo = b.duelLostTo.filter(function (x) { return x !== o.oppId; });
+        }
+      } else {
+        b.duelWinStreak = 0;
+        if (o.oppId && b.duelLostTo.indexOf(o.oppId) < 0) {
+          b.duelLostTo.push(o.oppId);
+          if (b.duelLostTo.length > 60) b.duelLostTo = b.duelLostTo.slice(-60);
+        }
+      }
       saveLocal(); checkBadges(); pushDebounced(); refreshOpen();
     },
 
