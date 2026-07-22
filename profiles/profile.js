@@ -192,14 +192,14 @@
   function pushDebounced() { clearTimeout(pushTimer); pushTimer = setTimeout(pushRemote, 300); }
   function fetchRemote(id) {
     if (!configured) return Promise.resolve(null);
-    return fetch(API + "/rest/v1/profiles?select=*&id=eq." + encodeURIComponent(id), { headers: headers() })
+    return fetch(API + "/rest/v1/profiles?select=*&id=eq." + encodeURIComponent(id), { headers: headers(), cache: "no-store" })
       .then(function (r) { return r.ok ? r.json() : []; })
       .then(function (a) { return (a && a[0]) || null; })
       .catch(function () { return null; });
   }
   function countQuery(qs) {
     if (!configured) return Promise.resolve(null);
-    return fetch(API + "/rest/v1/" + qs, { headers: headers({ "Prefer": "count=exact", "Range": "0-0" }) })
+    return fetch(API + "/rest/v1/" + qs, { headers: headers({ "Prefer": "count=exact", "Range": "0-0" }), cache: "no-store" })
       .then(function (r) { var cr = r.headers.get("content-range") || "*/0"; return parseInt(cr.split("/")[1], 10) || 0; })
       .catch(function () { return null; });
   }
@@ -617,7 +617,7 @@
         if (r[0] != null && r[1] != null) mr.innerHTML = "Ta place : <b>#" + (r[0] + 1) + "</b> sur " + r[1] + " joueurs";
         else mr.textContent = "";
       });
-    fetch(API + "/rest/v1/profiles?select=id,pseudo,level,xp,badge&order=xp.desc&limit=20", { headers: headers() })
+    fetch(API + "/rest/v1/profiles?select=id,pseudo,level,xp,badge&order=xp.desc&limit=20", { headers: headers(), cache: "no-store" })
       .then(function (r) { return r.ok ? r.json() : []; })
       .then(function (rows) {
         if (!rows.length) { box.innerHTML = '<div class="muted">Personne encore — sois le premier !</div>'; return; }
@@ -641,8 +641,8 @@
     box.innerHTML = '<div class="muted">Chargement…</div>';
     var base = API + "/rest/v1/daily_results?game=eq." + g + "&day=eq." + d;
     Promise.all([
-      fetch(base + "&select=won,tries", { headers: headers() }).then(function (r) { return r.ok ? r.json() : Promise.reject(); }),
-      fetch(base + "&won=eq.true&select=pseudo,tries&order=tries.asc,created_at.asc&limit=10", { headers: headers() }).then(function (r) { return r.ok ? r.json() : []; })
+      fetch(base + "&select=won,tries", { headers: headers(), cache: "no-store" }).then(function (r) { return r.ok ? r.json() : Promise.reject(); }),
+      fetch(base + "&won=eq.true&select=pseudo,tries&order=tries.asc,created_at.asc&limit=10", { headers: headers(), cache: "no-store" }).then(function (r) { return r.ok ? r.json() : []; })
     ]).then(function (res) {
       var rows = res[0], top = res[1];
       var total = rows.length, solved = rows.filter(function (x) { return x.won; }).length;
