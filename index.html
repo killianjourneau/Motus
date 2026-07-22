@@ -348,15 +348,15 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.10.0"></script>
-<script src="./dico/motus-prenoms.js?v=1.10.0"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.10.0"></script>
-<script src="./dico/motus-maladies.js?v=1.10.0"></script>
-<script src="./dico/motus-villes.js?v=1.10.0"></script>
-<script src="./dico/motus-villes-info.js?v=1.10.0"></script>
-<script src="./profiles/config.js?v=1.10.0"></script>
-<script src="./profiles/profile.js?v=1.10.0"></script>
-<script src="./duel/duel.js?v=1.10.0"></script>
+<script src="./dico/motus-words.js?v=1.11.0"></script>
+<script src="./dico/motus-prenoms.js?v=1.11.0"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.11.0"></script>
+<script src="./dico/motus-maladies.js?v=1.11.0"></script>
+<script src="./dico/motus-villes.js?v=1.11.0"></script>
+<script src="./dico/motus-villes-info.js?v=1.11.0"></script>
+<script src="./profiles/config.js?v=1.11.0"></script>
+<script src="./profiles/profile.js?v=1.11.0"></script>
+<script src="./duel/duel.js?v=1.11.0"></script>
 <script>
 (() => {
   "use strict";
@@ -394,7 +394,7 @@
   POOLS.villes = playableWords(THEME_SOL.villes);
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.10.0";
+  const VERSION = "1.11.0";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -423,7 +423,7 @@
   // défi du jour : 3 mots enchaînés
   let defiStep=0, defiKey="", defiNum=0, defiTimes=[], defiTries=[], defiFailed=false;
   // duel
-  let duelCode="", duelRow=null, duelStop=null, duelReported=false, duelMode="new", duelDeadline=0, duelStarted=false;
+  let duelCode="", duelRow=null, duelStop=null, duelReported=false, duelMode="new", duelDeadline=0, duelStarted=false, duelCounted=false;
 
   const $ = id => document.getElementById(id);
   const board=$("board"), keyboard=$("keyboard"), toastEl=$("toast"), themeBtn=$("btnTheme");
@@ -608,10 +608,18 @@
     const sub = (mode==="defi")  ? DEFI_STEPS[Math.min(defiStep, DEFI_STEPS.length-1)]
               : (mode==="daily") ? "normal"
               : mode;
+    // Villes : une capitale commence par « Capitale » ; une ville française
+    // porte sa région entre parenthèses, une ville étrangère n'en a pas.
+    let capital=false, foreign=false;
+    if(mode==="villes"){
+      const vi = (window.MOTUS_VILLES_INFO||{})[answer] || "";
+      capital = /^Capitale/.test(vi);
+      foreign = vi.indexOf("(") < 0;
+    }
     Profile.addGame({
       won:win, xp, mode, sub,
       tries: win ? guesses.length : 0,
-      ms: timerValue(), answer, noYellow
+      ms: timerValue(), answer, noYellow, capital, foreign
     });
     if(mode==="daily") Profile.submitDaily({ game:"motus", day:dailyKey, tries: win?guesses.length:6, won:win });
   }
@@ -656,7 +664,7 @@
   function duelOpen(){
     if(!window.Duel || !Duel.configured){ toast("Le duel nécessite la base de données"); return; }
     duelStopWatch();
-    duelReported=false; duelRow=null; duelCode=""; duelStarted=false; duelDeadline=0;
+    duelReported=false; duelRow=null; duelCode=""; duelStarted=false; duelDeadline=0; duelCounted=false;
     duelShowStep(1); duelSetMsg(""); $("duelWord").value=""; $("duelCode").value="";
     [6,7,8].forEach(loadDicoForce);        // pour valider le mot proposé
     openOverlay("duelOverlay");
@@ -799,6 +807,16 @@
     $("duelResWhy").textContent = v.why;
     $("duelScore").innerHTML = duelScoreHTML();
     duelShowStep(4); openOverlay("duelOverlay");
+    // comptage pour les badges (une seule fois par duel)
+    if(!duelCounted && duelStarted && window.Profile){
+      duelCounted=true;
+      const mine = duelRow.mine || {};
+      Profile.duelDone({
+        won: v.r==="win",
+        perfect: v.r==="win" && mine.won && mine.tries===1,
+        oppId: duelRow.opp && duelRow.opp.id
+      });
+    }
   }
 
   function duelScoreHTML(){
