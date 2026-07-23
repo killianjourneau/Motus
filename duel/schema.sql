@@ -1,12 +1,10 @@
 -- ===================================================================
 --  DUEL — schéma complet (à exécuter dans Supabase → SQL Editor)
---  Remplace toute version précédente. Sans risque : ne touche pas
---  aux tables profiles et daily_results.
+--  Idempotent : peut être relancé sans risque, ne supprime aucune
+--  donnée et ne touche pas aux tables profiles / daily_results.
 -- ===================================================================
 
-drop table if exists duels cascade;
-
-create table duels (
+create table if not exists duels (
   id          text primary key,
   created_at  timestamptz default now(),
   status      text        default 'waiting',   -- waiting | playing | done
@@ -18,11 +16,15 @@ create table duels (
   p2_tries int, p2_ms int, p2_done boolean default false, p2_won boolean
 );
 
-create index on duels (created_at);
+-- Colonnes ajoutées après la première version (revanche + émotes)
+alter table duels add column if not exists rematch_code text;
+alter table duels add column if not exists p1_emote text;
+alter table duels add column if not exists p2_emote text;
 
--- Aucune écriture directe n'est autorisée : tout passe par les fonctions
--- ci-dessous, qui s'exécutent avec les droits du propriétaire de la table.
+create index if not exists duels_created_idx on duels (created_at);
+
 alter table duels enable row level security;
+-- Aucune écriture directe : tout passe par les fonctions ci-dessous.
 
 -- ---------- Créer un duel ----------
 create or replace function duel_create(
@@ -32,7 +34,6 @@ declare v_code text; v_row duels; v_n int := 0;
 begin
   loop
     v_n := v_n + 1;
-    -- code de 5 caractères, sans I/O/0/1 pour éviter les confusions
     v_code := '';
     for i in 1..5 loop
       v_code := v_code || substr('ABCDEFGHJKLMNPQRSTUVWXYZ23456789',
@@ -108,8 +109,47 @@ begin
   return v_row;
 end $$;
 
+-- ---------- Revanche (atomique : le 1er crée, le 2e rejoint) ----------
+create or replace function duel_rematch(
+  p_code text, p_id uuid, p_pseudo text, p_level int, p_badge text, p_word text
+) returns duels language plpgsql security definer as $$
+declare v_old duels; v_code text := upper(trim(p_code));
+begin
+  select * into v_old from duels where id = v_code for update;
+  if v_old.id is null then raise exception 'introuvable'; end if;
+
+  if v_old.rematch_code is null then
+    -- je lance la revanche : je crée le nouveau duel et j'inscris son code
+    declare v_new duels;
+    begin
+      v_new := duel_create(p_id, p_pseudo, p_level, p_badge, p_word);
+      update duels set rematch_code = v_new.id where id = v_code;
+      return v_new;
+    end;
+  else
+    -- l'adversaire l'a déjà lancée : je la rejoins
+    return duel_join(v_old.rematch_code, p_id, p_pseudo, p_level, p_badge, p_word);
+  end if;
+end $$;
+
+-- ---------- Envoyer une émote ----------
+create or replace function duel_emote(p_code text, p_id uuid, p_emote text)
+returns duels language plpgsql security definer as $$
+declare v_row duels; v_code text := upper(trim(p_code));
+begin
+  update duels set
+    p1_emote = case when p1_id = p_id then p_emote else p1_emote end,
+    p2_emote = case when p2_id = p_id then p_emote else p2_emote end
+  where id = v_code and (p1_id = p_id or p2_id = p_id)
+  returning * into v_row;
+  if v_row.id is null then raise exception 'introuvable'; end if;
+  return v_row;
+end $$;
+
 -- ---------- Droits ----------
-grant execute on function duel_create(uuid,text,int,text,text)        to anon, authenticated;
-grant execute on function duel_join(text,uuid,text,int,text,text)     to anon, authenticated;
-grant execute on function duel_get(text)                              to anon, authenticated;
-grant execute on function duel_report(text,uuid,int,int,boolean)      to anon, authenticated;
+grant execute on function duel_create(uuid,text,int,text,text)            to anon, authenticated;
+grant execute on function duel_join(text,uuid,text,int,text,text)         to anon, authenticated;
+grant execute on function duel_get(text)                                  to anon, authenticated;
+grant execute on function duel_report(text,uuid,int,int,boolean)          to anon, authenticated;
+grant execute on function duel_rematch(text,uuid,text,int,text,text)      to anon, authenticated;
+grant execute on function duel_emote(text,uuid,text)                      to anon, authenticated;

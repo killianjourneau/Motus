@@ -101,6 +101,28 @@
       }).then(function (row) { return row ? D.parse(row) : null; });
     },
 
+    /* Revanche : le 1er à cliquer crée le nouveau duel, le 2e le rejoint
+       (résolu côté base, donc pas d'échange de code). */
+    rematch: function (code, word) {
+      var m = me();
+      return rpc("duel_rematch", {
+        p_code: String(code || "").toUpperCase(),
+        p_id: m.id, p_pseudo: m.pseudo, p_level: m.level, p_badge: m.badge, p_word: hide(word)
+      }).then(function (row) {
+        if (!row || !row.id) throw new Error("revanche-impossible");
+        return D.parse(row);
+      });
+    },
+
+    /* Émote : phrase toute faite envoyée à l'adversaire. La valeur inclut
+       un horodatage pour que deux envois identiques soient bien détectés. */
+    emote: function (code, value) {
+      var m = me();
+      return rpc("duel_emote", {
+        p_code: String(code || "").toUpperCase(), p_id: m.id, p_emote: String(value)
+      }).then(function (row) { return row ? D.parse(row) : null; }).catch(function () { return null; });
+    },
+
     /* Ajoute les champs pratiques : mots déchiffrés, camp, échéance. */
     parse: function (d) {
       var m = me();
@@ -116,6 +138,8 @@
       d.his = d.side === 2
         ? { tries: d.p1_tries, ms: d.p1_ms, done: !!d.p1_done, won: !!d.p1_won }
         : { tries: d.p2_tries, ms: d.p2_ms, done: !!d.p2_done, won: !!d.p2_won };
+      d.oppEmote = d.side === 2 ? (d.p1_emote || "") : (d.p2_emote || "");
+      d.rematch = d.rematch_code || "";
       d.ready = !!(d.status === "playing" && d.target);
       d.deadline = d.started_at ? (new Date(d.started_at).getTime() + LIMIT_MS) : 0;
       return d;
