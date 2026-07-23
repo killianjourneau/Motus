@@ -214,7 +214,7 @@
       <b class="r"><span>M</span></b><b class="y"><span>O</span></b><b><span>T</span></b><b class="r"><span>U</span></b><b class="y"><span>S</span></b>
     </button>
     <div class="tools">
-      <button class="icon-btn" id="btnGame" aria-label="Rébus — bientôt disponible">🧩</button>
+      
       <button class="icon-btn" id="btnTheme" aria-label="Thème">☀️</button>
       <button class="icon-btn" id="btnHelp" aria-label="Règles">?</button>
       <button class="icon-btn" id="btnProfile" aria-label="Profil">👤</button>
@@ -304,11 +304,11 @@
       <button class="close-x" data-close>&times;</button>
       <h2>Motus</h2>
       <p class="sub">Version <b id="appVersion"></b></p>
-      <p style="text-align:center">Un jeu de mots et de rébus, jouable hors-ligne.<br>Installe-le depuis ton navigateur pour l'avoir en application.</p>
+      <p style="text-align:center">Un jeu de mots à la Motus, jouable hors-ligne.<br>Installe-le depuis ton navigateur pour l'avoir en application.</p>
       <div class="dist-title">Contenu</div>
       <p style="text-align:center;margin-bottom:6px" id="aboutCounts"></p>
       <div class="dist-title">Nouveautés</div>
-      <p style="text-align:center;font-size:13px;color:var(--ink-dim)">Badges à collectionner · emblème de profil · défi chronométré</p>
+      <p style="text-align:center;font-size:13px;color:var(--ink-dim)">Mode Duel · thème Villes · dictionnaires enrichis · badges Villes &amp; Duel</p>
       <button class="btn" data-close>Fermer</button>
     </div>
   </div>
@@ -384,15 +384,15 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.11.3"></script>
-<script src="./dico/motus-prenoms.js?v=1.11.3"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.11.3"></script>
-<script src="./dico/motus-maladies.js?v=1.11.3"></script>
-<script src="./dico/motus-villes.js?v=1.11.3"></script>
-<script src="./dico/motus-villes-info.js?v=1.11.3"></script>
-<script src="./profiles/config.js?v=1.11.3"></script>
-<script src="./profiles/profile.js?v=1.11.3"></script>
-<script src="./duel/duel.js?v=1.11.3"></script>
+<script src="./dico/motus-words.js?v=1.11.4"></script>
+<script src="./dico/motus-prenoms.js?v=1.11.4"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.11.4"></script>
+<script src="./dico/motus-maladies.js?v=1.11.4"></script>
+<script src="./dico/motus-villes.js?v=1.11.4"></script>
+<script src="./dico/motus-villes-info.js?v=1.11.4"></script>
+<script src="./profiles/config.js?v=1.11.4"></script>
+<script src="./profiles/profile.js?v=1.11.4"></script>
+<script src="./duel/duel.js?v=1.11.4"></script>
 <script>
 (() => {
   "use strict";
@@ -430,7 +430,7 @@
   POOLS.villes = playableWords(THEME_SOL.villes);
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.11.3";
+  const VERSION = "1.11.4";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -1348,7 +1348,6 @@
   });
 
   themeBtn.addEventListener("click", toggleTheme);
-  $("btnGame").addEventListener("click", ()=>{ toast("Sera disponible dans une prochaine mise à jour"); });
   document.querySelectorAll(".dtab").forEach(b=>b.addEventListener("click", ()=>{
     duelMode=b.dataset.dt;
     document.querySelectorAll(".dtab").forEach(x=>x.classList.toggle("active", x===b));
