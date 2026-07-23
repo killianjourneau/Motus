@@ -83,6 +83,9 @@
     background:var(--cell); color:var(--ink); box-shadow:inset 0 0 0 1.5px var(--cell-edge); font-size:15px; font-weight:700; cursor:pointer; text-align:left; }
   .emote-item:active{ background:var(--red); color:#fff; }
   .emote-item .ee{ font-size:20px; }
+  .emote-item.emote-mute{ margin-top:4px; background:transparent; color:var(--ink-dim); font-size:13px; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
+  .emote-item.emote-mute:active{ background:var(--cell); color:var(--ink); }
+  .emote-item.emote-mute .ee{ font-size:16px; }
   #duelEmoteBubble{ position:fixed; left:50%; top:64px; transform:translateX(-50%) translateY(-14px); z-index:75;
     display:none; align-items:center; gap:8px; max-width:88vw; padding:9px 15px; border-radius:20px;
     background:var(--red); color:#fff; font-size:15px; font-weight:700; box-shadow:0 8px 26px rgba(0,0,0,.4);
@@ -384,15 +387,15 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.11.5"></script>
-<script src="./dico/motus-prenoms.js?v=1.11.5"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.11.5"></script>
-<script src="./dico/motus-maladies.js?v=1.11.5"></script>
-<script src="./dico/motus-villes.js?v=1.11.5"></script>
-<script src="./dico/motus-villes-info.js?v=1.11.5"></script>
-<script src="./profiles/config.js?v=1.11.5"></script>
-<script src="./profiles/profile.js?v=1.11.5"></script>
-<script src="./duel/duel.js?v=1.11.5"></script>
+<script src="./dico/motus-words.js?v=1.11.6"></script>
+<script src="./dico/motus-prenoms.js?v=1.11.6"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.11.6"></script>
+<script src="./dico/motus-maladies.js?v=1.11.6"></script>
+<script src="./dico/motus-villes.js?v=1.11.6"></script>
+<script src="./dico/motus-villes-info.js?v=1.11.6"></script>
+<script src="./profiles/config.js?v=1.11.6"></script>
+<script src="./profiles/profile.js?v=1.11.6"></script>
+<script src="./duel/duel.js?v=1.11.6"></script>
 <script>
 (() => {
   "use strict";
@@ -430,7 +433,7 @@
   POOLS.villes = playableWords(THEME_SOL.villes);
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.11.5";
+  const VERSION = "1.11.6";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -983,14 +986,37 @@
     {t:"Oups", e:"😅"},
     {t:"Bien essayé", e:"🙂"}
   ];
-  function duelEmoteBtnShow(on){ const b=$("duelEmoteBtn"); if(b) b.classList.toggle("show", !!on); if(!on) duelClosePicker(); }
+  /* Sourdine : permet de ne plus recevoir les émotes d'un joueur insistant.
+     Le choix est conservé entre les parties, et l'icône du bandeau le rappelle. */
+  function duelMuted(){ return !!store.get("motus.duelMute", false); }
+  function duelSetMuted(v){ store.set("motus.duelMute", !!v); duelRefreshEmoteBtn(); duelRefreshMuteLabel(); }
+  function duelRefreshEmoteBtn(){
+    const b=$("duelEmoteBtn"); if(!b) return;
+    const m=duelMuted();
+    b.textContent = m ? "🔕" : "💬";
+    b.setAttribute("aria-label", m ? "Émotes coupées — envoyer une émote" : "Envoyer une émote");
+  }
+  function duelRefreshMuteLabel(){
+    const b=$("duelMuteBtn"); if(!b) return;
+    b.innerHTML = duelMuted()
+      ? '<span class="ee">🔔</span>Réactiver les émotes reçues'
+      : '<span class="ee">🔕</span>Ne plus recevoir d\'émotes';
+  }
+  function duelEmoteBtnShow(on){ const b=$("duelEmoteBtn"); if(b){ b.classList.toggle("show", !!on); duelRefreshEmoteBtn(); } if(!on) duelClosePicker(); }
   function duelBuildPicker(){
     const p=$("duelEmotePicker"); if(!p || p.dataset.built) return;
-    p.innerHTML = DUEL_EMOTES.map((m,i)=>`<button class="emote-item" data-emote="${i}"><span class="ee">${m.e}</span>${m.t}</button>`).join("");
-    p.querySelectorAll(".emote-item").forEach(btn=>btn.addEventListener("click", ()=>{ duelSendEmote(+btn.dataset.emote); }));
+    p.innerHTML = DUEL_EMOTES.map((m,i)=>`<button class="emote-item" data-emote="${i}"><span class="ee">${m.e}</span>${m.t}</button>`).join("")
+               + '<button class="emote-item emote-mute" id="duelMuteBtn"></button>';
+    p.querySelectorAll(".emote-item[data-emote]").forEach(btn=>btn.addEventListener("click", ()=>{ duelSendEmote(+btn.dataset.emote); }));
+    $("duelMuteBtn").addEventListener("click", ()=>{
+      const now = !duelMuted();
+      duelSetMuted(now);
+      toast(now ? "Émotes coupées" : "Émotes réactivées");
+      duelClosePicker();
+    });
     p.dataset.built="1";
   }
-  function duelTogglePicker(){ duelBuildPicker(); $("duelEmotePicker").classList.toggle("open"); }
+  function duelTogglePicker(){ duelBuildPicker(); duelRefreshMuteLabel(); $("duelEmotePicker").classList.toggle("open"); }
   function duelClosePicker(){ const p=$("duelEmotePicker"); if(p) p.classList.remove("open"); }
   function duelSendEmote(i){
     duelClosePicker();
@@ -1003,7 +1029,7 @@
     const m=DUEL_EMOTES[i]; if(!m) return;
     const who = mine ? "" : "<b>"+(((duelRow&&duelRow.opp&&duelRow.opp.pseudo)||"Adversaire").replace(/[<>]/g,""))+" :</b> ";
     const b=$("duelEmoteBubble");
-    b.innerHTML = `<span class="ee">${m.e}</span>${who}${m.t}`;
+    b.innerHTML = `${who}<span class="ee">${m.e}</span>${m.t}`;
     b.classList.add("show");
     clearTimeout(duelBubbleTimer);
     duelBubbleTimer=setTimeout(()=>b.classList.remove("show"), 3200);
@@ -1011,6 +1037,7 @@
   function duelCheckEmote(d){
     if(!d || !d.oppEmote || d.oppEmote===duelLastEmote) return;
     duelLastEmote = d.oppEmote;
+    if(duelMuted()) return;                    // reçue mais pas affichée
     const i = parseInt(String(d.oppEmote).split(":")[0], 10);
     if(i>=0 && i<DUEL_EMOTES.length) duelShowEmote(i, false);
   }
