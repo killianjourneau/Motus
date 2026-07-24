@@ -133,10 +133,13 @@
   @keyframes shk{ 0%,100%{transform:translateX(0)} 20%{transform:translateX(-9px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(4px)} }
   .race-caption{ text-align:center; font-size:12px; color:var(--ink-dim); font-weight:700; margin-top:2px; }
   .duel-tabs{ display:flex; gap:6px; margin-bottom:12px; }
-  .dtab{ flex:1; height:36px; border:none; border-radius:9px; background:var(--cell); color:var(--ink-dim); font-weight:700; font-size:13px; cursor:pointer; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
+  .dtab{ flex:1; min-width:0; height:36px; border:none; border-radius:9px; background:var(--cell); color:var(--ink-dim); font-weight:700; font-size:12px; cursor:pointer; box-shadow:inset 0 0 0 1.5px var(--cell-edge); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:0 4px; }
   .dtab.active{ background:var(--accent); color:#fff; box-shadow:none; }
   .duel-in{ width:100%; height:48px; border:none; border-radius:11px; background:var(--cell); box-shadow:inset 0 0 0 1.5px var(--cell-edge); color:var(--ink); padding:0 14px; font-size:17px; font-weight:700; letter-spacing:2px; text-align:center; text-transform:uppercase; margin-bottom:10px; }
   .duel-in:focus{ outline:none; box-shadow:inset 0 0 0 2px var(--accent); }
+  .mp-count{ display:none; text-align:center; font-size:13px; font-weight:700; color:var(--ink-dim); margin:-4px 0 12px; }
+  .mp-count.show{ display:block; }
+  .mp-count b{ color:var(--accent); }
   .duel-msg{ text-align:center; font-size:13px; color:var(--ink-dim); min-height:20px; margin-bottom:8px; }
   .duel-msg.err{ color:var(--red); font-weight:700; }
   .duel-code{ text-align:center; font-size:38px; font-weight:800; letter-spacing:8px; background:var(--cell); border-radius:12px; padding:14px 0; margin-bottom:12px; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
@@ -361,7 +364,7 @@
       <div class="dist-title">Contenu</div>
       <p style="text-align:center;margin-bottom:6px" id="aboutCounts"></p>
       <div class="dist-title">Nouveautés</div>
-      <p style="text-align:center;font-size:13px;color:var(--ink-dim)">Course à l'écriture · couleurs personnalisables · Duel &amp; émotes · thème Villes</p>
+      <p style="text-align:center;font-size:13px;color:var(--ink-dim)">Parties publiques · Course à l'écriture · couleurs personnalisables · émotes</p>
       <button class="btn" data-close>Fermer</button>
     </div>
   </div>
@@ -385,9 +388,11 @@
       <div id="raceStep1">
         <p class="sub">Recopie les mots le plus vite possible, du plus court au plus long. Chaque faute coûte une vie.</p>
         <div class="duel-tabs" id="raceTabs">
-          <button class="dtab active" data-rt="new">Créer</button>
-          <button class="dtab" data-rt="join">Rejoindre</button>
+          <button class="dtab active" data-rt="quick">🌍 Publique</button>
+          <button class="dtab" data-rt="new">🔒 Privée</button>
+          <button class="dtab" data-rt="join">🔑 Code</button>
         </div>
+        <div class="mp-count" id="racePublicCount"></div>
         <div id="raceJoinBox" style="display:none">
           <input id="raceCode" class="duel-in" placeholder="Code de la course" maxlength="5" autocomplete="off" autocapitalize="characters" spellcheck="false">
         </div>
@@ -445,9 +450,11 @@
       <div id="duelStep1">
         <p class="sub">Chacun choisit le mot que l'autre devra deviner.</p>
         <div class="duel-tabs" id="duelTabs">
-          <button class="dtab active" data-dt="new">Créer</button>
-          <button class="dtab" data-dt="join">Rejoindre</button>
+          <button class="dtab active" data-dt="quick">🌍 Publique</button>
+          <button class="dtab" data-dt="new">🔒 Privée</button>
+          <button class="dtab" data-dt="join">🔑 Code</button>
         </div>
+        <div class="mp-count" id="duelPublicCount"></div>
         <div id="duelJoinBox" style="display:none">
           <input id="duelCode" class="duel-in" placeholder="Code du duel" maxlength="5" autocomplete="off" autocapitalize="characters" spellcheck="false">
         </div>
@@ -498,16 +505,16 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.14.0"></script>
-<script src="./dico/motus-prenoms.js?v=1.14.0"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.14.0"></script>
-<script src="./dico/motus-maladies.js?v=1.14.0"></script>
-<script src="./dico/motus-villes.js?v=1.14.0"></script>
-<script src="./dico/motus-villes-info.js?v=1.14.0"></script>
-<script src="./dico/motus-race.js?v=1.14.0"></script>
-<script src="./profiles/config.js?v=1.14.0"></script>
-<script src="./profiles/profile.js?v=1.14.0"></script>
-<script src="./duel/duel.js?v=1.14.0"></script>
+<script src="./dico/motus-words.js?v=1.15.1"></script>
+<script src="./dico/motus-prenoms.js?v=1.15.1"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.15.1"></script>
+<script src="./dico/motus-maladies.js?v=1.15.1"></script>
+<script src="./dico/motus-villes.js?v=1.15.1"></script>
+<script src="./dico/motus-villes-info.js?v=1.15.1"></script>
+<script src="./dico/motus-race.js?v=1.15.1"></script>
+<script src="./profiles/config.js?v=1.15.1"></script>
+<script src="./profiles/profile.js?v=1.15.1"></script>
+<script src="./duel/duel.js?v=1.15.1"></script>
 <script>
 (() => {
   "use strict";
@@ -545,7 +552,7 @@
   POOLS.villes = playableWords(THEME_SOL.villes);
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.14.0";
+  const VERSION = "1.15.1";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -576,11 +583,11 @@
   let defiStep=0, defiKey="", defiNum=0, defiTimes=[], defiTries=[], defiFailed=false;
   // duel
   // course à l'écriture
-  let raceCode="", raceRow=null, raceStop=null, raceMode="new", raceTheme="mots",
+  let raceCode="", raceRow=null, raceStop=null, raceMode="quick", raceTheme="mots",
       raceList=[], raceIdx=0, raceLives=3, raceTyped="", raceStarted=false, raceReported=false,
       raceCounted=false, raceDeadline=0, raceWaitMsg="En attente d'un adversaire…",
       raceRematchMine="", raceRematchOldCode="";
-  let duelCode="", duelRow=null, duelStop=null, duelReported=false, duelMode="new", duelDeadline=0, duelStarted=false, duelCounted=false, duelLastEmote="", duelRematchMine="", duelRematchOldCode="", duelWaitMsg="En attente d'un adversaire…";
+  let duelCode="", duelRow=null, duelStop=null, duelReported=false, duelMode="quick", duelDeadline=0, duelStarted=false, duelCounted=false, duelLastEmote="", duelRematchMine="", duelRematchOldCode="", duelWaitMsg="En attente d'un adversaire…";
 
   const $ = id => document.getElementById(id);
   const board=$("board"), keyboard=$("keyboard"), toastEl=$("toast"), themeBtn=$("btnTheme"), accentBtn=$("btnAccent");
@@ -853,6 +860,26 @@
     return s;
   }
 
+  /* Affiche le nombre de salons publics rejoignables. */
+  function mpShowCount(kind){
+    const el = $(kind==="race" ? "racePublicCount" : "duelPublicCount");
+    if(!el) return;
+    const active = (kind==="race" ? raceMode : duelMode) === "quick";
+    el.classList.toggle("show", active);
+    if(!active) return;
+    el.innerHTML = "Recherche des parties en cours…";
+    const api = (kind==="race") ? window.Race : window.Duel;
+    if(!api || !api.publicCount) return;
+    api.publicCount().then(n=>{
+      if(((kind==="race" ? raceMode : duelMode)) !== "quick") return;
+      const mot = (kind==="race") ? "course" : "partie";
+      if(n===null){ el.innerHTML = ""; el.classList.remove("show"); return; }   // fonction absente en base
+      if(n===0) el.innerHTML = `Aucune ${mot} publique en attente — tu ouvriras la tienne`;
+      else if(n===1) el.innerHTML = `<b>1</b> ${mot} publique en attente`;
+      else el.innerHTML = `<b>${n}</b> ${mot}s publiques en attente`;
+    });
+  }
+
   /* ---------- Course à l'écriture ---------- */
   const RACE_LIVES = 3;
   const RACE_THEMES = [
@@ -930,28 +957,44 @@
       raceList=d.list||[]; raceTheme=d.theme||raceTheme;
       if(d.mine && d.mine.over){ raceReported=true; raceMaybeFinish(); return; }
       if(d.ready){ raceShowOpponent(d); raceWatch(); return; }
-      $("raceCodeShow").textContent=d.id;
-      raceShowStep(2); raceWatch();
+      if(d.isPublic){ raceWaitMsg="Recherche d'un adversaire… ta course est ouverte à tous."; raceShowPublicWait(); }
+      else {
+        $("raceCodeShow").textContent=d.id; $("raceCodeShow").style.display="";
+        const sh=$("raceShare"); if(sh) sh.style.display="";
+        raceWaitMsg="En attente d'un adversaire…";
+        $("raceWait").textContent=raceWaitMsg;
+        raceShowStep(2);
+      }
+      raceWatch();
     }).catch(()=>{ mpClear(); raceSetMsg(""); raceFresh(); });
   }
   function raceFresh(){
     mpClear();
     raceRow=null; raceCode=""; raceList=[]; raceIdx=0; raceLives=RACE_LIVES; raceTyped="";
     raceStarted=false; raceReported=false; raceCounted=false; raceDeadline=0;
-    raceRematchMine=""; raceMode="new"; raceWaitMsg="En attente d'un adversaire…";
+    raceRematchMine=""; raceMode="quick"; raceWaitMsg="Recherche d'un adversaire…";
     const tabs=$("raceTabs"); if(tabs) tabs.style.display="";
     $("raceThemeBox").style.display="";
-    document.querySelectorAll("#raceTabs .dtab").forEach(x=>x.classList.toggle("active", x.dataset.rt==="new"));
+    document.querySelectorAll("#raceTabs .dtab").forEach(x=>x.classList.toggle("active", x.dataset.rt==="quick"));
     $("raceCodeShow").style.display=""; const sh=$("raceShare"); if(sh) sh.style.display="";
     raceBuildThemes();
     raceShowStep(1); raceSetMsg(""); $("raceCode").value=""; $("raceJoinBox").style.display="none";
+    mpShowCount("race");
     openOverlay("raceOverlay");
   }
   function raceStopWatch(){ if(raceStop){ raceStop(); raceStop=null; } }
 
+  /* Attente d'une course publique : aucun code à transmettre. */
+  function raceShowPublicWait(){
+    raceShowStep(2);
+    $("raceCodeShow").style.display="none";
+    const sh=$("raceShare"); if(sh) sh.style.display="none";
+    $("raceWait").textContent=raceWaitMsg;
+  }
+
   function raceSubmit(){
     $("raceGo").disabled=true;
-    if(raceMode!=="join" && raceMode!=="rematch") raceMode="new";   // valeur inattendue : on crée
+    if(["quick","new","join","rematch"].indexOf(raceMode)<0) raceMode="quick";   // valeur inattendue
     if(raceMode==="join"){
       const code=($("raceCode").value||"").trim().toUpperCase();
       if(code.length<4){ raceSetMsg("Code invalide", true); $("raceGo").disabled=false; return; }
@@ -964,6 +1007,18 @@
     }
     const list = raceBuildList(raceTheme);
     if(list.length<4){ raceSetMsg("Pas assez de mots dans ce thème", true); $("raceGo").disabled=false; return; }
+    if(raceMode==="quick"){
+      raceSetMsg("Recherche d'une partie…");
+      Race.quick(raceTheme, list).then(d=>{
+        raceSetMsg("");
+        raceAdopt(d); $("raceGo").disabled=false;
+        raceWatch();
+        if(d.ready){ raceShowOpponent(d); return; }
+        raceWaitMsg="Recherche d'un adversaire… ta course est ouverte à tous.";
+        raceShowPublicWait();
+      }).catch(e=>{ raceSetMsg(raceErr(e), true); $("raceGo").disabled=false; });
+      return;
+    }
     const fn = (raceMode==="rematch")
       ? Race.rematch(raceRematchOldCode, raceTheme, list)
       : Race.create(raceTheme, list);
@@ -979,7 +1034,9 @@
         const sh=$("raceShare"); if(sh) sh.style.display="none";
         raceWaitMsg="En attente de ton adversaire…";
       } else {
-        $("raceCodeShow").textContent=d.id;
+        $("raceCodeShow").textContent=d.id; $("raceCodeShow").style.display="";
+        const sh=$("raceShare"); if(sh) sh.style.display="";
+        raceWaitMsg="En attente d'un adversaire…";
       }
       $("raceWait").textContent=raceWaitMsg;
     }).catch(e=>{ raceSetMsg(raceErr(e), true); $("raceGo").disabled=false; });
@@ -1017,7 +1074,8 @@
       }
       if(!raceStarted && !d.ready){ $("raceWait").textContent = raceWaitMsg; }
       if(raceStarted && raceReported){
-        if(d.his && d.his.over) raceMaybeFinish();
+        const dl2 = d.deadline || raceDeadline;
+        if((d.his && d.his.over) || (dl2 && Date.now() > dl2)) raceMaybeFinish();
       }
       if(raceStarted && !raceReported && d.deadline && Date.now() > d.deadline) raceFinish(false);
       if(!raceStarted && raceReported && d.rematch && d.rematch !== raceRematchMine) raceShowRematchOffer(d);
@@ -1139,7 +1197,10 @@
     const mine = raceRow.mine || {};
     const his  = raceRow.his || {};
     $("raceScore").innerHTML = raceScoreHTML();
-    if(!his.over){
+    // adversaire parti sans jouer : la limite de temps tranche au lieu d'attendre sans fin
+    const dl = (raceRow && raceRow.deadline) || raceDeadline;
+    const expired = dl && Date.now() > dl;
+    if(!his.over && !expired){
       $("raceResTitle").textContent = "En attente…";
       $("raceResWhy").textContent = "Ton adversaire est encore en course.";
       $("raceReplay").style.display="none";
@@ -1195,6 +1256,7 @@
     $("raceJoinBox").style.display="none";
     $("raceThemeBox").style.display="";
     raceBuildThemes();
+    $("racePublicCount").classList.remove("show");
     raceSetMsg("Choisis les mots de la revanche"); $("raceGo").disabled=false;
     raceShowStep(1); openOverlay("raceOverlay");
   }
@@ -1270,23 +1332,39 @@
       duelCode=d.id; duelRow=d; duelRematchMine=d.id; duelDeadline=d.deadline||0;
       if(d.mine && d.mine.done){ duelReported=true; duelMaybeFinish(); return; }
       if(d.ready){ duelShowOpponent(d); duelWatch(); return; }
-      $("duelCodeShow").textContent=d.id;
-      duelShowStep(2); duelWatch();
+      if(d.isPublic){ duelWaitMsg="Recherche d'un adversaire… ta partie est ouverte à tous."; duelShowPublicWait(); }
+      else {
+        $("duelCodeShow").textContent=d.id; $("duelCodeShow").style.display="";
+        const sh=$("duelShare"); if(sh) sh.style.display="";
+        duelWaitMsg="En attente d'un adversaire…";
+        $("duelWait").textContent=duelWaitMsg;
+        duelShowStep(2);
+      }
+      duelWatch();
     }).catch(()=>{ mpClear(); duelSetMsg(""); duelFresh(); });
   }
   function duelFresh(){
     mpClear();
     duelReported=false; duelRow=null; duelCode=""; duelStarted=false; duelDeadline=0;
-    duelCounted=false; duelLastEmote=""; duelRematchMine=""; duelMode="new";
-    duelWaitMsg="En attente d'un adversaire…";
+    duelCounted=false; duelLastEmote=""; duelRematchMine=""; duelMode="quick";
+    duelWaitMsg="Recherche d'un adversaire…";
     const tabs=$("duelTabs"); if(tabs) tabs.style.display="";
-    document.querySelectorAll("#duelTabs .dtab").forEach(x=>x.classList.toggle("active", x.dataset.dt==="new"));
+    document.querySelectorAll("#duelTabs .dtab").forEach(x=>x.classList.toggle("active", x.dataset.dt==="quick"));
     $("duelCodeShow").style.display=""; const sh=$("duelShare"); if(sh) sh.style.display="";
     duelShowStep(1); duelSetMsg(""); $("duelWord").value=""; $("duelCode").value=""; $("duelJoinBox").style.display="none";
+    mpShowCount("duel");
     [6,7,8].forEach(loadDicoForce);        // pour valider le mot proposé
     openOverlay("duelOverlay");
   }
   function duelStopWatch(){ if(duelStop){ duelStop(); duelStop=null; } }
+
+  /* Attente d'une partie publique : aucun code à transmettre. */
+  function duelShowPublicWait(){
+    duelShowStep(2);
+    $("duelCodeShow").style.display="none";
+    const sh=$("duelShare"); if(sh) sh.style.display="none";
+    $("duelWait").textContent=duelWaitMsg;
+  }
 
   /* Un duel en cours est sauvegardé pour pouvoir être repris après avoir
      quitté le mode ou fermé l'application (dans la limite des 5 minutes). */
@@ -1350,7 +1428,7 @@
       return;
     }
     $("duelGo").disabled=true;
-    if(duelMode!=="join" && duelMode!=="rematch") duelMode="new";   // valeur inattendue : on crée
+    if(["quick","new","join","rematch"].indexOf(duelMode)<0) duelMode="quick";   // valeur inattendue
     if(duelMode==="rematch"){
       duelSetMsg("Revanche…");
       Duel.rematch(duelRematchOldCode, chk.word).then(d=>{
@@ -1369,10 +1447,27 @@
       }).catch(e=>{ duelSetMsg(duelErr(e), true); $("duelGo").disabled=false; });
       return;
     }
+    if(duelMode==="quick"){
+      duelSetMsg("Recherche d'une partie…");
+      Duel.quick(chk.word).then(d=>{
+        duelSetMsg("");
+        duelRow=d; duelCode=d.id; mpSave("duel", d.id); duelRematchMine=d.id;
+        $("duelGo").disabled=false;
+        duelWatch();
+        if(d.ready){ duelShowOpponent(d); return; }
+        duelWaitMsg="Recherche d'un adversaire… ta partie est ouverte à tous.";
+        duelShowPublicWait();
+      }).catch(e=>{ duelSetMsg(duelErr(e), true); $("duelGo").disabled=false; });
+      return;
+    }
     if(duelMode==="new"){
       duelSetMsg("Création du duel…");
       Duel.create(chk.word).then(d=>{
-        duelRow=d; duelCode=d.id; mpSave("duel", d.id); $("duelCodeShow").textContent=d.id;
+        duelSetMsg("");
+        duelRow=d; duelCode=d.id; mpSave("duel", d.id); duelRematchMine=d.id;
+        $("duelCodeShow").textContent=d.id; $("duelCodeShow").style.display="";
+        const sh=$("duelShare"); if(sh) sh.style.display="";
+        duelWaitMsg="En attente d'un adversaire…";
         duelShowStep(2); $("duelGo").disabled=false;
         duelWatch();
       }).catch(e=>{ duelSetMsg(duelErr(e), true); $("duelGo").disabled=false; });
@@ -1533,6 +1628,7 @@
     duelStopWatch(); duelClosePicker(); duelEmoteBtnShow(false);
     const tabs=$("duelTabs"); if(tabs) tabs.style.display="none";
     $("duelJoinBox").style.display="none"; $("duelWord").value="";
+    $("duelPublicCount").classList.remove("show");
     duelSetMsg("Choisis un mot pour la revanche"); $("duelGo").disabled=false;
     duelShowStep(1); openOverlay("duelOverlay");
     [6,7,8].forEach(loadDicoForce);
@@ -1983,6 +2079,7 @@
     document.querySelectorAll("#duelTabs .dtab").forEach(x=>x.classList.toggle("active", x===b));
     $("duelJoinBox").style.display = (duelMode==="join") ? "" : "none";
     duelSetMsg("");
+    mpShowCount("duel");
   }));
   $("duelGo").addEventListener("click", duelSubmit);
   $("duelWord").addEventListener("keydown", e=>{ if(e.key==="Enter") duelSubmit(); });
@@ -1991,6 +2088,7 @@
     document.querySelectorAll("#raceTabs .dtab").forEach(x=>x.classList.toggle("active", x===b));
     $("raceJoinBox").style.display = (raceMode==="join") ? "" : "none";
     $("raceThemeBox").style.display = (raceMode==="join") ? "none" : "";
+    if(raceMode==="quick") raceSetMsg("Thème utilisé si tu ouvres la partie.");
     raceSetMsg("");
   }));
   $("raceGo").addEventListener("click", raceSubmit);
@@ -2063,6 +2161,13 @@
   document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click", closeOverlays));
   document.querySelectorAll(".overlay").forEach(o=>o.addEventListener("click", e=>{ if(e.target===o) closeOverlays(); }));
   window.addEventListener("resize", ()=>{ if(len) computeSizing(); });
+
+  // le compte se périme vite : on le rafraîchit en revenant sur l'application
+  document.addEventListener("visibilitychange", ()=>{
+    if(document.hidden) return;
+    if($("duelOverlay").classList.contains("open") && $("duelStep1").style.display!=="none") mpShowCount("duel");
+    if($("raceOverlay").classList.contains("open") && $("raceStep1").style.display!=="none") mpShowCount("race");
+  });
 
   window.addEventListener("pagehide", ()=>{ if(duelStarted && !ended) saveDuel(); if(raceStarted && !ended) saveRace(); });
 
