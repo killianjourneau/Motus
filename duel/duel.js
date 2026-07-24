@@ -61,6 +61,14 @@
     };
   }
 
+  /* Nombre de salons publics rejoignables, pour ne pas attendre à l'aveugle. */
+  function waitingCount(kind) {
+    return rpc("mp_waiting", { p_kind: kind }).then(function (n) {
+      var v = (n && n.mp_waiting !== undefined) ? n.mp_waiting : n;
+      return typeof v === "number" ? v : 0;
+    }).catch(function () { return null; });
+  }
+
   var D = {
     configured: configured,
     LIMIT_MS: LIMIT_MS,
@@ -68,6 +76,19 @@
     create: function (word) {
       var m = me();
       return rpc("duel_create", {
+        p_id: m.id, p_pseudo: m.pseudo, p_level: m.level, p_badge: m.badge, p_word: hide(word)
+      }).then(function (row) {
+        if (!row || !row.id) throw new Error("creation-impossible");
+        return D.parse(row);
+      });
+    },
+
+    /* Partie publique : rejoint un salon ouvert s'il en existe un, sinon en crée un. */
+    publicCount: function () { return waitingCount("duel"); },
+
+    quick: function (word) {
+      var m = me();
+      return rpc("duel_quick", {
         p_id: m.id, p_pseudo: m.pseudo, p_level: m.level, p_badge: m.badge, p_word: hide(word)
       }).then(function (row) {
         if (!row || !row.id) throw new Error("creation-impossible");
@@ -140,6 +161,7 @@
         : { tries: d.p2_tries, ms: d.p2_ms, done: !!d.p2_done, won: !!d.p2_won };
       d.oppEmote = d.side === 2 ? (d.p1_emote || "") : (d.p2_emote || "");
       d.rematch = d.rematch_code || "";
+      d.isPublic = !!d.is_public;
       d.ready = !!(d.status === "playing" && d.target);
       d.deadline = d.started_at ? (new Date(d.started_at).getTime() + LIMIT_MS) : 0;
       return d;
@@ -214,6 +236,21 @@
       });
     },
 
+    /* Course publique : rejoint une course ouverte, sinon en crée une.
+       En cas de jonction, la suite de mots déjà fixée l'emporte. */
+    publicCount: function () { return waitingCount("race"); },
+
+    quick: function (theme, words) {
+      var m = me();
+      return rpc("race_quick", {
+        p_id: m.id, p_pseudo: m.pseudo, p_level: m.level, p_badge: m.badge,
+        p_words: hide(JSON.stringify({ t: theme, w: words }))
+      }).then(function (row) {
+        if (!row || !row.id) throw new Error("creation-impossible");
+        return R.parse(row);
+      });
+    },
+
     join: function (code) {
       var m = me();
       return rpc("race_join", {
@@ -273,6 +310,7 @@
       try { pack = JSON.parse(show(d.words || "")); } catch (e) {}
       d.theme = (pack && pack.t) || "mots";
       d.list = (pack && pack.w) || [];
+      d.isPublic = !!d.is_public;
       d.ready = !!(d.status === "playing" && d.list.length);
       d.deadline = d.started_at ? (new Date(d.started_at).getTime() + LIMIT_MS) : 0;
       return d;

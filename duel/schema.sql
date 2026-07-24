@@ -26,6 +26,11 @@ alter table duels add column if not exists p2_emote text;
 alter table duels add column if not exists kind text default 'duel';
 alter table duels add column if not exists words text;
 
+-- Salon public : visible par tous, rejoignable sans code.
+alter table duels add column if not exists is_public boolean default false;
+create index if not exists duels_public_idx
+  on duels (kind, status, created_at) where is_public;
+
 create index if not exists duels_created_idx on duels (created_at);
 
 alter table duels enable row level security;
@@ -249,6 +254,103 @@ begin
   end if;
 end $$;
 
+-- ===================================================================
+--  PARTIES PUBLIQUES
+--  Un seul geste : on rejoint le salon public en attente s'il en existe
+--  un, sinon on en ouvre un. "for update skip locked" garantit que deux
+--  joueurs simultanés ne prennent jamais le même salon.
+-- ===================================================================
+
+create or replace function duel_quick(
+  p_id uuid, p_pseudo text, p_level int, p_badge text, p_word text
+) returns duels language plpgsql security definer as $$
+declare v_row duels; v_code text; v_n int := 0; v_target text;
+begin
+  perform duel_gc();
+
+  select id into v_target
+    from duels
+   where kind = 'duel' and coalesce(is_public, false) and status = 'waiting'
+     and p1_id <> p_id and p2_id is null
+     and created_at > now() - interval '30 minutes'
+   order by created_at
+   limit 1
+   for update skip locked;
+
+  if v_target is not null then
+    return duel_join(v_target, p_id, p_pseudo, p_level, p_badge, p_word);
+  end if;
+
+  loop
+    v_n := v_n + 1;
+    v_code := '';
+    for i in 1..5 loop
+      v_code := v_code || substr('ABCDEFGHJKLMNPQRSTUVWXYZ23456789',
+                                 1 + floor(random() * 32)::int, 1);
+    end loop;
+    begin
+      insert into duels (id, status, kind, is_public, p1_id, p1_pseudo, p1_level, p1_badge, word1)
+      values (v_code, 'waiting', 'duel', true, p_id, p_pseudo, p_level, p_badge, p_word)
+      returning * into v_row;
+      return v_row;
+    exception when unique_violation then
+      if v_n > 12 then raise exception 'code-indisponible'; end if;
+    end;
+  end loop;
+end $$;
+
+create or replace function race_quick(
+  p_id uuid, p_pseudo text, p_level int, p_badge text, p_words text
+) returns duels language plpgsql security definer as $$
+declare v_row duels; v_code text; v_n int := 0; v_target text;
+begin
+  perform duel_gc();
+
+  select id into v_target
+    from duels
+   where kind = 'race' and coalesce(is_public, false) and status = 'waiting'
+     and p1_id <> p_id and p2_id is null
+     and created_at > now() - interval '30 minutes'
+   order by created_at
+   limit 1
+   for update skip locked;
+
+  if v_target is not null then
+    return race_join(v_target, p_id, p_pseudo, p_level, p_badge);
+  end if;
+
+  loop
+    v_n := v_n + 1;
+    v_code := '';
+    for i in 1..5 loop
+      v_code := v_code || substr('ABCDEFGHJKLMNPQRSTUVWXYZ23456789',
+                                 1 + floor(random() * 32)::int, 1);
+    end loop;
+    begin
+      insert into duels (id, status, kind, is_public, p1_id, p1_pseudo, p1_level, p1_badge, words)
+      values (v_code, 'waiting', 'race', true, p_id, p_pseudo, p_level, p_badge, p_words)
+      returning * into v_row;
+      return v_row;
+    exception when unique_violation then
+      if v_n > 12 then raise exception 'code-indisponible'; end if;
+    end;
+  end loop;
+end $$;
+
+-- ---------- Nombre de salons publics en attente ----------
+-- Même filtre que l'appariement, pour que le compte affiché corresponde
+-- exactement aux salons qu'on peut effectivement rejoindre.
+create or replace function mp_waiting(p_kind text)
+returns int language sql security definer stable as $$
+  select count(*)::int
+    from duels
+   where kind = p_kind
+     and coalesce(is_public, false)
+     and status = 'waiting'
+     and p2_id is null
+     and created_at > now() - interval '30 minutes';
+$$;
+
 -- ---------- Droits ----------
 grant execute on function duel_create(uuid,text,int,text,text)            to anon, authenticated;
 grant execute on function duel_join(text,uuid,text,int,text,text)         to anon, authenticated;
@@ -259,3 +361,6 @@ grant execute on function duel_emote(text,uuid,text)                      to ano
 grant execute on function race_create(uuid,text,int,text,text)            to anon, authenticated;
 grant execute on function race_join(text,uuid,text,int,text)              to anon, authenticated;
 grant execute on function race_rematch(text,uuid,text,int,text,text)      to anon, authenticated;
+grant execute on function duel_quick(uuid,text,int,text,text)             to anon, authenticated;
+grant execute on function race_quick(uuid,text,int,text,text)             to anon, authenticated;
+grant execute on function mp_waiting(text)                                to anon, authenticated;
