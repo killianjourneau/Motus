@@ -498,16 +498,16 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.13.1"></script>
-<script src="./dico/motus-prenoms.js?v=1.13.1"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.13.1"></script>
-<script src="./dico/motus-maladies.js?v=1.13.1"></script>
-<script src="./dico/motus-villes.js?v=1.13.1"></script>
-<script src="./dico/motus-villes-info.js?v=1.13.1"></script>
-<script src="./dico/motus-race.js?v=1.13.1"></script>
-<script src="./profiles/config.js?v=1.13.1"></script>
-<script src="./profiles/profile.js?v=1.13.1"></script>
-<script src="./duel/duel.js?v=1.13.1"></script>
+<script src="./dico/motus-words.js?v=1.13.2"></script>
+<script src="./dico/motus-prenoms.js?v=1.13.2"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.13.2"></script>
+<script src="./dico/motus-maladies.js?v=1.13.2"></script>
+<script src="./dico/motus-villes.js?v=1.13.2"></script>
+<script src="./dico/motus-villes-info.js?v=1.13.2"></script>
+<script src="./dico/motus-race.js?v=1.13.2"></script>
+<script src="./profiles/config.js?v=1.13.2"></script>
+<script src="./profiles/profile.js?v=1.13.2"></script>
+<script src="./duel/duel.js?v=1.13.2"></script>
 <script>
 (() => {
   "use strict";
@@ -545,7 +545,7 @@
   POOLS.villes = playableWords(THEME_SOL.villes);
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.13.1";
+  const VERSION = "1.13.2";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -747,6 +747,9 @@
     col=c; drawCursor();
   }
   function type(ch){
+    // le chrono démarre au premier caractère saisi, jamais avant — sauf en Duel/Course,
+    // où il est déjà lancé délibérément au moment de "C'est parti"
+    if(mode!=="duel" && mode!=="race") timerStartIfNeeded();
     if(col<1 || col>=len){ const e=firstEmpty(1); if(e<0) return; col=e; }
     setCell(row,col,ch);
     const nxt=firstEmpty(col+1);
@@ -1663,6 +1666,13 @@
     renderTimer();
     tTimer = setInterval(renderTimer, 250);
   }
+  // vrai si quelque chose a été tapé sur la ligne en cours (indépendant du curseur,
+  // fonctionne aussi avec la saisie libre en tapant sur une case)
+  function rowHasInput(){ return guesses.length>0 || (grid[row]||[]).slice(1).some(ch=>ch); }
+  // remet le chrono à zéro SANS le démarrer : utilisé à l'ouverture d'un mot neuf
+  function timerReset(){ timerStop(); tElapsed=0; renderTimer(); }
+  // démarre le chrono au tout premier caractère tapé, jamais avant
+  function timerStartIfNeeded(){ if(!tTimer && tElapsed===0) timerStart(0); }
   function timerStop(){
     if(tTimer){ tElapsed += Date.now()-tStart; clearInterval(tTimer); tTimer=null; }
   }
@@ -1703,7 +1713,7 @@
     mode=m; over=false; ended=false; won=false; guesses=[]; rowStates=[];
     const pool=POOLS[m]; answer=pool[Math.floor(Math.random()*pool.length)];
     setupBoardForAnswer(); loadDico(len); setActiveSeg(m);
-    timerStart(0); updateHud(); save();
+    timerReset(); updateHud(); save();
   }
 
   /* ---------- Défi du jour : 3 mots (court, moyen, long) ---------- */
@@ -1743,7 +1753,9 @@
     over = d.over || row>=MAX_ROWS; ended = over;
     if(!over){ col=1; setCell(row,0,answer[0]); tileAt(row,0).classList.add("correct"); }
     updateHud();
-    if(over) timerStop(); else timerStart(d.ms||0);
+    if(over) timerStop();
+    else if((d.guesses||[]).length>0) timerStart(d.ms||0);   // reprise en cours de mot
+    else timerReset();                                        // mot pas encore entamé
     store.set("motus.last","defi");
   }
   function showDefiEnd(timeout){
@@ -1771,7 +1783,9 @@
     if(!over){ col=1; setCell(row,0,answer[0]); tileAt(row,0).classList.add("correct"); }
     store.set("motus.last","daily");
     updateHud();
-    if(over) timerStop(); else timerStart(d.ms||0);
+    if(over) timerStop();
+    else if(d.guesses.length>0) timerStart(d.ms||0);   // reprise en cours de mot
+    else timerReset();                                  // mot pas encore entamé
     if(d.done) showEnd(d.won, true);
   }
   function setupBoardForAnswer(){
@@ -1789,7 +1803,9 @@
     over = f.over || row>=MAX_ROWS; ended = over;
     if(!over){ col=1; setCell(row,0,answer[0]); tileAt(row,0).classList.add("correct"); }
     drawCursor(); loadDico(len); setActiveSeg(mode); updateHud();
-    if(over) timerStop(); else timerStart(f.ms||0);
+    if(over) timerStop();
+    else if((f.guesses||[]).length>0) timerStart(f.ms||0);   // reprise en cours de mot
+    else timerReset();                                        // mot pas encore entamé
   }
 
   const MODE_LABELS={daily:"📅 Mot du jour",defi:"🔥 Défi du jour",court:"🐤 Court",normal:"🎯 Normal",long:"🐘 Long",prenoms:"👶 Prénoms",maladies:"🩺 Maladies",villes:"🏙️ Villes",duel:"⚔️ Duel",race:"⌨️ Course"};
@@ -1866,7 +1882,7 @@
     // revenir à un duel en cours ne doit jamais demander de confirmation
     if(m==="duel" && duelActive()){ switchMode(m); return; }
     if(m==="race" && raceActive()){ switchMode(m); return; }
-    const risque = mode!=="daily" && mode!=="defi" && mode!=="duel" && mode!=="race" && !ended;
+    const risque = mode!=="daily" && mode!=="defi" && mode!=="duel" && mode!=="race" && !ended && rowHasInput();
     if(risque) askConfirm("Changer de mode ?", "La partie en cours sera perdue.", ()=>switchMode(m));
     else switchMode(m);
   }
@@ -1973,7 +1989,7 @@
     if(mode==="defi"){ switchMode("normal"); return; }         // le défi est unique aussi
     if(mode==="duel"){ duelOpen(); return; }                   // le duel se relance depuis sa fenêtre
     if(mode==="race"){ raceOpen(); return; }                   // la course aussi
-    if(!ended) askConfirm("Nouvelle partie ?", "La partie en cours sera perdue.", ()=>startFree(mode));
+    if(!ended && rowHasInput()) askConfirm("Nouvelle partie ?", "La partie en cours sera perdue.", ()=>startFree(mode));
     else startFree(mode);
   });
   $("btnAgain").addEventListener("click", ()=>{ closeOverlays(); startFree(endAgainMode); });
