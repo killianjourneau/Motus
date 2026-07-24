@@ -191,4 +191,137 @@
   };
 
   window.Duel = D;
+
+  /* ==================================================================
+     COURSE À L'ÉCRITURE
+     Les deux joueurs recopient la même suite de mots, de plus en plus
+     longs. Le plus rapide gagne ; chaque faute coûte une vie.
+     La suite est fixée par le créateur et partagée via la base, pour
+     que personne ne tombe sur des mots différents.
+     ================================================================== */
+  var R = {
+    configured: configured,
+    LIMIT_MS: LIMIT_MS,
+
+    create: function (theme, words) {
+      var m = me();
+      return rpc("race_create", {
+        p_id: m.id, p_pseudo: m.pseudo, p_level: m.level, p_badge: m.badge,
+        p_words: hide(JSON.stringify({ t: theme, w: words }))
+      }).then(function (row) {
+        if (!row || !row.id) throw new Error("creation-impossible");
+        return R.parse(row);
+      });
+    },
+
+    join: function (code) {
+      var m = me();
+      return rpc("race_join", {
+        p_code: String(code || "").trim().toUpperCase(),
+        p_id: m.id, p_pseudo: m.pseudo, p_level: m.level, p_badge: m.badge
+      }).then(function (row) {
+        if (!row || !row.id) throw new Error("jonction-impossible");
+        return R.parse(row);
+      });
+    },
+
+    rematch: function (code, theme, words) {
+      var m = me();
+      return rpc("race_rematch", {
+        p_code: String(code || "").toUpperCase(),
+        p_id: m.id, p_pseudo: m.pseudo, p_level: m.level, p_badge: m.badge,
+        p_words: hide(JSON.stringify({ t: theme, w: words }))
+      }).then(function (row) {
+        if (!row || !row.id) throw new Error("revanche-impossible");
+        return R.parse(row);
+      });
+    },
+
+    fetch: function (code) {
+      return rpc("duel_get", { p_code: String(code || "").toUpperCase() }).then(function (row) {
+        if (!row || !row.id) throw new Error("introuvable");
+        return R.parse(row);
+      });
+    },
+
+    /* done = nombre de mots recopiés ; won = suite terminée entièrement */
+    report: function (code, res) {
+      var m = me();
+      return rpc("duel_report", {
+        p_code: String(code || "").toUpperCase(), p_id: m.id,
+        p_tries: res.done || 0, p_ms: Math.round(res.ms || 0), p_won: !!res.won
+      }).then(function (row) { return row ? R.parse(row) : null; });
+    },
+
+    emote: function (code, value) { return D.emote(code, value); },
+
+    parse: function (d) {
+      var m = me();
+      d.side = (d.p1_id === m.id) ? 1 : (d.p2_id === m.id ? 2 : 0);
+      d.opp = d.side === 2
+        ? { id: d.p1_id, pseudo: d.p1_pseudo, level: d.p1_level, badge: d.p1_badge }
+        : { id: d.p2_id, pseudo: d.p2_pseudo, level: d.p2_level, badge: d.p2_badge };
+      d.mine = d.side === 2
+        ? { done: d.p2_tries, ms: d.p2_ms, over: !!d.p2_done, won: !!d.p2_won }
+        : { done: d.p1_tries, ms: d.p1_ms, over: !!d.p1_done, won: !!d.p1_won };
+      d.his = d.side === 2
+        ? { done: d.p1_tries, ms: d.p1_ms, over: !!d.p1_done, won: !!d.p1_won }
+        : { done: d.p2_tries, ms: d.p2_ms, over: !!d.p2_done, won: !!d.p2_won };
+      d.oppEmote = d.side === 2 ? (d.p1_emote || "") : (d.p2_emote || "");
+      d.rematch = d.rematch_code || "";
+      var pack = null;
+      try { pack = JSON.parse(show(d.words || "")); } catch (e) {}
+      d.theme = (pack && pack.t) || "mots";
+      d.list = (pack && pack.w) || [];
+      d.ready = !!(d.status === "playing" && d.list.length);
+      d.deadline = d.started_at ? (new Date(d.started_at).getTime() + LIMIT_MS) : 0;
+      return d;
+    },
+
+    /* Le plus rapide gagne. Si personne ne termine, le plus avancé l'emporte. */
+    verdict: function (d) {
+      var a = d.mine, b = d.his;
+      if (a.won && !b.won) return { r: "win", why: "Ton adversaire n'a pas terminé la suite." };
+      if (!a.won && b.won) return { r: "lose", why: "Tu n'as pas terminé la suite." };
+      if (a.won && b.won) {
+        if (a.ms !== b.ms) {
+          return a.ms < b.ms
+            ? { r: "win", why: "Tu as été le plus rapide." }
+            : { r: "lose", why: "Ton adversaire a été le plus rapide." };
+        }
+        return { r: "draw", why: "Exactement le même temps !" };
+      }
+      if ((a.done || 0) !== (b.done || 0)) {
+        return (a.done || 0) > (b.done || 0)
+          ? { r: "win", why: (a.done || 0) + " mots contre " + (b.done || 0) + "." }
+          : { r: "lose", why: (b.done || 0) + " mots contre " + (a.done || 0) + "." };
+      }
+      return { r: "draw", why: "Vous avez recopié autant de mots." };
+    },
+
+    watch: function (code, cb) {
+      var stop = false, t = null, busy = false;
+      function tick() {
+        if (stop || busy) return;
+        busy = true; clearTimeout(t);
+        R.fetch(code)
+          .then(function (d) { if (!stop) cb(null, d); })
+          .catch(function (e) { if (!stop) cb(e); })
+          .then(function () { busy = false; if (!stop) t = setTimeout(tick, POLL_MS); });
+      }
+      function onVis() { if (!document.hidden && !stop) tick(); }
+      document.addEventListener("visibilitychange", onVis);
+      window.addEventListener("focus", onVis);
+      tick();
+      var stopper = function () {
+        stop = true; clearTimeout(t);
+        document.removeEventListener("visibilitychange", onVis);
+        window.removeEventListener("focus", onVis);
+      };
+      stopper.now = tick;
+      return stopper;
+    }
+  };
+
+  window.Race = R;
 })();

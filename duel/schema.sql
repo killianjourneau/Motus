@@ -21,6 +21,11 @@ alter table duels add column if not exists rematch_code text;
 alter table duels add column if not exists p1_emote text;
 alter table duels add column if not exists p2_emote text;
 
+-- Colonnes de la Course à l'écriture : kind distingue les deux jeux,
+-- words contient la suite de mots partagée par les deux joueurs.
+alter table duels add column if not exists kind text default 'duel';
+alter table duels add column if not exists words text;
+
 create index if not exists duels_created_idx on duels (created_at);
 
 alter table duels enable row level security;
@@ -146,6 +151,85 @@ begin
   return v_row;
 end $$;
 
+-- ===================================================================
+--  COURSE À L'ÉCRITURE (kind = 'race')
+--  Le créateur fixe la suite de mots ; celui qui rejoint la reçoit,
+--  pour que les deux joueurs recopient exactement les mêmes mots.
+-- ===================================================================
+
+create or replace function race_create(
+  p_id uuid, p_pseudo text, p_level int, p_badge text, p_words text
+) returns duels language plpgsql security definer as $$
+declare v_code text; v_row duels; v_n int := 0;
+begin
+  loop
+    v_n := v_n + 1;
+    v_code := '';
+    for i in 1..5 loop
+      v_code := v_code || substr('ABCDEFGHJKLMNPQRSTUVWXYZ23456789',
+                                 1 + floor(random() * 32)::int, 1);
+    end loop;
+    begin
+      insert into duels (id, status, kind, p1_id, p1_pseudo, p1_level, p1_badge, words)
+      values (v_code, 'waiting', 'race', p_id, p_pseudo, p_level, p_badge, p_words)
+      returning * into v_row;
+      return v_row;
+    exception when unique_violation then
+      if v_n > 12 then raise exception 'code-indisponible'; end if;
+    end;
+  end loop;
+end $$;
+
+-- Rejoindre une course : pas de mot à fournir, la suite est déjà fixée.
+create or replace function race_join(
+  p_code text, p_id uuid, p_pseudo text, p_level int, p_badge text
+) returns duels language plpgsql security definer as $$
+declare v_row duels; v_code text := upper(trim(p_code));
+begin
+  update duels set
+    p2_id = p_id, p2_pseudo = p_pseudo, p2_level = p_level, p2_badge = p_badge,
+    status = 'playing', started_at = coalesce(started_at, now())
+  where id = v_code
+    and kind = 'race'
+    and p1_id <> p_id
+    and (p2_id is null or p2_id = p_id)
+  returning * into v_row;
+
+  if v_row.id is null then
+    if not exists (select 1 from duels where id = v_code) then
+      raise exception 'introuvable';
+    elsif exists (select 1 from duels where id = v_code and kind <> 'race') then
+      raise exception 'mauvais-type';
+    elsif exists (select 1 from duels where id = v_code and p1_id = p_id) then
+      raise exception 'soi-meme';
+    else
+      raise exception 'complet';
+    end if;
+  end if;
+  return v_row;
+end $$;
+
+-- Revanche de course : le 1er relance, le 2e rejoint (même principe que le duel).
+create or replace function race_rematch(
+  p_code text, p_id uuid, p_pseudo text, p_level int, p_badge text, p_words text
+) returns duels language plpgsql security definer as $$
+declare v_old duels; v_code text := upper(trim(p_code));
+begin
+  select * into v_old from duels where id = v_code for update;
+  if v_old.id is null then raise exception 'introuvable'; end if;
+
+  if v_old.rematch_code is null then
+    declare v_new duels;
+    begin
+      v_new := race_create(p_id, p_pseudo, p_level, p_badge, p_words);
+      update duels set rematch_code = v_new.id where id = v_code;
+      return v_new;
+    end;
+  else
+    return race_join(v_old.rematch_code, p_id, p_pseudo, p_level, p_badge);
+  end if;
+end $$;
+
 -- ---------- Droits ----------
 grant execute on function duel_create(uuid,text,int,text,text)            to anon, authenticated;
 grant execute on function duel_join(text,uuid,text,int,text,text)         to anon, authenticated;
@@ -153,3 +237,6 @@ grant execute on function duel_get(text)                                  to ano
 grant execute on function duel_report(text,uuid,int,int,boolean)          to anon, authenticated;
 grant execute on function duel_rematch(text,uuid,text,int,text,text)      to anon, authenticated;
 grant execute on function duel_emote(text,uuid,text)                      to anon, authenticated;
+grant execute on function race_create(uuid,text,int,text,text)            to anon, authenticated;
+grant execute on function race_join(text,uuid,text,int,text)              to anon, authenticated;
+grant execute on function race_rematch(text,uuid,text,int,text,text)      to anon, authenticated;
