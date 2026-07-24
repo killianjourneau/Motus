@@ -82,7 +82,7 @@
   #duelEmoteBtn{ display:none; width:30px; height:30px; border:none; border-radius:8px; background:var(--cell); box-shadow:inset 0 0 0 1.5px var(--cell-edge); font-size:16px; cursor:pointer; padding:0; line-height:30px; }
   #duelEmoteBtn.show{ display:inline-block; }
   #duelEmoteBtn:active{ transform:scale(.92); }
-  #duelEmotePicker{ position:fixed; left:50%; bottom:14px; transform:translateX(-50%) translateY(20px); z-index:80;
+  #duelEmotePicker{ position:fixed; left:50%; bottom:14px; transform:translateX(-50%) translateY(20px); z-index:200;
     display:none; flex-direction:column; gap:6px; width:min(320px,92vw); padding:10px;
     background:var(--bg2,#1b2536); border-radius:16px; box-shadow:0 12px 40px rgba(0,0,0,.45), inset 0 0 0 1.5px var(--cell-edge);
     opacity:0; transition:opacity .18s ease, transform .18s ease; }
@@ -94,7 +94,7 @@
   .emote-item.emote-mute{ margin-top:4px; background:transparent; color:var(--ink-dim); font-size:13px; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
   .emote-item.emote-mute:active{ background:var(--cell); color:var(--ink); }
   .emote-item.emote-mute .ee{ font-size:16px; }
-  #duelEmoteBubble{ position:fixed; left:50%; top:64px; transform:translateX(-50%) translateY(-14px); z-index:75;
+  #duelEmoteBubble{ position:fixed; left:50%; top:64px; transform:translateX(-50%) translateY(-14px); z-index:210;
     display:none; align-items:center; gap:8px; max-width:88vw; padding:9px 15px; border-radius:20px;
     background:var(--accent); color:#fff; font-size:15px; font-weight:700; box-shadow:0 8px 26px rgba(0,0,0,.4);
     opacity:0; transition:opacity .2s ease, transform .2s ease; }
@@ -298,7 +298,7 @@
     </div>
   </div>
 
-  <div id="hud"><span id="hudLeft"><button id="duelEmoteBtn" aria-label="Envoyer une émote">💬</button><span id="hudMode"></span><span id="raceHud"></span></span><span id="timer">0:00</span></div>
+  <div id="hud"><span id="hudLeft"><button id="duelEmoteBtn" class="emote-open" aria-label="Envoyer une émote">💬</button><span id="hudMode"></span><span id="raceHud"></span></span><span id="timer">0:00</span></div>
 
   <main><div id="board" role="grid" aria-label="Grille de jeu"></div></main>
 
@@ -422,6 +422,7 @@
         <p class="sub" id="raceResWhy"></p>
         <div class="duel-score" id="raceScore"></div>
         <div class="duel-rematch-offer" id="raceRematchOffer"></div>
+        <button class="btn ghost emote-open" id="raceResEmote">💬 Envoyer une émote</button>
         <button class="btn" id="raceReplay">Rejouer avec ce joueur</button>
         <button class="btn ghost" id="raceAgain">Nouvelle course</button>
         <button class="btn ghost" data-close>Fermer</button>
@@ -479,6 +480,7 @@
         <div class="duel-word" id="duelResWord"></div>
         <div class="duel-score" id="duelScore"></div>
         <div class="duel-rematch-offer" id="duelRematchOffer"></div>
+        <button class="btn ghost emote-open" id="duelResEmote">💬 Envoyer une émote</button>
         <button class="btn" id="duelReplay">Rejouer avec ce joueur</button>
         <button class="btn ghost" id="duelAgain">Nouveau duel</button>
         <button class="btn ghost" data-close>Fermer</button>
@@ -496,16 +498,16 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.13.0"></script>
-<script src="./dico/motus-prenoms.js?v=1.13.0"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.13.0"></script>
-<script src="./dico/motus-maladies.js?v=1.13.0"></script>
-<script src="./dico/motus-villes.js?v=1.13.0"></script>
-<script src="./dico/motus-villes-info.js?v=1.13.0"></script>
-<script src="./dico/motus-race.js?v=1.13.0"></script>
-<script src="./profiles/config.js?v=1.13.0"></script>
-<script src="./profiles/profile.js?v=1.13.0"></script>
-<script src="./duel/duel.js?v=1.13.0"></script>
+<script src="./dico/motus-words.js?v=1.13.1"></script>
+<script src="./dico/motus-prenoms.js?v=1.13.1"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.13.1"></script>
+<script src="./dico/motus-maladies.js?v=1.13.1"></script>
+<script src="./dico/motus-villes.js?v=1.13.1"></script>
+<script src="./dico/motus-villes-info.js?v=1.13.1"></script>
+<script src="./dico/motus-race.js?v=1.13.1"></script>
+<script src="./profiles/config.js?v=1.13.1"></script>
+<script src="./profiles/profile.js?v=1.13.1"></script>
+<script src="./duel/duel.js?v=1.13.1"></script>
 <script>
 (() => {
   "use strict";
@@ -543,7 +545,7 @@
   POOLS.villes = playableWords(THEME_SOL.villes);
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.13.0";
+  const VERSION = "1.13.1";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -1405,7 +1407,11 @@
     if(!(duelRow.his && duelRow.his.done) && !expired){
       $("duelResTitle").textContent = "En attente…";
       $("duelResWhy").textContent = "Ton adversaire est encore en train de jouer.";
-      $("duelResWord").style.display = "none";
+      // ta grille est finie : inutile d'attendre le verdict pour connaître le mot
+      const wFound = duelRow.mine && duelRow.mine.won;
+      const rw0 = $("duelResWord");
+      rw0.textContent = wFound ? "" : ("Le mot était " + (duelRow.target || answer));
+      rw0.style.display = wFound ? "none" : "block";
       $("duelScore").innerHTML = duelScoreHTML();
       $("duelReplay").style.display = "none";          // la revanche attend le verdict
       $("duelRematchOffer").classList.remove("show");
@@ -1934,9 +1940,11 @@
   $("duelResumeBtn").addEventListener("click", ()=>duelResume(duelActive()));
   $("duelNewBtn").addEventListener("click", ()=>{ clearDuel(); duelFresh(); });
   $("duelEmoteBtn").addEventListener("click", duelTogglePicker);
+  $("duelResEmote").addEventListener("click", duelTogglePicker);
+  $("raceResEmote").addEventListener("click", duelTogglePicker);
   document.addEventListener("click", (e)=>{
     const p=$("duelEmotePicker");
-    if(p && p.classList.contains("open") && !p.contains(e.target) && e.target.id!=="duelEmoteBtn") p.classList.remove("open");
+    if(p && p.classList.contains("open") && !p.contains(e.target) && !e.target.closest(".emote-open")) p.classList.remove("open");
   });
   $("duelCheck").addEventListener("click", ()=>{
     $("duelWait").textContent="Vérification…";
