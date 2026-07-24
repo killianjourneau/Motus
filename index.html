@@ -444,7 +444,7 @@
 
       <div id="duelStep1">
         <p class="sub">Chacun choisit le mot que l'autre devra deviner.</p>
-        <div class="duel-tabs">
+        <div class="duel-tabs" id="duelTabs">
           <button class="dtab active" data-dt="new">Créer</button>
           <button class="dtab" data-dt="join">Rejoindre</button>
         </div>
@@ -498,16 +498,16 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.13.2"></script>
-<script src="./dico/motus-prenoms.js?v=1.13.2"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.13.2"></script>
-<script src="./dico/motus-maladies.js?v=1.13.2"></script>
-<script src="./dico/motus-villes.js?v=1.13.2"></script>
-<script src="./dico/motus-villes-info.js?v=1.13.2"></script>
-<script src="./dico/motus-race.js?v=1.13.2"></script>
-<script src="./profiles/config.js?v=1.13.2"></script>
-<script src="./profiles/profile.js?v=1.13.2"></script>
-<script src="./duel/duel.js?v=1.13.2"></script>
+<script src="./dico/motus-words.js?v=1.14.0"></script>
+<script src="./dico/motus-prenoms.js?v=1.14.0"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.14.0"></script>
+<script src="./dico/motus-maladies.js?v=1.14.0"></script>
+<script src="./dico/motus-villes.js?v=1.14.0"></script>
+<script src="./dico/motus-villes-info.js?v=1.14.0"></script>
+<script src="./dico/motus-race.js?v=1.14.0"></script>
+<script src="./profiles/config.js?v=1.14.0"></script>
+<script src="./profiles/profile.js?v=1.14.0"></script>
+<script src="./duel/duel.js?v=1.14.0"></script>
 <script>
 (() => {
   "use strict";
@@ -545,7 +545,7 @@
   POOLS.villes = playableWords(THEME_SOL.villes);
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.13.2";
+  const VERSION = "1.14.0";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -840,6 +840,19 @@
 
 
 
+  /* ---------- Mémoire de la partie multijoueur en cours ----------
+     Le code est retenu dès sa création ou sa saisie, pour pouvoir revenir
+     dans le salon après une coupure sans avoir à le retaper. */
+  const MP_TTL = 2*60*60*1000;                 // même durée que l'expiration côté base
+  function mpSave(kind, code){ if(code) store.set("motus.mp", {kind, code, ts:Date.now()}); }
+  function mpClear(){ store.set("motus.mp", null); }
+  function mpSession(kind){
+    const s = store.get("motus.mp", null);
+    if(!s || s.kind!==kind || !s.code) return null;
+    if(Date.now() - (s.ts||0) > MP_TTL) return null;
+    return s;
+  }
+
   /* ---------- Course à l'écriture ---------- */
   const RACE_LIVES = 3;
   const RACE_THEMES = [
@@ -900,9 +913,29 @@
     if(!window.Race || !Race.configured){ toast("La course nécessite la base de données"); return; }
     raceStopWatch(); duelClosePicker();
     if(raceActive()){ raceShowStep(0); openOverlay("raceOverlay"); return; }
+    const sess = mpSession("race");
+    if(sess){ raceRejoin(sess.code); return; }
     raceFresh();
   }
+  /* Retourne dans une course connue : attente, course prête ou résultat. */
+  function raceRejoin(code){
+    raceFresh();
+    mpSave("race", code);
+    raceSetMsg("Reprise de la course…");
+    Race.fetch(code).then(d=>{
+      raceSetMsg("");
+      const age = d.created_at ? (Date.now() - new Date(d.created_at).getTime()) : 0;
+      if(d.status==="done" && age > 15*60*1000){ mpClear(); raceFresh(); return; }
+      raceRow=d; raceCode=d.id; raceRematchMine=d.id; raceDeadline=d.deadline||0;
+      raceList=d.list||[]; raceTheme=d.theme||raceTheme;
+      if(d.mine && d.mine.over){ raceReported=true; raceMaybeFinish(); return; }
+      if(d.ready){ raceShowOpponent(d); raceWatch(); return; }
+      $("raceCodeShow").textContent=d.id;
+      raceShowStep(2); raceWatch();
+    }).catch(()=>{ mpClear(); raceSetMsg(""); raceFresh(); });
+  }
   function raceFresh(){
+    mpClear();
     raceRow=null; raceCode=""; raceList=[]; raceIdx=0; raceLives=RACE_LIVES; raceTyped="";
     raceStarted=false; raceReported=false; raceCounted=false; raceDeadline=0;
     raceRematchMine=""; raceMode="new"; raceWaitMsg="En attente d'un adversaire…";
@@ -918,6 +951,7 @@
 
   function raceSubmit(){
     $("raceGo").disabled=true;
+    if(raceMode!=="join" && raceMode!=="rematch") raceMode="new";   // valeur inattendue : on crée
     if(raceMode==="join"){
       const code=($("raceCode").value||"").trim().toUpperCase();
       if(code.length<4){ raceSetMsg("Code invalide", true); $("raceGo").disabled=false; return; }
@@ -935,6 +969,7 @@
       : Race.create(raceTheme, list);
     raceSetMsg(raceMode==="rematch" ? "Revanche…" : "Création de la course…");
     fn.then(d=>{
+      raceSetMsg("");
       raceAdopt(d); $("raceGo").disabled=false;
       raceWatch();
       if(d.ready){ raceShowOpponent(d); return; }
@@ -951,7 +986,7 @@
   }
   function raceAdopt(d){
     clearRace();
-    raceRow=d; raceCode=d.id; raceList=d.list||[]; raceTheme=d.theme||raceTheme;
+    raceRow=d; raceCode=d.id; mpSave("race", d.id); raceList=d.list||[]; raceTheme=d.theme||raceTheme;
     raceIdx=0; raceLives=RACE_LIVES; raceTyped="";
     raceStarted=false; raceReported=false; raceCounted=false; raceDeadline=d.deadline||0;
     raceRematchMine=d.id;
@@ -963,6 +998,7 @@
     if(m==="complet")            return "Cette course a déjà un adversaire";
     if(m==="soi-meme")           return "Tu ne peux pas rejoindre ta propre course";
     if(m==="mauvais-type")       return "Ce code correspond à un duel, pas à une course";
+    if(m==="expiree")            return "Ce code a expiré — les salons durent 2 heures";
     if(m==="fonctions-absentes") return "La course n'est pas installée sur la base : exécute schema.sql dans Supabase.";
     if(m==="non-configure")      return "Base de données non configurée";
     return "Connexion impossible (" + (m||"erreur") + ")";
@@ -1205,6 +1241,7 @@
     if(m==="introuvable")       return "Aucun duel avec ce code";
     if(m==="complet")           return "Ce duel a déjà un adversaire";
     if(m==="soi-meme")          return "Tu ne peux pas rejoindre ton propre duel";
+    if(m==="expiree")           return "Ce code a expiré — les salons durent 2 heures";
     if(m==="fonctions-absentes")return "Le duel n'est pas installé sur la base : exécute schema.sql dans Supabase.";
     if(m==="non-configure")     return "Base de données non configurée";
     return "Connexion impossible (" + (m||"erreur") + ")";
@@ -1216,14 +1253,34 @@
     if(!window.Duel || !Duel.configured){ toast("Le duel nécessite la base de données"); return; }
     duelStopWatch(); duelClosePicker();
     if(duelActive()){ duelShowStep(0); openOverlay("duelOverlay"); return; }
+    const sess = mpSession("duel");
+    if(sess){ duelRejoin(sess.code); return; }
     duelFresh();
   }
+  /* Retourne dans un salon connu : attente, partie prête ou résultat. */
+  function duelRejoin(code){
+    duelFresh();
+    mpSave("duel", code);
+    duelSetMsg("Reprise de la partie…");
+    Duel.fetch(code).then(d=>{
+      duelSetMsg("");
+      // un résultat déjà consulté depuis un moment ne doit pas rouvrir sans fin
+      const age = d.created_at ? (Date.now() - new Date(d.created_at).getTime()) : 0;
+      if(d.status==="done" && age > 15*60*1000){ mpClear(); duelFresh(); return; }
+      duelCode=d.id; duelRow=d; duelRematchMine=d.id; duelDeadline=d.deadline||0;
+      if(d.mine && d.mine.done){ duelReported=true; duelMaybeFinish(); return; }
+      if(d.ready){ duelShowOpponent(d); duelWatch(); return; }
+      $("duelCodeShow").textContent=d.id;
+      duelShowStep(2); duelWatch();
+    }).catch(()=>{ mpClear(); duelSetMsg(""); duelFresh(); });
+  }
   function duelFresh(){
+    mpClear();
     duelReported=false; duelRow=null; duelCode=""; duelStarted=false; duelDeadline=0;
     duelCounted=false; duelLastEmote=""; duelRematchMine=""; duelMode="new";
     duelWaitMsg="En attente d'un adversaire…";
-    const tabs=document.querySelector(".duel-tabs"); if(tabs) tabs.style.display="";
-    document.querySelectorAll(".dtab").forEach(x=>x.classList.toggle("active", x.dataset.dt==="new"));
+    const tabs=$("duelTabs"); if(tabs) tabs.style.display="";
+    document.querySelectorAll("#duelTabs .dtab").forEach(x=>x.classList.toggle("active", x.dataset.dt==="new"));
     $("duelCodeShow").style.display=""; const sh=$("duelShare"); if(sh) sh.style.display="";
     duelShowStep(1); duelSetMsg(""); $("duelWord").value=""; $("duelCode").value=""; $("duelJoinBox").style.display="none";
     [6,7,8].forEach(loadDicoForce);        // pour valider le mot proposé
@@ -1293,9 +1350,11 @@
       return;
     }
     $("duelGo").disabled=true;
+    if(duelMode!=="join" && duelMode!=="rematch") duelMode="new";   // valeur inattendue : on crée
     if(duelMode==="rematch"){
       duelSetMsg("Revanche…");
       Duel.rematch(duelRematchOldCode, chk.word).then(d=>{
+        duelSetMsg("");
         duelPrepareNew(d);
         duelWatch();
         if(d.ready){ duelShowOpponent(d); }
@@ -1313,7 +1372,7 @@
     if(duelMode==="new"){
       duelSetMsg("Création du duel…");
       Duel.create(chk.word).then(d=>{
-        duelRow=d; duelCode=d.id; $("duelCodeShow").textContent=d.id;
+        duelRow=d; duelCode=d.id; mpSave("duel", d.id); $("duelCodeShow").textContent=d.id;
         duelShowStep(2); $("duelGo").disabled=false;
         duelWatch();
       }).catch(e=>{ duelSetMsg(duelErr(e), true); $("duelGo").disabled=false; });
@@ -1322,7 +1381,7 @@
       if(code.length<4){ duelSetMsg("Code invalide", true); $("duelGo").disabled=false; return; }
       duelSetMsg("Connexion…");
       Duel.join(code, chk.word).then(d=>{
-        duelCode=d.id; duelRow=d; $("duelGo").disabled=false;
+        duelCode=d.id; duelRow=d; mpSave("duel", d.id); $("duelGo").disabled=false;
         duelWatch();
         duelShowOpponent(d);
       }).catch(e=>{ duelSetMsg(duelErr(e), true); $("duelGo").disabled=false; });
@@ -1472,7 +1531,7 @@
     duelRematchOldCode = duelCode;
     duelMode = "rematch";
     duelStopWatch(); duelClosePicker(); duelEmoteBtnShow(false);
-    const tabs=document.querySelector(".duel-tabs"); if(tabs) tabs.style.display="none";
+    const tabs=$("duelTabs"); if(tabs) tabs.style.display="none";
     $("duelJoinBox").style.display="none"; $("duelWord").value="";
     duelSetMsg("Choisis un mot pour la revanche"); $("duelGo").disabled=false;
     duelShowStep(1); openOverlay("duelOverlay");
@@ -1480,7 +1539,7 @@
   }
   function duelPrepareNew(d){
     clearDuel();
-    duelRow=d; duelCode=d.id;
+    duelRow=d; duelCode=d.id; mpSave("duel", d.id);
     duelReported=false; duelStarted=false; duelCounted=false; duelDeadline=0; duelLastEmote="";
     duelRematchMine=d.id;
     const off=$("duelRematchOffer"); if(off){ off.classList.remove("show"); off.dataset.shownFor=""; }
@@ -1919,9 +1978,9 @@
 
   themeBtn.addEventListener("click", toggleTheme);
   accentBtn.addEventListener("click", ()=>{ buildAccentPicker(); markAccentSel(); openOverlay("accentOverlay"); });
-  document.querySelectorAll(".dtab").forEach(b=>b.addEventListener("click", ()=>{
+  document.querySelectorAll("#duelTabs .dtab").forEach(b=>b.addEventListener("click", ()=>{
     duelMode=b.dataset.dt;
-    document.querySelectorAll(".dtab").forEach(x=>x.classList.toggle("active", x===b));
+    document.querySelectorAll("#duelTabs .dtab").forEach(x=>x.classList.toggle("active", x===b));
     $("duelJoinBox").style.display = (duelMode==="join") ? "" : "none";
     duelSetMsg("");
   }));
@@ -1947,7 +2006,7 @@
     setTimeout(()=>{ if(!raceRow || !raceRow.ready) $("raceWait").textContent=raceWaitMsg; }, 1500);
   });
   $("raceShare").addEventListener("click", ()=>{
-    const txt = "Course Motus ! Code : " + raceCode + "\n" + SHARE_URL;
+    const txt = "Course Motus ! Code : " + raceCode + "\n" + SHARE_URL + "?race=" + raceCode;
     if(navigator.share) navigator.share({text:txt}).catch(()=>copy(txt)); else copy(txt);
   });
 
@@ -1970,7 +2029,7 @@
   });
   $("duelAgain").addEventListener("click", ()=>{ clearDuel(); duelStopWatch(); duelFresh(); });
   $("duelShare").addEventListener("click", ()=>{
-    const txt = "Duel Motus ! Code : " + duelCode + "\n" + SHARE_URL;
+    const txt = "Duel Motus ! Code : " + duelCode + "\n" + SHARE_URL + "?duel=" + duelCode;
     if(navigator.share) navigator.share({text:txt}).catch(()=>copy(txt)); else copy(txt);
   });
 
@@ -2016,6 +2075,36 @@
   try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(e){}
   applyTheme();
   applyAccent();
+
+  /* Lien d'invitation : ...?duel=XXXXX ou ...?race=XXXXX
+     Le code est pré-rempli, il ne reste qu'à valider. */
+  function openInvite(){
+    let q;
+    try{ q = new URLSearchParams(location.search); }catch(e){ return; }
+    const dc = (q.get("duel")||"").trim().toUpperCase();
+    const rc = (q.get("race")||"").trim().toUpperCase();
+    if(!dc && !rc) return;
+    try{ history.replaceState(null,"",location.pathname); }catch(e){}   // pas de re-déclenchement au rechargement
+    setTimeout(()=>{
+      if(dc){
+        duelFresh();
+        duelMode="join";
+        document.querySelectorAll("#duelTabs .dtab").forEach(x=>x.classList.toggle("active", x.dataset.dt==="join"));
+        $("duelJoinBox").style.display="";
+        $("duelCode").value=dc;
+        duelSetMsg("Choisis le mot que ton adversaire devra deviner");
+      } else {
+        raceFresh();
+        raceMode="join";
+        document.querySelectorAll("#raceTabs .dtab").forEach(x=>x.classList.toggle("active", x.dataset.rt==="join"));
+        $("raceJoinBox").style.display="";
+        $("raceThemeBox").style.display="none";
+        $("raceCode").value=rc;
+        raceSetMsg("Appuie sur Valider pour rejoindre");
+      }
+    }, 60);
+  }
+  openInvite();
   buildKeyboard();
   refreshStats();
   const last = store.get("motus.last","free");
