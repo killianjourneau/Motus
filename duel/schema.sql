@@ -31,12 +31,22 @@ create index if not exists duels_created_idx on duels (created_at);
 alter table duels enable row level security;
 -- Aucune écriture directe : tout passe par les fonctions ci-dessous.
 
+-- ---------- Ménage des anciens lobbies ----------
+-- Un salon jamais rejoint ne sert plus après 2 h ; toute partie est effacée
+-- après 24 h. Cela évite que la table grossisse sans fin et libère les codes.
+create or replace function duel_gc() returns void language sql security definer as $$
+  delete from duels
+   where (status = 'waiting' and created_at < now() - interval '2 hours')
+      or created_at < now() - interval '24 hours';
+$$;
+
 -- ---------- Créer un duel ----------
 create or replace function duel_create(
   p_id uuid, p_pseudo text, p_level int, p_badge text, p_word text
 ) returns duels language plpgsql security definer as $$
 declare v_code text; v_row duels; v_n int := 0;
 begin
+  perform duel_gc();
   loop
     v_n := v_n + 1;
     v_code := '';
@@ -68,6 +78,7 @@ begin
   where id = v_code
     and p1_id <> p_id
     and (p2_id is null or p2_id = p_id)
+    and created_at > now() - interval '2 hours'
   returning * into v_row;
 
   if v_row.id is null then
@@ -75,6 +86,9 @@ begin
       raise exception 'introuvable';
     elsif exists (select 1 from duels where id = v_code and p1_id = p_id) then
       raise exception 'soi-meme';
+    elsif exists (select 1 from duels where id = v_code
+                    and created_at <= now() - interval '2 hours') then
+      raise exception 'expiree';
     else
       raise exception 'complet';
     end if;
@@ -162,6 +176,7 @@ create or replace function race_create(
 ) returns duels language plpgsql security definer as $$
 declare v_code text; v_row duels; v_n int := 0;
 begin
+  perform duel_gc();
   loop
     v_n := v_n + 1;
     v_code := '';
@@ -193,6 +208,7 @@ begin
     and kind = 'race'
     and p1_id <> p_id
     and (p2_id is null or p2_id = p_id)
+    and created_at > now() - interval '2 hours'
   returning * into v_row;
 
   if v_row.id is null then
@@ -202,6 +218,9 @@ begin
       raise exception 'mauvais-type';
     elsif exists (select 1 from duels where id = v_code and p1_id = p_id) then
       raise exception 'soi-meme';
+    elsif exists (select 1 from duels where id = v_code
+                    and created_at <= now() - interval '2 hours') then
+      raise exception 'expiree';
     else
       raise exception 'complet';
     end if;
