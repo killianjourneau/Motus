@@ -42,6 +42,8 @@
              defiFast:0, dailyOne:0, allDiff:0, longFast:0, comeback:0, noYellow:0,
              villeCap:0, villeMonde:0,
              duelPlay:0, duelWin:0, duelWinStreak:0, duelBestStreak:0, duelPerfect:0, duelRevenge:0,
+             racePlay:0, raceWin:0, raceStreak:0, raceBest:0, raceClean:0, raceFast:0,
+             raceWords:0, raceThemes:[],
              duelLostTo:[] };
   }
 
@@ -112,6 +114,17 @@
     {id:"duels10",e:"👑", n:"Invaincu",          d:"10 victoires de duel d'affilée",c:"Duel", t:function(b){return b.duelBestStreak>=10;}, p:[function(b){return b.duelBestStreak;},10]},
     {id:"duelperf",e:"🎯", n:"Sans appel",       d:"Gagner un duel en trouvant le mot du premier coup", c:"Duel", h:1, t:function(b){return b.duelPerfect>=1;}},
     {id:"duelrev", e:"🗡️", n:"Vengeance",        d:"Battre un joueur qui t'avait vaincu", c:"Duel", h:1, t:function(b){return b.duelRevenge>=1;}},
+
+    // — Course —
+    {id:"r1",     e:"⌨️", n:"Dactylo",          d:"Jouer une première course",     c:"Course", t:function(b){return b.racePlay>=1;}},
+    {id:"rw1",    e:"🏁", n:"Premier sprint",   d:"Gagner une course",             c:"Course", t:function(b){return b.raceWin>=1;}},
+    {id:"rw10",   e:"⏩", n:"Sprinteur",        d:"Gagner 10 courses",             c:"Course", t:function(b){return b.raceWin>=10;}, p:[function(b){return b.raceWin;},10]},
+    {id:"rw25",   e:"🌠", n:"Fulgurant",        d:"Gagner 25 courses",             c:"Course", t:function(b){return b.raceWin>=25;}, p:[function(b){return b.raceWin;},25]},
+    {id:"rs3",    e:"🧨", n:"Sans relâche",     d:"3 victoires de course d'affilée", c:"Course", t:function(b){return b.raceBest>=3;}, p:[function(b){return b.raceBest;},3]},
+    {id:"rwords", e:"📝", n:"Copiste",          d:"200 mots recopiés en Course",   c:"Course", t:function(b){return b.raceWords>=200;}, p:[function(b){return b.raceWords;},200]},
+    {id:"rtheme", e:"🎨", n:"Éclectique",       d:"Courir dans les 4 thèmes",      c:"Course", t:function(b){return (b.raceThemes||[]).length>=4;}, p:[function(b){return (b.raceThemes||[]).length;},4]},
+    {id:"rclean", e:"💯", n:"Sans faute",       d:"Terminer une suite sans perdre une seule vie", c:"Course", h:1, t:function(b){return b.raceClean>=1;}},
+    {id:"rfast",  e:"⏲️", n:"Doigts de fée",    d:"Terminer une suite en moins d'une minute", c:"Course", h:1, t:function(b){return b.raceFast>=1;}},
 
     // — Quotidien —
     {id:"d7",    e:"🗓️", n:"Semaine pleine",     d:"7 mots du jour trouvés",        c:"Quotidien", t:function(b){return b.daily>=7;}, p:[function(b){return b.daily;},7]},
@@ -231,6 +244,8 @@
     (rb.modes || []).forEach(function (x) { if (lb.modes.indexOf(x) < 0) lb.modes.push(x); });
     if (!lb.duelLostTo) lb.duelLostTo = [];
     (rb.duelLostTo || []).forEach(function (x) { if (lb.duelLostTo.indexOf(x) < 0) lb.duelLostTo.push(x); });
+    if (!lb.raceThemes) lb.raceThemes = [];
+    (rb.raceThemes || []).forEach(function (x) { if (lb.raceThemes.indexOf(x) < 0) lb.raceThemes.push(x); });
     if (lb.days.length > 500) lb.days = lb.days.slice(-500);
     lb.dayBest = Math.max(lb.dayBest || 0, dayStreak(lb.days));
     // badges : union
@@ -771,6 +786,29 @@
         if (m === "expert") b.xStreak = 0;
       }
 
+      saveLocal(); checkBadges(); pushDebounced(); refreshOpen();
+    },
+
+    /* Course terminée. {won, finished, words, lives, ms, theme}
+       'won' = a gagné la course ; 'finished' = a recopié toute la suite. */
+    raceDone: function (o) {
+      o = o || {};
+      var b = state.b;
+      if (!b.raceThemes) b.raceThemes = [];
+      b.racePlay++;
+      b.raceWords += (o.words || 0);
+      if (o.theme && b.raceThemes.indexOf(o.theme) < 0) b.raceThemes.push(o.theme);
+      if (o.finished) {
+        if (o.lives >= 3) b.raceClean++;                 // aucune faute de frappe
+        if (o.ms > 0 && o.ms < 60000) b.raceFast++;
+      }
+      if (o.won) {
+        b.raceWin++;
+        b.raceStreak++;
+        if (b.raceStreak > b.raceBest) b.raceBest = b.raceStreak;
+      } else {
+        b.raceStreak = 0;
+      }
       saveLocal(); checkBadges(); pushDebounced(); refreshOpen();
     },
 
