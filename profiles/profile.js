@@ -36,7 +36,8 @@
   /* ---------- Compteurs détaillés (alimentés par addGame/defiDone) ---------- */
   function freshCounters(){
     return { daily:0, defi:0, one:0, two:0, last:0, f5:0, f10:0, f15:0, slow:0,
-             mC:0, mN:0, mL:0, mP:0, mM:0, mV:0, modes:[], streak:0, best:0,
+             mC:0, mN:0, mL:0, mP:0, mM:0, mV:0, mX:0, xRare:0, xClean:0, xStreak:0, xBest:0,
+             modes:[], streak:0, best:0,
              hyph:0, night:0, dawn:0, wknd:0, days:[], dayBest:0,
              defiFast:0, dailyOne:0, allDiff:0, longFast:0, comeback:0, noYellow:0,
              villeCap:0, villeMonde:0,
@@ -97,6 +98,10 @@
     {id:"v50",   e:"🗺️", n:"Géographe",          d:"50 villes trouvées",            c:"Modes", t:function(b){return b.mV>=50;}, p:[function(b){return b.mV;},50]},
     {id:"vcap",  e:"🏛️", n:"Tour du monde",      d:"10 capitales trouvées",         c:"Modes", t:function(b){return b.villeCap>=10;}, p:[function(b){return b.villeCap;},10]},
     {id:"vmonde",e:"🌍", n:"Globe-trotteur",     d:"15 villes étrangères trouvées", c:"Modes", t:function(b){return b.villeMonde>=15;}, p:[function(b){return b.villeMonde;},15]},
+    {id:"x1",    e:"🎓", n:"Rigoureux",          d:"Trouver un mot en Expert",       c:"Modes", t:function(b){return b.mX>=1;}},
+    {id:"x10",   e:"📐", n:"Méthodique",         d:"10 mots trouvés en Expert",      c:"Modes", t:function(b){return b.mX>=10;}, p:[function(b){return b.mX;},10]},
+    {id:"x50",   e:"🧠", n:"Implacable",         d:"50 mots trouvés en Expert",      c:"Modes", t:function(b){return b.mX>=50;}, p:[function(b){return b.mX;},50]},
+    {id:"xrare", e:"📚", n:"Érudit",             d:"10 mots trouvés en Expert avec les mots rares activés", c:"Modes", t:function(b){return b.xRare>=10;}, p:[function(b){return b.xRare;},10]},
 
     // — Duel —
     {id:"duel1",  e:"⚔️", n:"Provocateur",       d:"Jouer un premier duel",         c:"Duel", t:function(b){return b.duelPlay>=1;}},
@@ -132,7 +137,9 @@
     {id:"dOne",  e:"🍀", n:"Jour de chance",     d:"Mot du jour du premier coup",   c:"Cachés", h:1, t:function(b){return b.dailyOne>=1;}},
     {id:"diff",  e:"🎰", n:"Sans doublon",       d:"Gagner un mot sans lettre répétée",c:"Cachés", h:1, t:function(b){return b.allDiff>=1;}},
     {id:"slow",  e:"🐢", n:"Prendre son temps",  d:"Trouver un mot après 10 minutes",c:"Cachés", h:1, t:function(b){return b.slow>=1;}},
-    {id:"wknd",  e:"🛋️", n:"Grasse matinée",     d:"Jouer un week-end",             c:"Cachés", h:1, t:function(b){return b.wknd>=1;}}
+    {id:"wknd",  e:"🛋️", n:"Grasse matinée",     d:"Jouer un week-end",             c:"Cachés", h:1, t:function(b){return b.wknd>=1;}},
+    {id:"xclean",e:"💎", n:"Sans bavure",        d:"Gagner 10 mots en Expert sans perdre une seule tentative", c:"Cachés", h:1, t:function(b){return b.xClean>=10;}},
+    {id:"xstrk", e:"⚔️", n:"Sang-froid",         d:"5 victoires d'affilée en Expert", c:"Cachés", h:1, t:function(b){return b.xBest>=5;}}
   ];
 
   var BADGE_BY_ID = {};
@@ -272,14 +279,14 @@
 #profileOverlay .modal > .btn{ flex:none; }
 .prof-tabs{ display:flex; gap:4px; margin:2px 0 14px; }
 .ptab{ flex:1; height:36px; border:none; border-radius:9px; background:var(--cell); color:var(--ink-dim); font-weight:700; font-size:12px; cursor:pointer; box-shadow:inset 0 0 0 1.5px var(--cell-edge); padding:0 2px; }
-.ptab.active{ background:var(--red); color:#fff; box-shadow:none; }
+.ptab.active{ background:var(--accent); color:#fff; box-shadow:none; }
 .prof-row{ display:flex; gap:8px; margin-bottom:14px; }
 #pseudoInput,#restoreCode{ flex:1; height:44px; border:none; border-radius:10px; background:var(--cell); box-shadow:inset 0 0 0 1.5px var(--cell-edge); color:var(--ink); padding:0 12px; font-size:15px; font-weight:600; }
-#pseudoInput:focus,#restoreCode:focus{ outline:none; box-shadow:inset 0 0 0 2px var(--red); }
+#pseudoInput:focus,#restoreCode:focus{ outline:none; box-shadow:inset 0 0 0 2px var(--accent); }
 .prof-level{ margin-bottom:14px; }
 .prof-lvl{ font-size:16px; font-weight:700; margin-bottom:8px; }
 .xpbar{ height:14px; background:var(--cell); border-radius:8px; overflow:hidden; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
-.xpbar>div{ height:100%; background:var(--red); width:0; transition:width .5s ease; border-radius:8px; }
+.xpbar>div{ height:100%; background:var(--accent); width:0; transition:width .5s ease; border-radius:8px; }
 .xptext{ font-size:12px; color:var(--ink-dim); margin-top:4px; text-align:right; }
 .emb-line{ display:flex; align-items:center; gap:8px; background:var(--cell); border-radius:10px; padding:8px 12px; margin-bottom:14px; font-size:13px; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
 .emb-line .ee{ font-size:22px; }
@@ -294,7 +301,7 @@
 .ng-body{ flex:1; min-width:0; }
 .ng-name{ font-size:13px; font-weight:700; margin-bottom:3px; }
 .ng-bar{ height:8px; background:var(--cell); border-radius:5px; overflow:hidden; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
-.ng-bar>div{ height:100%; background:var(--red); border-radius:5px; transition:width .5s ease; }
+.ng-bar>div{ height:100%; background:var(--accent); border-radius:5px; transition:width .5s ease; }
 .ng-num{ font-size:12px; font-weight:800; color:var(--ink-dim); font-variant-numeric:tabular-nums; }
 #badgeDetailOverlay .bd-modal{ max-width:340px; text-align:center; }
 .bd-emoji{ font-size:60px; line-height:1; margin:8px 0 6px; }
@@ -306,14 +313,14 @@
 .bd-desc{ font-size:15px; color:var(--ink); margin:6px 4px 4px; line-height:1.4; }
 .bd-prog{ margin:12px 4px 0; }
 .bd-bar{ height:12px; background:var(--cell); border-radius:7px; overflow:hidden; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
-.bd-bar>div{ height:100%; background:var(--red); border-radius:7px; transition:width .5s ease; }
+.bd-bar>div{ height:100%; background:var(--accent); border-radius:7px; transition:width .5s ease; }
 .bd-pnum{ font-size:13px; font-weight:800; color:var(--ink-dim); margin-top:5px; font-variant-numeric:tabular-nums; }
 .bd-actions{ margin-top:16px; }
 .bd-actions .btn{ margin:0; }
 .badges{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
 .badge2{ aspect-ratio:1; border-radius:12px; background:var(--cell); box-shadow:inset 0 0 0 1.5px var(--cell-edge); display:grid; place-items:center; font-size:24px; position:relative; cursor:pointer; border:none; color:var(--ink); padding:0; }
 .badge2.off{ filter:grayscale(1); opacity:.3; cursor:default; }
-.badge2.sel{ box-shadow:inset 0 0 0 2.5px var(--yellow); }
+.badge2.sel{ box-shadow:inset 0 0 0 2.5px var(--accent); }
 .badge2 .pin{ position:absolute; top:2px; right:4px; font-size:10px; }
 .bname{ font-size:9px; line-height:1.15; margin-top:2px; text-align:center; color:var(--ink-dim); }
 .badge2.on .bname{ color:var(--ink); }
@@ -326,9 +333,9 @@
 .lb .r .nm{ flex:1; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .lb .r .em{ font-size:16px; }
 .lb .r .lv{ color:var(--ink-dim); font-size:12px; }
-.lb .r.me{ box-shadow:inset 0 0 0 1.5px var(--red); }
+.lb .r.me{ box-shadow:inset 0 0 0 1.5px var(--accent); }
 .myrank{ text-align:center; font-weight:700; margin-bottom:12px; font-size:15px; }
-.myrank b{ color:var(--red); font-size:20px; }
+.myrank b{ color:var(--accent); font-size:20px; }
 .today-head{ text-align:center; margin-bottom:14px; }
 .today-big{ font-size:34px; font-weight:800; }
 .today-sub{ color:var(--ink-dim); font-size:13px; }
@@ -344,7 +351,7 @@
 .dist{ display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
 .dist .bar{ display:flex; align-items:center; gap:8px; font-size:13px; }
 .dist .bar .k{ width:12px; color:var(--ink-dim); font-weight:700; }
-.dist .bar .t{ background:var(--red); height:22px; border-radius:5px; min-width:26px; display:flex; align-items:center; justify-content:flex-end; padding:0 8px; color:#fff; font-weight:700; font-size:12px; }
+.dist .bar .t{ background:var(--accent); height:22px; border-radius:5px; min-width:26px; display:flex; align-items:center; justify-content:flex-end; padding:0 8px; color:#fff; font-weight:700; font-size:12px; }
 #badgeToast{ position:fixed; left:50%; bottom:24px; transform:translate(-50%,20px); background:var(--ink); color:var(--bg); padding:12px 18px; border-radius:14px; display:flex; align-items:center; gap:10px; opacity:0; pointer-events:none; transition:.25s; z-index:300; box-shadow:0 10px 30px rgba(0,0,0,.45); max-width:88vw; }
 #badgeToast.show{ opacity:1; transform:translate(-50%,0); }
 #badgeToast .be{ font-size:28px; }
@@ -742,6 +749,12 @@
         else if (key === "prenoms") b.mP++;
         else if (key === "maladies") b.mM++;
         else if (key === "villes") { b.mV++; if (o.capital) b.villeCap++; if (o.foreign) b.villeMonde++; }
+        else if (key === "expert") {
+          b.mX++;
+          if (o.rare) b.xRare++;
+          if (o.clean) b.xClean++;
+          b.xStreak++; if (b.xStreak > b.xBest) b.xBest = b.xStreak;
+        }
 
         if (m === "daily") { b.daily++; if (t === 1) b.dailyOne++; }
         if (key === "long" && ms > 0 && ms < 30000) b.longFast++;
@@ -755,6 +768,7 @@
         }
       } else {
         b.streak = 0;
+        if (m === "expert") b.xStreak = 0;
       }
 
       saveLocal(); checkBadges(); pushDebounced(); refreshOpen();
