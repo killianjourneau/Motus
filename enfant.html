@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Motus Junior — devine le mot en choisissant les images.">
+<meta name="description" content="Motus Junior — reconnais le mot grâce à sa première lettre.">
 <title>Motus Junior</title>
 
 <link rel="manifest" href="./manifest.json">
@@ -62,43 +62,34 @@
   .lv{ height:34px; padding:0 14px; border:none; border-radius:10px; background:var(--cell); color:var(--ink-dim);
     box-shadow:inset 0 0 0 1.5px var(--cell-edge); font-weight:800; font-size:13px; cursor:pointer; }
   .lv.on{ background:var(--accent); color:#fff; box-shadow:none; }
-  .stars{ font-weight:800; font-size:15px; }
+  .score{ display:flex; align-items:center; gap:10px; font-weight:800; font-size:16px; }
+  .score .hearts{ letter-spacing:1px; }
 
-  main{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:10px; padding:4px 10px; }
-  #board{ display:grid; gap:7px; }
-  .row{ display:grid; gap:7px; }
+  main{ flex:1; display:flex; flex-direction:column; align-items:center; gap:12px; padding:6px 10px 14px; }
+
+  .ask{ font-size:16px; font-weight:800; text-align:center; min-height:22px; }
+  .ask b{ color:var(--accent); font-size:22px; }
+
+  #word{ display:flex; gap:7px; flex-wrap:wrap; justify-content:center; }
   .tile{ width:var(--t); height:var(--t); border-radius:12px; background:var(--cell);
     box-shadow:inset 0 0 0 2px var(--cell-edge); display:grid; place-items:center;
-    font-size:calc(var(--t)*.52); font-weight:800; position:relative; }
-  .tile.filled{ box-shadow:inset 0 0 0 2.5px var(--accent); animation:pop .13s ease; }
-  .tile.correct{ background:var(--red); box-shadow:none; color:#fff; }
-  .tile.present{ background:var(--cell); box-shadow:none; }
-  .tile.present::before{ content:""; position:absolute; inset:14%; border-radius:50%; background:var(--yellow); }
-  .tile.present span{ position:relative; color:#1a1a1a; }
-  .tile.absent{ background:var(--absent); box-shadow:none; color:var(--ink-dim); }
+    font-size:calc(var(--t)*.55); font-weight:800; }
+  .tile.first{ background:var(--red); box-shadow:none; color:#fff; }
+  .tile.done{ background:var(--accent); box-shadow:none; color:#fff; animation:pop .2s ease; }
   .tile.jump{ animation:jump .5s ease; }
-  @keyframes pop{ from{transform:scale(.88)} to{transform:scale(1)} }
+  @keyframes pop{ from{transform:scale(.7)} to{transform:scale(1)} }
   @keyframes jump{ 0%,100%{transform:translateY(0)} 40%{transform:translateY(-16px)} }
-  #board.shake{ animation:shk .34s ease; }
+  #word.shake{ animation:shk .34s ease; }
   @keyframes shk{ 0%,100%{transform:translateX(0)} 20%{transform:translateX(-9px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(4px)} }
 
-  .say{ font-size:14px; font-weight:700; color:var(--ink-dim); text-align:center; min-height:20px; }
-
-  #picks{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; width:100%; max-width:460px; padding:0 4px; }
-  .pick{ border:none; border-radius:14px; background:var(--cell); box-shadow:inset 0 0 0 1.5px var(--cell-edge);
-    color:var(--ink); padding:9px 4px 7px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:3px; }
-  .pick .em{ font-size:30px; line-height:1; }
-  .pick .nm{ font-size:11px; font-weight:800; color:var(--ink-dim); }
-  .pick:active{ background:var(--accent); }
-  .pick:active .nm{ color:#fff; }
-  .pick.used{ opacity:.35; }
-
-  .acts{ display:flex; gap:8px; width:100%; max-width:460px; padding:2px 4px 12px; }
-  .btn{ flex:1; height:52px; border:none; border-radius:14px; background:var(--accent); color:#fff;
-    font-weight:800; font-size:17px; cursor:pointer; }
-  .btn.ghost{ background:var(--cell); color:var(--ink); box-shadow:inset 0 0 0 1.5px var(--cell-edge); flex:0 0 92px; }
-  .btn:disabled{ opacity:.4; }
-  .btn:active{ transform:scale(.97); }
+  #choices{ display:grid; gap:10px; width:100%; max-width:440px; }
+  #choices.c4{ grid-template-columns:repeat(2,1fr); }
+  #choices.c6{ grid-template-columns:repeat(3,1fr); }
+  .ch{ border:none; border-radius:18px; background:var(--cell); box-shadow:inset 0 0 0 2px var(--cell-edge);
+    color:var(--ink); aspect-ratio:1.15; font-size:min(15vw,54px); cursor:pointer; display:grid; place-items:center; }
+  .ch:active{ transform:scale(.94); }
+  .ch.wrong{ opacity:.28; box-shadow:inset 0 0 0 2px var(--absent); pointer-events:none; }
+  .ch.good{ background:var(--accent); box-shadow:none; }
 
   .overlay{ position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; padding:18px; z-index:100; }
   .overlay.open{ display:flex; }
@@ -106,11 +97,13 @@
     padding:22px; box-shadow:0 18px 50px rgba(0,0,0,.5), inset 0 0 0 1.5px var(--cell-edge); text-align:center; }
   .modal h2{ font-size:26px; margin-bottom:6px; }
   .modal p{ font-size:15px; line-height:1.5; color:var(--ink-dim); margin-bottom:12px; }
-  .big{ font-size:30px; font-weight:800; letter-spacing:3px; margin:8px 0 4px; color:var(--accent); }
-  .modal .btn{ width:100%; margin-top:8px; }
+  .big{ font-size:44px; font-weight:800; margin:6px 0; color:var(--accent); }
+  .btn{ width:100%; height:52px; border:none; border-radius:14px; background:var(--accent); color:#fff;
+    font-weight:800; font-size:17px; cursor:pointer; margin-top:8px; }
+  .btn:active{ transform:scale(.97); }
   .rules{ text-align:left; list-style:none; }
-  .rules li{ padding:9px 12px; margin-bottom:7px; background:var(--cell); border-radius:12px;
-    box-shadow:inset 0 0 0 1.5px var(--cell-edge); font-size:14px; line-height:1.45; color:var(--ink); }
+  .rules li{ padding:10px 12px; margin-bottom:7px; background:var(--cell); border-radius:12px;
+    box-shadow:inset 0 0 0 1.5px var(--cell-edge); font-size:14.5px; line-height:1.45; color:var(--ink); }
 </style>
 </head>
 <body>
@@ -129,25 +122,24 @@
       <button class="lv on" data-lv="facile">Facile</button>
       <button class="lv" data-lv="moyen">Plus dur</button>
     </div>
-    <div class="stars" id="stars">⭐ 0</div>
+    <div class="score">
+      <span class="hearts" id="hearts">❤️❤️❤️</span>
+      <span id="stars">⭐ 0</span>
+    </div>
   </div>
 
   <main>
-    <div id="board" role="grid" aria-label="Grille"></div>
-    <div class="say" id="say"></div>
-    <div id="picks"></div>
-    <div class="acts">
-      <button class="btn ghost" id="btnBack">⌫</button>
-      <button class="btn" id="btnOk" disabled>Valider</button>
-    </div>
+    <div class="ask" id="ask"></div>
+    <div id="word"></div>
+    <div id="choices" class="c4"></div>
   </main>
 
   <div class="overlay" id="endOverlay">
     <div class="modal">
-      <h2 id="endTitle">Bravo !</h2>
-      <div class="big" id="endWord"></div>
+      <h2 id="endTitle">Partie terminée</h2>
+      <div class="big" id="endStars">⭐ 0</div>
       <p id="endSub"></p>
-      <button class="btn" id="btnNext">Un autre mot</button>
+      <button class="btn" id="btnAgain">Rejouer</button>
     </div>
   </div>
 
@@ -155,34 +147,31 @@
     <div class="modal">
       <h2>Comment jouer</h2>
       <ul class="rules">
-        <li>Il faut trouver un mot caché. La première lettre est donnée.</li>
-        <li>Pour écrire une lettre, touche l'image qui <b>commence par cette lettre</b> : le 🦁 Lion écrit un <b>L</b>.</li>
-        <li>Une case <b>rouge</b> : la lettre est à la bonne place.</li>
-        <li>Un <b>rond jaune</b> : la lettre est dans le mot, mais ailleurs.</li>
-        <li>Une case <b>grise</b> : la lettre n'est pas dans le mot.</li>
+        <li>Un mot est caché. Tu vois sa <b>première lettre</b> et le nombre de lettres.</li>
+        <li>Touche l'image du mot qui commence par cette lettre.<br>Exemple : <b>K</b> ➜ le 🥝 <b>kiwi</b>.</li>
+        <li>Bonne réponse : le mot s'écrit et tu gagnes une <b>⭐ étoile</b>.</li>
+        <li>Erreur : tu perds un <b>❤️ cœur</b>. Avec trois erreurs, la partie s'arrête.</li>
       </ul>
       <button class="btn" id="btnHelpOk">J'ai compris</button>
     </div>
   </div>
 
-<script src="./dico/motus-enfant.js?v=1.18.0"></script>
+<script src="./dico/motus-enfant.js?v=1.19.0"></script>
 <script>
 (function(){
   "use strict";
   var $ = function(id){ return document.getElementById(id); };
-  var DATA = window.MOTUS_ENFANT || { facile:["CHAT"], moyen:["POMME"], lettres:{} };
-  var LET = DATA.lettres || {};
-  var MAX = 6;
+  var IMAGES = (window.MOTUS_ENFANT && window.MOTUS_ENFANT.images) || [{e:"🐱",m:"CHAT"}];
+  var LIVES = 3;
 
   var store = {
     get:function(k,d){ try{ var v=localStorage.getItem(k); return v===null?d:JSON.parse(v); }catch(e){ return d; } },
     set:function(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
   };
 
-  var level = store.get("motus.enfant.level","facile");
-  var stars = store.get("motus.enfant.stars",0);
-  var answer="", len=0, row=0, col=1, grid=[], picks=[], over=false, ended=false;
-  var board=$("board");
+  var level  = store.get("motus.enfant.level","facile");
+  var best   = store.get("motus.enfant.best",0);
+  var target = null, choices = [], lives = LIVES, stars = 0, locked = false;
 
   /* ---------- thème ---------- */
   var theme = store.get("motus.theme","dark");
@@ -195,165 +184,104 @@
     theme = (theme==="dark")?"light":"dark"; store.set("motus.theme",theme); applyTheme();
   });
 
-  /* ---------- grille ---------- */
-  function sizeTiles(){
-    var w = Math.min(window.innerWidth-28, 420);
-    var t = Math.floor(Math.min((w-(len-1)*7)/len, 62));
-    document.documentElement.style.setProperty("--t", Math.max(38,t)+"px");
-  }
-  function buildBoard(){
-    sizeTiles();
-    board.innerHTML="";
-    for(var r=0;r<MAX;r++){
-      var tr=document.createElement("div");
-      tr.className="row"; tr.dataset.r=r;
-      tr.style.gridTemplateColumns="repeat("+len+", var(--t))";
-      for(var c=0;c<len;c++){
-        var t=document.createElement("div");
-        t.className="tile"; t.dataset.c=c; t.innerHTML="<span></span>";
-        tr.appendChild(t);
-      }
-      board.appendChild(tr);
-    }
-  }
-  function tileAt(r,c){ return board.children[r].children[c]; }
-  function setCell(r,c,ch){
-    grid[r][c]=ch;
-    var t=tileAt(r,c);
-    t.querySelector("span").textContent=ch;
-    t.classList.toggle("filled", !!ch && !t.classList.contains("correct"));
-  }
-
-  /* ---------- choix d'images ---------- */
+  /* ---------- outils ---------- */
   function shuffle(a){ for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var x=a[i]; a[i]=a[j]; a[j]=x; } return a; }
+  function pickOne(a){ return a[Math.floor(Math.random()*a.length)]; }
+  function vibrate(p){ try{ if(navigator.vibrate) navigator.vibrate(p); }catch(e){} }
 
-  /* Les images proposées contiennent toutes les lettres du mot,
-     plus quelques intruses : un enfant n'a pas à fouiller 26 images. */
-  function buildPicks(){
-    var need = [];
-    for(var i=0;i<answer.length;i++) if(need.indexOf(answer[i])<0 && LET[answer[i]]) need.push(answer[i]);
-    var others = Object.keys(LET).filter(function(c){ return need.indexOf(c)<0; });
-    shuffle(others);
-    var total = Math.max(8, need.length+3);
-    picks = shuffle(need.concat(others.slice(0, Math.max(0,total-need.length))));
-    var box=$("picks");
-    box.innerHTML = picks.map(function(c){
-      return '<button class="pick" data-l="'+c+'"><span class="em">'+LET[c].e+'</span><span class="nm">'+LET[c].n+'</span></button>';
+  /* ---------- affichage ---------- */
+  function sizeTiles(n){
+    var w = Math.min(window.innerWidth-28, 420);
+    var t = Math.floor(Math.min((w-(n-1)*7)/n, 54));
+    document.documentElement.style.setProperty("--t", Math.max(26,t)+"px");
+  }
+  function drawWord(reveal){
+    var m = target.m;
+    sizeTiles(m.length);
+    var html = "";
+    for(var i=0;i<m.length;i++){
+      if(i===0) html += '<div class="tile first">'+m[0]+'</div>';
+      else if(reveal) html += '<div class="tile done">'+m[i]+'</div>';
+      else html += '<div class="tile"></div>';
+    }
+    $("word").innerHTML = html;
+  }
+  function paintScore(){
+    $("hearts").textContent = "❤️".repeat(Math.max(0,lives)) + "🖤".repeat(Math.max(0,LIVES-lives));
+    $("stars").textContent = "⭐ " + stars;
+  }
+
+  /* ---------- tirage ---------- */
+  /* Facile : toutes les intruses commencent par une AUTRE lettre — reconnaître
+     l'initiale suffit. Plus dur : au moins deux intruses partagent la même
+     initiale, il faut donc aussi regarder la longueur du mot. */
+  function newRound(){
+    locked = false;
+    target = pickOne(IMAGES);
+    var ini = target.m[0];
+    var others = IMAGES.filter(function(x){ return x.m !== target.m; });
+    var diff = shuffle(others.filter(function(x){ return x.m[0] !== ini; }));
+    var same = shuffle(others.filter(function(x){ return x.m[0] === ini && x.m.length !== target.m.length; }));
+
+    var total = (level==="moyen") ? 6 : 4;
+    var picked = [];
+    if(level==="moyen") picked = same.slice(0,2);
+    picked = picked.concat(diff.slice(0, total-1-picked.length));
+    choices = shuffle(picked.concat([target]));
+
+    var box = $("choices");
+    box.className = (total===6) ? "c6" : "c4";
+    box.innerHTML = choices.map(function(x,i){
+      return '<button class="ch" data-i="'+i+'" aria-label="Choix '+(i+1)+'">'+x.e+'</button>';
     }).join("");
-    Array.prototype.forEach.call(box.querySelectorAll(".pick"), function(b){
-      b.addEventListener("click", function(){ typeLetter(b.dataset.l); });
+    Array.prototype.forEach.call(box.querySelectorAll(".ch"), function(b){
+      b.addEventListener("click", function(){ answer(+b.dataset.i, b); });
     });
+
+    $("ask").innerHTML = 'Quel mot commence par <b>'+ini+'</b> ?';
+    drawWord(false);
   }
 
-  /* ---------- saisie ---------- */
-  function firstEmpty(from){ for(var c=from;c<len;c++) if(!grid[row][c]) return c; return -1; }
-  function typeLetter(ch){
-    if(over) return;
-    var c = grid[row][col] ? firstEmpty(1) : col;
-    if(c<0) return;
-    col=c;
-    setCell(row,col,ch);
-    var n=firstEmpty(col+1);
-    col = (n<0) ? len : n;
-    refreshOk();
-  }
-  function backspace(){
-    if(over) return;
-    var c = Math.min(col,len)-1;
-    while(c>=1 && !grid[row][c]) c--;
-    if(c<1) return;
-    col=c; setCell(row,col,"");
-    refreshOk();
-  }
-  function rowFull(){ for(var c=1;c<len;c++) if(!grid[row][c]) return false; return true; }
-  function refreshOk(){ $("btnOk").disabled = over || !rowFull(); }
-
-  /* ---------- évaluation ---------- */
-  function evaluate(g){
-    var res=[], pool={}, i;
-    for(i=0;i<len;i++) res.push("absent");
-    for(i=0;i<answer.length;i++) pool[answer[i]]=(pool[answer[i]]||0)+1;
-    for(i=0;i<len;i++) if(g[i]===answer[i]){ res[i]="correct"; pool[g[i]]--; }
-    for(i=0;i<len;i++){ if(res[i]==="correct") continue; if(pool[g[i]]>0){ res[i]="present"; pool[g[i]]--; } }
-    return res;
-  }
-
-  function submit(){
-    if(over || !rowFull()) return;
-    var g = grid[row].join("");
-    over = true; refreshOk();
-    var states = evaluate(g);
-    for(var c=0;c<len;c++){
-      (function(c){
-        setTimeout(function(){
-          var t=tileAt(row,c);
-          t.classList.remove("filled");
-          t.classList.add(states[c]);
-          markPick(g[c], states[c]);
-        }, c*160);
-      })(c);
-    }
-    setTimeout(function(){ finish(g===answer); }, (len-1)*160+380);
-  }
-  function markPick(ch, st){
-    if(st!=="absent") return;
-    var b = $("picks").querySelector('.pick[data-l="'+ch+'"]');
-    if(b) b.classList.add("used");
-  }
-
-  function finish(win){
-    if(win){
-      ended=true;
-      for(var c=0;c<len;c++) (function(c){ setTimeout(function(){ tileAt(row,c).classList.add("jump"); }, c*70); })(c);
-      stars++; store.set("motus.enfant.stars", stars); paintStars();
-      setTimeout(function(){ showEnd(true); }, 780);
+  /* ---------- réponse ---------- */
+  function answer(i, btn){
+    if(locked) return;
+    if(choices[i].m === target.m){
+      locked = true;
+      btn.classList.add("good");
+      stars++; paintScore();
+      if(stars > best){ best = stars; store.set("motus.enfant.best", best); }
+      drawWord(true);
+      vibrate([12,40,12]);
+      var tiles = $("word").querySelectorAll(".tile");
+      Array.prototype.forEach.call(tiles, function(t,k){ setTimeout(function(){ t.classList.add("jump"); }, k*70); });
+      $("ask").innerHTML = 'Bravo ! C\'est le mot <b>'+target.m+'</b>';
+      setTimeout(newRound, 1500);
       return;
     }
-    row++;
-    if(row>=MAX){
-      ended=true;
-      setTimeout(function(){ showEnd(false); }, 340);
-      return;
-    }
-    over=false; col=1;
-    setCell(row,0,answer[0]);
-    tileAt(row,0).classList.add("correct");
-    say("Encore un essai !");
-    refreshOk();
+    btn.classList.add("wrong");
+    lives--; paintScore();
+    vibrate([30,60,30]);
+    $("word").classList.add("shake");
+    setTimeout(function(){ $("word").classList.remove("shake"); }, 350);
+    if(lives<=0){ locked = true; setTimeout(endRun, 500); return; }
+    $("ask").innerHTML = 'Non, essaie encore : le mot commence par <b>'+target.m[0]+'</b>';
   }
 
-  function say(t){ $("say").textContent = t||""; }
-  function paintStars(){ $("stars").textContent = "⭐ " + stars; }
-
-  function showEnd(win){
-    $("endTitle").textContent = win ? "Bravo ! 🎉" : "C'était…";
-    $("endWord").textContent = answer;
-    $("endSub").textContent = win
-      ? ("Trouvé en " + (row+1) + (row===0 ? " essai" : " essais") + " !")
-      : "Ce n'est pas grave, on recommence !";
+  function endRun(){
+    $("endTitle").textContent = stars>0 ? "Bien joué !" : "On réessaie ?";
+    $("endStars").textContent = "⭐ " + stars;
+    $("endSub").textContent = (stars>=best && stars>0)
+      ? "C'est ton meilleur score !"
+      : "Ton record : " + best + (best>1 ? " étoiles" : " étoile");
     $("endOverlay").classList.add("open");
   }
-
-  /* ---------- nouvelle partie ---------- */
-  function newWord(){
+  function startRun(){
     $("endOverlay").classList.remove("open");
-    var pool = (level==="moyen" ? DATA.moyen : DATA.facile) || [];
-    if(!pool.length) pool = ["CHAT"];
-    answer = pool[Math.floor(Math.random()*pool.length)];
-    len = answer.length;
-    row=0; col=1; over=false; ended=false;
-    grid=[]; for(var r=0;r<MAX;r++){ var a=[]; for(var c=0;c<len;c++) a.push(""); grid.push(a); }
-    buildBoard(); buildPicks();
-    setCell(0,0,answer[0]);
-    tileAt(0,0).classList.add("correct");
-    say("Touche les images pour écrire le mot.");
-    refreshOk();
+    lives = LIVES; stars = 0; paintScore(); newRound();
   }
 
   /* ---------- écouteurs ---------- */
-  $("btnBack").addEventListener("click", backspace);
-  $("btnOk").addEventListener("click", submit);
-  $("btnNext").addEventListener("click", newWord);
+  $("btnAgain").addEventListener("click", startRun);
   $("btnGame").addEventListener("click", function(){ location.href="./index.html"; });
   $("btnHelp").addEventListener("click", function(){ $("helpOverlay").classList.add("open"); });
   $("btnHelpOk").addEventListener("click", function(){ $("helpOverlay").classList.remove("open"); });
@@ -361,17 +289,16 @@
     b.addEventListener("click", function(){
       level = b.dataset.lv; store.set("motus.enfant.level", level);
       Array.prototype.forEach.call(document.querySelectorAll(".lv"), function(x){ x.classList.toggle("on", x===b); });
-      newWord();
+      startRun();
     });
   });
-  window.addEventListener("resize", function(){ if(len) { sizeTiles(); } });
+  window.addEventListener("resize", function(){ if(target) sizeTiles(target.m.length); });
 
   /* ---------- démarrage ---------- */
   applyTheme();
-  paintStars();
   Array.prototype.forEach.call(document.querySelectorAll(".lv"), function(x){ x.classList.toggle("on", x.dataset.lv===level); });
-  newWord();
-  if(!store.get("motus.enfant.seen",false)){ $("helpOverlay").classList.add("open"); store.set("motus.enfant.seen",true); }
+  startRun();
+  if(!store.get("motus.enfant.seen2",false)){ $("helpOverlay").classList.add("open"); store.set("motus.enfant.seen2",true); }
 })();
 </script>
 </body>
