@@ -137,6 +137,12 @@
   .dtab.active{ background:var(--accent); color:#fff; box-shadow:none; }
   .duel-in{ width:100%; height:48px; border:none; border-radius:11px; background:var(--cell); box-shadow:inset 0 0 0 1.5px var(--cell-edge); color:var(--ink); padding:0 14px; font-size:17px; font-weight:700; letter-spacing:2px; text-align:center; text-transform:uppercase; margin-bottom:10px; }
   .duel-in:focus{ outline:none; box-shadow:inset 0 0 0 2px var(--accent); }
+  .last-code{ display:none; width:100%; margin-bottom:8px; padding:9px 12px; border:none; border-radius:11px;
+    background:var(--cell); box-shadow:inset 0 0 0 1.5px var(--cell-edge); color:var(--ink-dim);
+    font-size:13px; font-weight:700; cursor:pointer; text-align:center; }
+  .last-code.show{ display:block; }
+  .last-code b{ color:var(--accent); letter-spacing:2px; font-size:15px; }
+  .last-code:active{ background:var(--cell-edge); }
   .mp-count{ display:none; text-align:center; font-size:13px; font-weight:700; color:var(--ink-dim); margin:-4px 0 12px; }
   .mp-count.show{ display:block; }
   .mp-count b{ color:var(--accent); }
@@ -394,6 +400,7 @@
         </div>
         <div class="mp-count" id="racePublicCount"></div>
         <div id="raceJoinBox" style="display:none">
+          <button class="last-code" id="raceLastCode"></button>
           <input id="raceCode" class="duel-in" placeholder="Code de la course" maxlength="5" autocomplete="off" autocapitalize="characters" spellcheck="false">
         </div>
         <div id="raceThemeBox">
@@ -405,7 +412,7 @@
       </div>
 
       <div id="raceStep2" style="display:none">
-        <p class="sub">Transmets ce code à ton adversaire :</p>
+        <p class="sub" id="raceWaitSub">Transmets ce code à ton adversaire :</p>
         <div class="duel-code" id="raceCodeShow">—</div>
         <button class="btn ghost" id="raceShare">Partager le code</button>
         <div class="duel-msg" id="raceWait">En attente d'un adversaire…</div>
@@ -456,6 +463,7 @@
         </div>
         <div class="mp-count" id="duelPublicCount"></div>
         <div id="duelJoinBox" style="display:none">
+          <button class="last-code" id="duelLastCode"></button>
           <input id="duelCode" class="duel-in" placeholder="Code du duel" maxlength="5" autocomplete="off" autocapitalize="characters" spellcheck="false">
         </div>
         <input id="duelWord" class="duel-in" placeholder="Ton mot (6 à 8 lettres)" maxlength="8" autocomplete="off" autocapitalize="characters" spellcheck="false">
@@ -464,7 +472,7 @@
       </div>
 
       <div id="duelStep2" style="display:none">
-        <p class="sub">Transmets ce code à ton adversaire :</p>
+        <p class="sub" id="duelWaitSub">Transmets ce code à ton adversaire :</p>
         <div class="duel-code" id="duelCodeShow">—</div>
         <button class="btn ghost" id="duelShare">Partager le code</button>
         <div class="duel-msg" id="duelWait">En attente d'un adversaire…</div>
@@ -505,16 +513,16 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.15.1"></script>
-<script src="./dico/motus-prenoms.js?v=1.15.1"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.15.1"></script>
-<script src="./dico/motus-maladies.js?v=1.15.1"></script>
-<script src="./dico/motus-villes.js?v=1.15.1"></script>
-<script src="./dico/motus-villes-info.js?v=1.15.1"></script>
-<script src="./dico/motus-race.js?v=1.15.1"></script>
-<script src="./profiles/config.js?v=1.15.1"></script>
-<script src="./profiles/profile.js?v=1.15.1"></script>
-<script src="./duel/duel.js?v=1.15.1"></script>
+<script src="./dico/motus-words.js?v=1.16.0"></script>
+<script src="./dico/motus-prenoms.js?v=1.16.0"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.16.0"></script>
+<script src="./dico/motus-maladies.js?v=1.16.0"></script>
+<script src="./dico/motus-villes.js?v=1.16.0"></script>
+<script src="./dico/motus-villes-info.js?v=1.16.0"></script>
+<script src="./dico/motus-race.js?v=1.16.0"></script>
+<script src="./profiles/config.js?v=1.16.0"></script>
+<script src="./profiles/profile.js?v=1.16.0"></script>
+<script src="./duel/duel.js?v=1.16.0"></script>
 <script>
 (() => {
   "use strict";
@@ -552,7 +560,7 @@
   POOLS.villes = playableWords(THEME_SOL.villes);
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.15.1";
+  const VERSION = "1.16.0";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -852,6 +860,27 @@
      dans le salon après une coupure sans avoir à le retaper. */
   const MP_TTL = 2*60*60*1000;                 // même durée que l'expiration côté base
   function mpSave(kind, code){ if(code) store.set("motus.mp", {kind, code, ts:Date.now()}); }
+  /* Dernier code privé utilisé (créé ou saisi) : proposé en un geste la fois suivante. */
+  function mpRemember(kind, code){
+    if(!code) return;
+    const all = store.get("motus.lastCode", {}) || {};
+    all[kind] = {code:String(code).toUpperCase(), ts:Date.now()};
+    store.set("motus.lastCode", all);
+  }
+  function mpLastCode(kind){
+    const all = store.get("motus.lastCode", {}) || {};
+    const e = all[kind];
+    if(!e || !e.code) return null;
+    if(Date.now() - (e.ts||0) > 7*24*60*60*1000) return null;   // périmé au bout d'une semaine
+    return e.code;
+  }
+  function mpShowLastCode(kind){
+    const el = $(kind==="race" ? "raceLastCode" : "duelLastCode");
+    if(!el) return;
+    const c = mpLastCode(kind);
+    el.classList.toggle("show", !!c);
+    if(c) el.innerHTML = "Dernier code utilisé : <b>" + c + "</b>";
+  }
   function mpClear(){ store.set("motus.mp", null); }
   function mpSession(kind){
     const s = store.get("motus.mp", null);
@@ -957,13 +986,12 @@
       raceList=d.list||[]; raceTheme=d.theme||raceTheme;
       if(d.mine && d.mine.over){ raceReported=true; raceMaybeFinish(); return; }
       if(d.ready){ raceShowOpponent(d); raceWatch(); return; }
-      if(d.isPublic){ raceWaitMsg="Recherche d'un adversaire… ta course est ouverte à tous."; raceShowPublicWait(); }
-      else {
-        $("raceCodeShow").textContent=d.id; $("raceCodeShow").style.display="";
-        const sh=$("raceShare"); if(sh) sh.style.display="";
+      if(d.isPublic){
+        raceWaitMsg="Recherche d'un adversaire… ta course est ouverte à tous.";
+        raceShowWait("Course publique — tu peux aussi inviter quelqu'un avec ce code :");
+      } else {
         raceWaitMsg="En attente d'un adversaire…";
-        $("raceWait").textContent=raceWaitMsg;
-        raceShowStep(2);
+        raceShowWait("Transmets ce code à ton adversaire :");
       }
       raceWatch();
     }).catch(()=>{ mpClear(); raceSetMsg(""); raceFresh(); });
@@ -979,17 +1007,19 @@
     $("raceCodeShow").style.display=""; const sh=$("raceShare"); if(sh) sh.style.display="";
     raceBuildThemes();
     raceShowStep(1); raceSetMsg(""); $("raceCode").value=""; $("raceJoinBox").style.display="none";
-    mpShowCount("race");
+    mpShowCount("race"); mpShowLastCode("race");
     openOverlay("raceOverlay");
   }
   function raceStopWatch(){ if(raceStop){ raceStop(); raceStop=null; } }
 
-  /* Attente d'une course publique : aucun code à transmettre. */
-  function raceShowPublicWait(){
+  /* Écran d'attente de la course : le code reste toujours partageable. */
+  function raceShowWait(sub){
     raceShowStep(2);
-    $("raceCodeShow").style.display="none";
-    const sh=$("raceShare"); if(sh) sh.style.display="none";
-    $("raceWait").textContent=raceWaitMsg;
+    $("raceCodeShow").textContent = raceCode || "—";
+    $("raceCodeShow").style.display="";
+    const sh=$("raceShare"); if(sh) sh.style.display="";
+    if(sub) $("raceWaitSub").textContent = sub;
+    $("raceWait").textContent = raceWaitMsg;
   }
 
   function raceSubmit(){
@@ -1000,7 +1030,7 @@
       if(code.length<4){ raceSetMsg("Code invalide", true); $("raceGo").disabled=false; return; }
       raceSetMsg("Connexion…");
       Race.join(code).then(d=>{
-        raceAdopt(d); $("raceGo").disabled=false;
+        raceAdopt(d); mpRemember("race", d.id); $("raceGo").disabled=false;
         raceWatch(); raceShowOpponent(d);
       }).catch(e=>{ raceSetMsg(raceErr(e), true); $("raceGo").disabled=false; });
       return;
@@ -1015,7 +1045,7 @@
         raceWatch();
         if(d.ready){ raceShowOpponent(d); return; }
         raceWaitMsg="Recherche d'un adversaire… ta course est ouverte à tous.";
-        raceShowPublicWait();
+        raceShowWait("Course publique — tu peux aussi inviter quelqu'un avec ce code :");
       }).catch(e=>{ raceSetMsg(raceErr(e), true); $("raceGo").disabled=false; });
       return;
     }
@@ -1028,17 +1058,14 @@
       raceAdopt(d); $("raceGo").disabled=false;
       raceWatch();
       if(d.ready){ raceShowOpponent(d); return; }
-      raceShowStep(2);
       if(raceMode==="rematch"){
-        $("raceCodeShow").style.display="none";
-        const sh=$("raceShare"); if(sh) sh.style.display="none";
         raceWaitMsg="En attente de ton adversaire…";
+        raceShowWait("Revanche — s'il a quitté, renvoie-lui ce code :");
       } else {
-        $("raceCodeShow").textContent=d.id; $("raceCodeShow").style.display="";
-        const sh=$("raceShare"); if(sh) sh.style.display="";
+        mpRemember("race", d.id);
         raceWaitMsg="En attente d'un adversaire…";
+        raceShowWait("Transmets ce code à ton adversaire :");
       }
-      $("raceWait").textContent=raceWaitMsg;
     }).catch(e=>{ raceSetMsg(raceErr(e), true); $("raceGo").disabled=false; });
   }
   function raceAdopt(d){
@@ -1332,13 +1359,12 @@
       duelCode=d.id; duelRow=d; duelRematchMine=d.id; duelDeadline=d.deadline||0;
       if(d.mine && d.mine.done){ duelReported=true; duelMaybeFinish(); return; }
       if(d.ready){ duelShowOpponent(d); duelWatch(); return; }
-      if(d.isPublic){ duelWaitMsg="Recherche d'un adversaire… ta partie est ouverte à tous."; duelShowPublicWait(); }
-      else {
-        $("duelCodeShow").textContent=d.id; $("duelCodeShow").style.display="";
-        const sh=$("duelShare"); if(sh) sh.style.display="";
+      if(d.isPublic){
+        duelWaitMsg="Recherche d'un adversaire… ta partie est ouverte à tous.";
+        duelShowWait("Partie publique — tu peux aussi inviter quelqu'un avec ce code :");
+      } else {
         duelWaitMsg="En attente d'un adversaire…";
-        $("duelWait").textContent=duelWaitMsg;
-        duelShowStep(2);
+        duelShowWait("Transmets ce code à ton adversaire :");
       }
       duelWatch();
     }).catch(()=>{ mpClear(); duelSetMsg(""); duelFresh(); });
@@ -1352,18 +1378,21 @@
     document.querySelectorAll("#duelTabs .dtab").forEach(x=>x.classList.toggle("active", x.dataset.dt==="quick"));
     $("duelCodeShow").style.display=""; const sh=$("duelShare"); if(sh) sh.style.display="";
     duelShowStep(1); duelSetMsg(""); $("duelWord").value=""; $("duelCode").value=""; $("duelJoinBox").style.display="none";
-    mpShowCount("duel");
+    mpShowCount("duel"); mpShowLastCode("duel");
     [6,7,8].forEach(loadDicoForce);        // pour valider le mot proposé
     openOverlay("duelOverlay");
   }
   function duelStopWatch(){ if(duelStop){ duelStop(); duelStop=null; } }
 
-  /* Attente d'une partie publique : aucun code à transmettre. */
-  function duelShowPublicWait(){
+  /* Écran d'attente. Le code reste toujours visible et partageable :
+     même une partie publique ou une revanche peut être rejointe par code. */
+  function duelShowWait(sub){
     duelShowStep(2);
-    $("duelCodeShow").style.display="none";
-    const sh=$("duelShare"); if(sh) sh.style.display="none";
-    $("duelWait").textContent=duelWaitMsg;
+    $("duelCodeShow").textContent = duelCode || "—";
+    $("duelCodeShow").style.display="";
+    const sh=$("duelShare"); if(sh) sh.style.display="";
+    if(sub) $("duelWaitSub").textContent = sub;
+    $("duelWait").textContent = duelWaitMsg;
   }
 
   /* Un duel en cours est sauvegardé pour pouvoir être repris après avoir
@@ -1437,11 +1466,8 @@
         duelWatch();
         if(d.ready){ duelShowOpponent(d); }
         else {
-          duelShowStep(2);
-          $("duelCodeShow").style.display="none";
-          const sh=$("duelShare"); if(sh) sh.style.display="none";
           duelWaitMsg="En attente de ton adversaire…";
-          $("duelWait").textContent=duelWaitMsg;
+          duelShowWait("Revanche — s'il a quitté, renvoie-lui ce code :");
         }
         $("duelGo").disabled=false;
       }).catch(e=>{ duelSetMsg(duelErr(e), true); $("duelGo").disabled=false; });
@@ -1456,7 +1482,7 @@
         duelWatch();
         if(d.ready){ duelShowOpponent(d); return; }
         duelWaitMsg="Recherche d'un adversaire… ta partie est ouverte à tous.";
-        duelShowPublicWait();
+        duelShowWait("Partie publique — tu peux aussi inviter quelqu'un avec ce code :");
       }).catch(e=>{ duelSetMsg(duelErr(e), true); $("duelGo").disabled=false; });
       return;
     }
@@ -1464,11 +1490,10 @@
       duelSetMsg("Création du duel…");
       Duel.create(chk.word).then(d=>{
         duelSetMsg("");
-        duelRow=d; duelCode=d.id; mpSave("duel", d.id); duelRematchMine=d.id;
-        $("duelCodeShow").textContent=d.id; $("duelCodeShow").style.display="";
-        const sh=$("duelShare"); if(sh) sh.style.display="";
+        duelRow=d; duelCode=d.id; mpSave("duel", d.id); mpRemember("duel", d.id); duelRematchMine=d.id;
         duelWaitMsg="En attente d'un adversaire…";
-        duelShowStep(2); $("duelGo").disabled=false;
+        duelShowWait("Transmets ce code à ton adversaire :");
+        $("duelGo").disabled=false;
         duelWatch();
       }).catch(e=>{ duelSetMsg(duelErr(e), true); $("duelGo").disabled=false; });
     } else {
@@ -1476,7 +1501,7 @@
       if(code.length<4){ duelSetMsg("Code invalide", true); $("duelGo").disabled=false; return; }
       duelSetMsg("Connexion…");
       Duel.join(code, chk.word).then(d=>{
-        duelCode=d.id; duelRow=d; mpSave("duel", d.id); $("duelGo").disabled=false;
+        duelCode=d.id; duelRow=d; mpSave("duel", d.id); mpRemember("duel", d.id); $("duelGo").disabled=false;
         duelWatch();
         duelShowOpponent(d);
       }).catch(e=>{ duelSetMsg(duelErr(e), true); $("duelGo").disabled=false; });
@@ -2079,8 +2104,13 @@
     document.querySelectorAll("#duelTabs .dtab").forEach(x=>x.classList.toggle("active", x===b));
     $("duelJoinBox").style.display = (duelMode==="join") ? "" : "none";
     duelSetMsg("");
-    mpShowCount("duel");
+    mpShowCount("duel"); mpShowLastCode("duel");
   }));
+  $("duelLastCode").addEventListener("click", ()=>{
+    const c = mpLastCode("duel"); if(!c) return;
+    $("duelCode").value = c; duelSetMsg("Choisis le mot que ton adversaire devra deviner");
+    $("duelWord").focus();
+  });
   $("duelGo").addEventListener("click", duelSubmit);
   $("duelWord").addEventListener("keydown", e=>{ if(e.key==="Enter") duelSubmit(); });
   document.querySelectorAll("#raceTabs .dtab").forEach(b=>b.addEventListener("click", ()=>{
@@ -2091,6 +2121,10 @@
     if(raceMode==="quick") raceSetMsg("Thème utilisé si tu ouvres la partie.");
     raceSetMsg("");
   }));
+  $("raceLastCode").addEventListener("click", ()=>{
+    const c = mpLastCode("race"); if(!c) return;
+    $("raceCode").value = c; raceSetMsg("Appuie sur Valider pour rejoindre");
+  });
   $("raceGo").addEventListener("click", raceSubmit);
   $("raceCode").addEventListener("keydown", e=>{ if(e.key==="Enter") raceSubmit(); });
   $("raceStart").addEventListener("click", raceStartGame);
