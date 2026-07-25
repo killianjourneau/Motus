@@ -137,6 +137,17 @@
   .dtab.active{ background:var(--accent); color:#fff; box-shadow:none; }
   .duel-in{ width:100%; height:48px; border:none; border-radius:11px; background:var(--cell); box-shadow:inset 0 0 0 1.5px var(--cell-edge); color:var(--ink); padding:0 14px; font-size:17px; font-weight:700; letter-spacing:2px; text-align:center; text-transform:uppercase; margin-bottom:10px; }
   .duel-in:focus{ outline:none; box-shadow:inset 0 0 0 2px var(--accent); }
+  .xrules{ list-style:none; margin:4px 0 14px; }
+  .xrules li{ position:relative; padding:9px 12px 9px 34px; margin-bottom:7px; background:var(--cell); border-radius:11px; box-shadow:inset 0 0 0 1.5px var(--cell-edge); font-size:13.5px; line-height:1.45; }
+  .xrules li::before{ content:"⚠️"; position:absolute; left:11px; top:9px; font-size:14px; }
+  .xopt{ display:flex; align-items:center; gap:10px; width:100%; padding:11px 13px; margin-bottom:6px; border:none; border-radius:12px; background:var(--cell); box-shadow:inset 0 0 0 1.5px var(--cell-edge); color:var(--ink); cursor:pointer; text-align:left; }
+  .xopt-t{ flex:1; min-width:0; }
+  .xopt-t b{ display:block; font-size:14.5px; }
+  .xopt-t i{ display:block; font-style:normal; font-size:12px; color:var(--ink-dim); margin-top:2px; }
+  .xopt-s{ width:46px; height:26px; border-radius:14px; background:var(--absent); position:relative; flex:none; transition:background .18s; }
+  .xopt-s::after{ content:""; position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; transition:transform .18s; }
+  .xopt.on .xopt-s{ background:var(--accent); }
+  .xopt.on .xopt-s::after{ transform:translateX(20px); }
   .last-code{ display:none; width:100%; margin-bottom:8px; padding:9px 12px; border:none; border-radius:11px;
     background:var(--cell); box-shadow:inset 0 0 0 1.5px var(--cell-edge); color:var(--ink-dim);
     font-size:13px; font-weight:700; cursor:pointer; text-align:center; }
@@ -186,6 +197,8 @@
   .tile.present::before{ content:""; position:absolute; inset:14%; border-radius:50%; background:var(--yellow); z-index:1; transform:scale(0); animation:disc .2s ease forwards; }
   .tile.present span{ color:#1a1a1a; }
   @keyframes disc{ to{ transform:scale(1); } }
+  .tile.burn{ background:var(--absent); box-shadow:none; opacity:.5; }
+  .tile.burn span{ color:var(--ink-dim); text-decoration:line-through; }
   .tile.reveal{ animation:flip .5s ease forwards; }
   @keyframes flip{ 0%{transform:rotateX(0)} 50%{transform:rotateX(90deg)} 100%{transform:rotateX(0)} }
   .row.shake{ animation:shake .4s; }
@@ -292,6 +305,7 @@
         <button class="mode-item" data-mode="court"><span class="mi">🐤</span><b>Court</b><i>4-5 lettres</i></button>
         <button class="mode-item" data-mode="normal"><span class="mi">🎯</span><b>Normal</b><i>6-8 lettres</i></button>
         <button class="mode-item" data-mode="long"><span class="mi">🐘</span><b>Long</b><i>10-15 lettres</i></button>
+        <button class="mode-item" data-mode="expert"><span class="mi">🎓</span><b>Expert</b><i>Règles strictes</i></button>
       </div>
       <div class="mode-cat">Multijoueur</div>
       <div class="mode-grid">
@@ -370,7 +384,7 @@
       <div class="dist-title">Contenu</div>
       <p style="text-align:center;margin-bottom:6px" id="aboutCounts"></p>
       <div class="dist-title">Nouveautés</div>
-      <p style="text-align:center;font-size:13px;color:var(--ink-dim)">Parties publiques · Course à l'écriture · couleurs personnalisables · émotes</p>
+      <p style="text-align:center;font-size:13px;color:var(--ink-dim)">Mode Expert · parties publiques · Course à l'écriture · couleurs personnalisables</p>
       <button class="btn" data-close>Fermer</button>
     </div>
   </div>
@@ -378,6 +392,24 @@
   <!-- Émotes du duel -->
   <div id="duelEmotePicker"></div>
   <div id="duelEmoteBubble"></div>
+
+  <!-- Mode Expert -->
+  <div class="overlay" id="expertOverlay">
+    <div class="modal">
+      <button class="close-x" data-close>&times;</button>
+      <h2>🎓 Expert</h2>
+      <p class="sub">Le mode classique, sans indulgence.</p>
+      <ul class="xrules">
+        <li><b>Les indices sont obligatoires.</b> Une lettre bien placée doit rester à sa position, une lettre mal placée doit être réutilisée.</li>
+        <li><b>Une faute de frappe coûte la tentative.</b> Un mot inconnu du dictionnaire est perdu sec, sans le moindre indice.</li>
+      </ul>
+      <button class="xopt" id="expertRareBtn">
+        <span class="xopt-t"><b>Mots rares et pluriels</b><i id="expertRareSub">—</i></span>
+        <span class="xopt-s" id="expertRareSw"></span>
+      </button>
+      <button class="btn" id="expertStart">Commencer</button>
+    </div>
+  </div>
 
   <!-- Course à l'écriture -->
   <div class="overlay" id="raceOverlay">
@@ -513,16 +545,17 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.16.0"></script>
-<script src="./dico/motus-prenoms.js?v=1.16.0"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.16.0"></script>
-<script src="./dico/motus-maladies.js?v=1.16.0"></script>
-<script src="./dico/motus-villes.js?v=1.16.0"></script>
-<script src="./dico/motus-villes-info.js?v=1.16.0"></script>
-<script src="./dico/motus-race.js?v=1.16.0"></script>
-<script src="./profiles/config.js?v=1.16.0"></script>
-<script src="./profiles/profile.js?v=1.16.0"></script>
-<script src="./duel/duel.js?v=1.16.0"></script>
+<script src="./dico/motus-words.js?v=1.17.0"></script>
+<script src="./dico/motus-prenoms.js?v=1.17.0"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.17.0"></script>
+<script src="./dico/motus-maladies.js?v=1.17.0"></script>
+<script src="./dico/motus-villes.js?v=1.17.0"></script>
+<script src="./dico/motus-villes-info.js?v=1.17.0"></script>
+<script src="./dico/motus-race.js?v=1.17.0"></script>
+<script src="./dico/motus-expert.js?v=1.17.0"></script>
+<script src="./profiles/config.js?v=1.17.0"></script>
+<script src="./profiles/profile.js?v=1.17.0"></script>
+<script src="./duel/duel.js?v=1.17.0"></script>
 <script>
 (() => {
   "use strict";
@@ -558,9 +591,20 @@
   POOLS.prenoms = playableWords(THEME_SOL.prenoms);
   POOLS.maladies = playableWords(THEME_SOL.maladies);
   POOLS.villes = playableWords(THEME_SOL.villes);
+  /* Mode Expert : même longueur que Normal (6 à 8 lettres).
+     L'option « mots rares » y ajoute un corpus bien plus large. */
+  const EXPERT_RARE = window.MOTUS_EXPERT || {};
+  let expertRare = false;   // valeur réelle relue plus bas, une fois le stockage disponible
+  function expertPool(){
+    if(!expertRare) return POOLS.normal;
+    const extra = [].concat(...Object.keys(EXPERT_RARE).map(k=>EXPERT_RARE[k]));
+    return extra.length ? POOLS.normal.concat(extra) : POOLS.normal;
+  }
+  POOLS.expert = POOLS.normal;
+
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.16.0";
+  const VERSION = "1.17.0";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -575,6 +619,7 @@
     get(k,d){ try{ const v=localStorage.getItem(k); return v===null?d:JSON.parse(v); }catch(e){ return d; } },
     set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
   };
+  expertRare = store.get("motus.expertRare", false);
   let theme = store.get("motus.theme","dark");
   let accent = store.get("motus.accent","red");
   let stats = store.get("motus.stats", {played:0,won:0,streak:0,best:0,fail:0,dist:{1:0,2:0,3:0,4:0,5:0,6:0}});
@@ -660,6 +705,28 @@
   function dailyWord(num){ const L=DAILY_POOL.length; const i=((num*2654435761)>>>0)%L; return DAILY_POOL[i]; }
 
   /* ---------- Évaluation (gère les doublons) ---------- */
+  /* Mode Expert : les indices déjà obtenus sont obligatoires.
+     Renvoie la première infraction trouvée, ou null si la proposition est licite. */
+  function expertViolation(guess){
+    const need = {};                     // lettres connues et leur nombre minimum
+    for(let g=0; g<guesses.length; g++){
+      const gw = guesses[g], st = rowStates[g];
+      if(gw[0]==="!") continue;          // tentative perdue sur une faute de frappe
+      const cnt = {};
+      for(let i=0;i<len;i++){
+        if(st[i]==="correct" && guess[i]!==gw[i])
+          return { type:"place", letter:gw[i], pos:i+1 };
+        if(st[i]==="correct" || st[i]==="present") cnt[gw[i]]=(cnt[gw[i]]||0)+1;
+      }
+      for(const c in cnt) need[c] = Math.max(need[c]||0, cnt[c]);
+    }
+    for(const c in need){
+      let have=0; for(const ch of guess) if(ch===c) have++;
+      if(have < need[c]) return { type:"use", letter:c, n:need[c] };
+    }
+    return null;
+  }
+
   function evaluate(guess){
     const res=Array(len).fill("absent"), pool={};
     for(const c of answer) pool[c]=(pool[c]||0)+1;
@@ -783,8 +850,27 @@
   function submit(){
     if(!isRowFull()){ shake(); toast("Pas assez de lettres"); return; }
     const guess=grid[row].join("");
+
+    // Expert : les indices déjà obtenus sont obligatoires. On refuse la
+    // proposition sans consommer d'essai — ce n'est pas une faute de frappe.
+    if(mode==="expert"){
+      const v = expertViolation(guess);
+      if(v){
+        shake();
+        toast(v.type==="place"
+          ? `La ${v.pos}<sup>e</sup> lettre doit rester un <b>${v.letter}</b>`
+          : `Tu dois réutiliser le <b>${v.letter}</b>`, 2200);
+        return;
+      }
+    }
+
     if(!isValid(guess) && guess!==answer){
       shake();
+      if(mode==="expert"){
+        // Expert : une faute de frappe coûte la tentative.
+        expertBurn(guess);
+        return;
+      }
       if(THEME_MODES.includes(mode)){
         // en mode thème on explique clairement POURQUOI c'est refusé
         toast(`« ${guess} » n'est pas dans la liste<br><small>${REJECT_HINT[mode]}</small>`, 2800);
@@ -803,7 +889,7 @@
     setTimeout(()=>finishRow(guess===answer), (len-1)*180+520);
   }
 
-  const MODE_FACTOR = { court:0.8, normal:1, long:1.4, daily:1.1, defi:1.2, prenoms:0.9, maladies:1.1, villes:1.1, duel:1.2, race:1.2 };
+  const MODE_FACTOR = { court:0.8, normal:1, long:1.4, daily:1.1, defi:1.2, prenoms:0.9, maladies:1.1, villes:1.1, duel:1.2, race:1.2, expert:1.5 };
   function awardXp(win){
     if(!window.Profile) return;
     const f = MODE_FACTOR[mode] || 1;
@@ -822,12 +908,27 @@
       capital = /^Capitale/.test(vi);
       foreign = vi.indexOf("(") < 0;
     }
+    // Expert : mots rares activés, et partie menée sans aucune tentative perdue
+    const rare  = mode==="expert" && expertRare;
+    const clean = mode==="expert" && !guesses.some(g=>g[0]==="!");
     Profile.addGame({
       won:win, xp, mode, sub,
       tries: win ? guesses.length : 0,
-      ms: timerValue(), answer, noYellow, capital, foreign
+      ms: timerValue(), answer, noYellow, capital, foreign, rare, clean
     });
     if(mode==="daily") Profile.submitDaily({ game:"motus", day:dailyKey, tries: win?guesses.length:6, won:win });
+  }
+
+  /* Expert : mot inconnu = tentative perdue. La ligne est barrée et
+     n'apporte aucun indice (on ignore tout des lettres saisies). */
+  function expertBurn(word){
+    over=true;
+    guesses.push("!"+word);
+    rowStates.push(Array(len).fill("burn"));
+    for(let c=0;c<len;c++){ const t=tileAt(row,c); t.classList.remove("filled"); t.classList.add("burn"); }
+    toast("« "+word+" » n'existe pas — tentative perdue", 2600);
+    vibrate([40,60,40]);
+    setTimeout(()=>finishRow(false), 620);
   }
 
   function finishRow(win){
@@ -854,6 +955,19 @@
   }
 
 
+
+  /* ---------- Mode Expert : écran de règles et option ---------- */
+  function expertRefreshOpt(){
+    const b=$("expertRareBtn"); if(!b) return;
+    b.classList.toggle("on", !!expertRare);
+    $("expertRareSub").textContent = expertRare
+      ? "Activé — le mot peut être rare, conjugué ou au pluriel"
+      : "Désactivé — mots courants uniquement";
+  }
+  function expertOpen(){
+    expertRefreshOpt();
+    openOverlay("expertOverlay");
+  }
 
   /* ---------- Mémoire de la partie multijoueur en cours ----------
      Le code est retenu dès sa création ou sa saisie, pour pouvoir revenir
@@ -1783,7 +1897,14 @@
   /* ---------- Rejouer une grille (restauration) ---------- */
   function replay(list){
     for(let r=0;r<list.length;r++){
-      const g=list[r]; const states=evaluate(g);
+      const g=list[r];
+      if(g[0]==="!"){                     // tentative perdue : aucune information
+        const w=g.slice(1);
+        guesses.push(g); rowStates.push(Array(len).fill("burn"));
+        for(let c=0;c<len;c++){ setCell(r,c,w[c]||""); const t=tileAt(r,c); t.classList.remove("filled"); t.classList.add("burn"); }
+        continue;
+      }
+      const states=evaluate(g);
       guesses.push(g); rowStates.push(states);
       for(let c=0;c<len;c++){
         setCell(r,c,g[c]); const t=tileAt(r,c);
@@ -1858,9 +1979,10 @@
   }
   function timerValue(){ return tTimer ? tElapsed + (Date.now()-tStart) : tElapsed; }
   function updateHud(){
-    const names={court:"Court",normal:"Normal",long:"Long",daily:"Mot du jour",defi:"Défi du jour",prenoms:"Prénoms",maladies:"Maladies",villes:"Villes",duel:"Duel",race:"Course"};
+    const names={court:"Court",normal:"Normal",long:"Long",expert:"Expert",daily:"Mot du jour",defi:"Défi du jour",prenoms:"Prénoms",maladies:"Maladies",villes:"Villes",duel:"Duel",race:"Course"};
     let label = names[mode]||"";
     if(mode==="race") label = "Course · " + raceThemeName(raceTheme);
+    if(mode==="expert") label = "Expert" + (expertRare ? " · mots rares" : "");
     if(mode==="defi") label += " — mot "+(defiStep+1)+"/3";
     if(THEME_MODES.includes(mode) && len){
       const n = THEMES[mode].filter(w=>w.length===len).length;
@@ -1891,7 +2013,8 @@
   /* ---------- Démarrage d'une partie ---------- */
   function startFree(m){
     mode=m; over=false; ended=false; won=false; guesses=[]; rowStates=[];
-    const pool=POOLS[m]; answer=pool[Math.floor(Math.random()*pool.length)];
+    const pool = (m==="expert") ? expertPool() : POOLS[m];
+    answer=pool[Math.floor(Math.random()*pool.length)];
     setupBoardForAnswer(); loadDico(len); setActiveSeg(m);
     timerReset(); updateHud(); save();
   }
@@ -1988,7 +2111,7 @@
     else timerReset();                                        // mot pas encore entamé
   }
 
-  const MODE_LABELS={daily:"📅 Mot du jour",defi:"🔥 Défi du jour",court:"🐤 Court",normal:"🎯 Normal",long:"🐘 Long",prenoms:"👶 Prénoms",maladies:"🩺 Maladies",villes:"🏙️ Villes",duel:"⚔️ Duel",race:"⌨️ Course"};
+  const MODE_LABELS={daily:"📅 Mot du jour",defi:"🔥 Défi du jour",court:"🐤 Court",normal:"🎯 Normal",long:"🐘 Long",expert:"🎓 Expert",prenoms:"👶 Prénoms",maladies:"🩺 Maladies",villes:"🏙️ Villes",duel:"⚔️ Duel",race:"⌨️ Course"};
   function setActiveSeg(m){
     $("modeBtnLabel").textContent = MODE_LABELS[m] || m;
     document.querySelectorAll(".mode-item").forEach(b=>b.classList.toggle("active", b.dataset.mode===m));
@@ -2074,6 +2197,7 @@
     if(m!=="duel" && m!=="race") duelEmoteBtnShow(false);
     if(m==="daily") enterDaily();
     else if(m==="defi") enterDefi();
+    else if(m==="expert") expertOpen();
     else if(m==="duel") duelOpen();
     else if(m==="race") raceOpen();
     else { duelPause(); racePause(); startFree(m); }
@@ -2106,6 +2230,11 @@
     duelSetMsg("");
     mpShowCount("duel"); mpShowLastCode("duel");
   }));
+  $("expertRareBtn").addEventListener("click", ()=>{
+    expertRare = !expertRare; store.set("motus.expertRare", expertRare); expertRefreshOpt();
+  });
+  $("expertStart").addEventListener("click", ()=>{ closeOverlays(); startFree("expert"); });
+
   $("duelLastCode").addEventListener("click", ()=>{
     const c = mpLastCode("duel"); if(!c) return;
     $("duelCode").value = c; duelSetMsg("Choisis le mot que ton adversaire devra deviner");
@@ -2178,6 +2307,7 @@
     closeOverlays();
     if(mode==="daily"){ switchMode("normal"); return; }        // le mot du jour est unique : on lance un mot au hasard
     if(mode==="defi"){ switchMode("normal"); return; }         // le défi est unique aussi
+    if(mode==="expert"){ startFree("expert"); return; }        // relance directe, sans rappeler les règles
     if(mode==="duel"){ duelOpen(); return; }                   // le duel se relance depuis sa fenêtre
     if(mode==="race"){ raceOpen(); return; }                   // la course aussi
     if(!ended && rowHasInput()) askConfirm("Nouvelle partie ?", "La partie en cours sera perdue.", ()=>startFree(mode));
