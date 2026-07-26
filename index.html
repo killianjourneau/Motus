@@ -49,7 +49,7 @@
   }
 
   /* Header */
-  header{ display:flex; align-items:center; justify-content:space-between; padding:12px clamp(12px,4vw,22px) 4px; gap:8px; }
+  header{ display:flex; align-items:center; flex-wrap:wrap; row-gap:6px; padding:12px clamp(12px,4vw,22px) 4px; gap:8px; }
   .brand{ display:flex; gap:5px; background:none; border:none; padding:0; cursor:pointer; }
   .brand:active{ transform:scale(.96); }
   .brand b{ width:clamp(24px,7.2vw,30px); height:34px; display:grid; place-items:center; font-weight:800; font-size:clamp(16px,5vw,20px); border-radius:7px; background:var(--absent); }
@@ -58,8 +58,8 @@
   .brand b.y{ background:var(--cell); position:relative; }
   .brand b.y::before{ content:""; position:absolute; inset:5px; border-radius:50%; background:var(--yellow); z-index:0; }
   .brand b.y span{ position:relative; z-index:1; color:#1a1a1a; }
-  .tools{ display:flex; gap:5px; }
-  .icon-btn{ width:clamp(33px,9vw,40px); height:clamp(33px,9vw,40px); border:none; border-radius:10px; background:var(--cell); color:var(--ink); font-size:16px; cursor:pointer; display:grid; place-items:center; transition:.15s; }
+  .tools{ display:flex; flex-wrap:wrap; justify-content:flex-end; gap:5px; flex:1; }
+  .icon-btn{ width:clamp(33px,9vw,40px); height:clamp(33px,9vw,40px); flex:0 0 auto; border:none; border-radius:10px; background:var(--cell); color:var(--ink); font-size:16px; cursor:pointer; display:grid; place-items:center; transition:.15s; }
   .icon-btn:active{ transform:scale(.94); }
 
   /* Sélecteur de mode */
@@ -292,8 +292,6 @@
     <div class="tools">
       
       <button class="icon-btn" id="btnKid" aria-label="Mode enfant">🧸</button>
-      <button class="icon-btn" id="btnAccent" aria-label="Couleur d'accent">🎨</button>
-      <button class="icon-btn" id="btnTheme" aria-label="Thème">☀️</button>
       <button class="icon-btn" id="btnHelp" aria-label="Règles">?</button>
       <button class="icon-btn" id="btnProfile" aria-label="Profil">👤</button>
       <button class="icon-btn" id="btnNew" aria-label="Nouvelle partie">↻</button>
@@ -377,15 +375,6 @@
       <button class="btn" data-close>C'est parti</button>
     </div>
   </div>
-
-  <!-- Couleur d'accent -->
-  <div class="overlay" id="accentOverlay">
-    <div class="modal">
-      <button class="close-x" data-close>&times;</button>
-      <h2>Couleur d'accent</h2>
-      <p class="sub">Personnalise les boutons et surlignages de l'application.</p>
-      <div class="swatches" id="accentSwatches"></div>
-    </div>
   </div>
 
   <!-- À propos -->
@@ -560,17 +549,17 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.20.1"></script>
-<script src="./dico/motus-prenoms.js?v=1.20.1"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.20.1"></script>
-<script src="./dico/motus-maladies.js?v=1.20.1"></script>
-<script src="./dico/motus-villes.js?v=1.20.1"></script>
-<script src="./dico/motus-villes-info.js?v=1.20.1"></script>
-<script src="./dico/motus-race.js?v=1.20.1"></script>
-<script src="./dico/motus-expert.js?v=1.20.1"></script>
-<script src="./profiles/config.js?v=1.20.1"></script>
-<script src="./profiles/profile.js?v=1.20.1"></script>
-<script src="./duel/duel.js?v=1.20.1"></script>
+<script src="./dico/motus-words.js?v=1.21.1"></script>
+<script src="./dico/motus-prenoms.js?v=1.21.1"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.21.1"></script>
+<script src="./dico/motus-maladies.js?v=1.21.1"></script>
+<script src="./dico/motus-villes.js?v=1.21.1"></script>
+<script src="./dico/motus-villes-info.js?v=1.21.1"></script>
+<script src="./dico/motus-race.js?v=1.21.1"></script>
+<script src="./dico/motus-expert.js?v=1.21.1"></script>
+<script src="./profiles/config.js?v=1.21.1"></script>
+<script src="./profiles/profile.js?v=1.21.1"></script>
+<script src="./duel/duel.js?v=1.21.1"></script>
 <script>
 (() => {
   "use strict";
@@ -619,7 +608,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.20.1";
+  const VERSION = "1.21.1";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -658,14 +647,13 @@
   let duelCode="", duelRow=null, duelStop=null, duelReported=false, duelMode="quick", duelDeadline=0, duelStarted=false, duelCounted=false, duelLastEmote="", duelRematchMine="", duelRematchOldCode="", duelWaitMsg="En attente d'un adversaire…";
 
   const $ = id => document.getElementById(id);
-  const board=$("board"), keyboard=$("keyboard"), toastEl=$("toast"), themeBtn=$("btnTheme"), accentBtn=$("btnAccent");
+  const board=$("board"), keyboard=$("keyboard"), toastEl=$("toast");
   const keyEls={};
 
   /* ---------- Thème ---------- */
   function applyTheme(){
     document.documentElement.dataset.theme = theme;
     document.querySelector('meta[name=theme-color]').content = (theme==="light") ? "#eef2f9" : "#071633";
-    themeBtn.textContent = (theme==="dark") ? "☀️" : "🌙";
   }
   function toggleTheme(){ theme = (theme==="dark")?"light":"dark"; store.set("motus.theme",theme); applyTheme(); }
 
@@ -680,18 +668,35 @@
     {id:"teal",   n:"Turquoise", c:"#0c8579"}
   ];
   function applyAccent(){ document.documentElement.dataset.accent = accent; }
-  function buildAccentPicker(){
-    const box=$("accentSwatches"); if(!box || box.dataset.built) return;
-    box.innerHTML = ACCENTS.map(a=>
-      `<button class="swatch" data-accent="${a.id}"><span class="swatch-dot" style="background:${a.c}"></span><span class="swatch-name">${a.n}</span></button>`
-    ).join("");
-    box.querySelectorAll(".swatch").forEach(btn=>btn.addEventListener("click", ()=>{
-      accent = btn.dataset.accent; store.set("motus.accent",accent); applyAccent(); markAccentSel();
-    }));
-    box.dataset.built="1";
+  /* Thème et couleur d'accent, regroupés dans l'onglet Profil pour un
+     bandeau épuré : un seul bouton (👤) donne accès à toute la personnalisation. */
+  function renderPersonalize(){
+    const box=document.getElementById("personalizeBox"); if(!box) return;
+    if(!box.dataset.built){
+      box.innerHTML =
+        '<div class="perso">'
+        + '<p class="perso-t">Thème</p>'
+        + '<div class="perso-themes">'
+        +   '<button class="perso-th" data-th="dark">🌙 Sombre</button>'
+        +   '<button class="perso-th" data-th="light">☀️ Clair</button>'
+        + '</div>'
+        + '<p class="perso-t">Couleur d\'accent</p>'
+        + '<div class="perso-swatches">'
+        + ACCENTS.map(a=>`<button class="perso-sw" data-accent="${a.id}"><span class="perso-dot" style="background:${a.c}"></span></button>`).join("")
+        + '</div></div>';
+      box.querySelectorAll(".perso-th").forEach(b=>b.addEventListener("click", ()=>{
+        theme = b.dataset.th; store.set("motus.theme",theme); applyTheme(); markPersonalizeSel();
+      }));
+      box.querySelectorAll(".perso-sw").forEach(b=>b.addEventListener("click", ()=>{
+        accent = b.dataset.accent; store.set("motus.accent",accent); applyAccent(); markPersonalizeSel();
+      }));
+      box.dataset.built="1";
+    }
+    markPersonalizeSel();
   }
-  function markAccentSel(){
-    document.querySelectorAll(".swatch").forEach(b=>b.classList.toggle("sel", b.dataset.accent===accent));
+  function markPersonalizeSel(){
+    document.querySelectorAll(".perso-th").forEach(b=>b.classList.toggle("on", b.dataset.th===theme));
+    document.querySelectorAll(".perso-sw").forEach(b=>b.classList.toggle("on", b.dataset.accent===accent));
   }
 
   /* ---------- Dictionnaire (une longueur par partie) ---------- */
@@ -2290,8 +2295,6 @@
   });
 
   $("btnKid").addEventListener("click", ()=>{ location.href="./enfant.html"; });
-  themeBtn.addEventListener("click", toggleTheme);
-  accentBtn.addEventListener("click", ()=>{ buildAccentPicker(); markAccentSel(); openOverlay("accentOverlay"); });
   document.querySelectorAll("#duelTabs .dtab").forEach(b=>b.addEventListener("click", ()=>{
     duelMode=b.dataset.dt;
     document.querySelectorAll("#duelTabs .dtab").forEach(x=>x.classList.toggle("active", x===b));
@@ -2371,7 +2374,7 @@
     openOverlay("aboutOverlay");
   });
   $("btnHelp").addEventListener("click", ()=>openOverlay("helpOverlay"));
-  $("btnProfile").addEventListener("click", ()=>{ if(window.Profile) Profile.open(motusStatsHTML()); });
+  $("btnProfile").addEventListener("click", ()=>{ if(window.Profile){ Profile.open(motusStatsHTML()); renderPersonalize(); } });
   $("btnNew").addEventListener("click", ()=>{
     closeOverlays();
     if(mode==="daily"){ switchMode("normal"); return; }        // le mot du jour est unique : on lance un mot au hasard
