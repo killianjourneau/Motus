@@ -122,6 +122,16 @@
       }).then(function (row) { return row ? D.parse(row) : null; });
     },
 
+    /* Transmet la liste des essais déjà joués, pour le suivi en direct.
+       Silencieux : un échec ne doit jamais gêner la partie en cours. */
+    moves: function (code, list) {
+      var m = me();
+      return rpc("duel_moves", {
+        p_code: String(code || "").toUpperCase(), p_id: m.id,
+        p_moves: hide((list || []).join(","))
+      }).then(function (row) { return row ? D.parse(row) : null; }).catch(function () { return null; });
+    },
+
     /* Revanche : le 1er à cliquer crée le nouveau duel, le 2e le rejoint
        (résolu côté base, donc pas d'échange de code). */
     rematch: function (code, word) {
@@ -160,6 +170,8 @@
         ? { tries: d.p1_tries, ms: d.p1_ms, done: !!d.p1_done, won: !!d.p1_won }
         : { tries: d.p2_tries, ms: d.p2_ms, done: !!d.p2_done, won: !!d.p2_won };
       d.oppEmote = d.side === 2 ? (d.p1_emote || "") : (d.p2_emote || "");
+      var raw = d.side === 2 ? (d.p1_moves || "") : (d.p2_moves || "");
+      d.oppMoves = raw ? show(raw).split(",").filter(Boolean) : [];
       d.rematch = d.rematch_code || "";
       d.isPublic = !!d.is_public;
       d.ready = !!(d.status === "playing" && d.target);
@@ -305,6 +317,8 @@
         ? { done: d.p1_tries, ms: d.p1_ms, over: !!d.p1_done, won: !!d.p1_won }
         : { done: d.p2_tries, ms: d.p2_ms, over: !!d.p2_done, won: !!d.p2_won };
       d.oppEmote = d.side === 2 ? (d.p1_emote || "") : (d.p2_emote || "");
+      var raw = d.side === 2 ? (d.p1_moves || "") : (d.p2_moves || "");
+      d.oppMoves = raw ? show(raw).split(",").filter(Boolean) : [];
       d.rematch = d.rematch_code || "";
       var pack = null;
       try { pack = JSON.parse(show(d.words || "")); } catch (e) {}

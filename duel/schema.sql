@@ -26,6 +26,12 @@ alter table duels add column if not exists p2_emote text;
 alter table duels add column if not exists kind text default 'duel';
 alter table duels add column if not exists words text;
 
+-- Essais transmis au fil de la partie, pour que celui qui a fini puisse
+-- suivre la grille de son adversaire. Aucune fuite : chacun devine le mot
+-- choisi par l'autre, donc voir ces essais n'apprend rien sur le sien.
+alter table duels add column if not exists p1_moves text;
+alter table duels add column if not exists p2_moves text;
+
 -- Salon public : visible par tous, rejoignable sans code.
 alter table duels add column if not exists is_public boolean default false;
 create index if not exists duels_public_idx
@@ -351,6 +357,20 @@ returns int language sql security definer stable as $$
      and created_at > now() - interval '30 minutes';
 $$;
 
+-- ---------- Suivi des essais en direct ----------
+create or replace function duel_moves(p_code text, p_id uuid, p_moves text)
+returns duels language plpgsql security definer as $$
+declare v_row duels; v_code text := upper(trim(p_code));
+begin
+  update duels set
+    p1_moves = case when p1_id = p_id then p_moves else p1_moves end,
+    p2_moves = case when p2_id = p_id then p_moves else p2_moves end
+  where id = v_code and (p1_id = p_id or p2_id = p_id)
+  returning * into v_row;
+  if v_row.id is null then raise exception 'introuvable'; end if;
+  return v_row;
+end $$;
+
 -- ---------- Droits ----------
 grant execute on function duel_create(uuid,text,int,text,text)            to anon, authenticated;
 grant execute on function duel_join(text,uuid,text,int,text,text)         to anon, authenticated;
@@ -364,3 +384,4 @@ grant execute on function race_rematch(text,uuid,text,int,text,text)      to ano
 grant execute on function duel_quick(uuid,text,int,text,text)             to anon, authenticated;
 grant execute on function race_quick(uuid,text,int,text,text)             to anon, authenticated;
 grant execute on function mp_waiting(text)                                to anon, authenticated;
+grant execute on function duel_moves(text,uuid,text)                      to anon, authenticated;
