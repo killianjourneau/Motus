@@ -1,6 +1,6 @@
 /* Motus — service worker */
-const CACHE = "motus-v59";
-const V = "1.22.1";   // doit correspondre au ?v= des <script> de index.html
+const CACHE = "motus-v60";
+const V = "1.22.2";   // doit correspondre au ?v= des <script> de index.html
 const ASSETS = [
   "./",
   "./index.html",

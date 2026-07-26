@@ -139,6 +139,7 @@
       <h2 id="endTitle">Partie terminée</h2>
       <div class="big" id="endStars">⭐ 0</div>
       <p id="endSub"></p>
+      <p id="endWord" style="display:none"></p>
       <button class="btn" id="btnAgain">Rejouer</button>
     </div>
   </div>
@@ -165,7 +166,7 @@
     </div>
   </div>
 
-<script src="./dico/motus-enfant.js?v=1.22.1"></script>
+<script src="./dico/motus-enfant.js?v=1.22.2"></script>
 <script>
 (function(){
   "use strict";
@@ -272,17 +273,27 @@
     vibrate([30,60,30]);
     $("word").classList.add("shake");
     setTimeout(function(){ $("word").classList.remove("shake"); }, 350);
-    if(lives<=0){ locked = true; setTimeout(endRun, 500); return; }
-    // on explique l'erreur : nommer l'image touchée aide à comprendre pourquoi ce n'est pas la bonne
-    $("ask").innerHTML = 'Non : ça, c\'est <b>'+choices[i].m+'</b>. Le mot cherché commence par <b>'+target.m[0]+'</b> !';
+    if(lives<=0){
+      locked = true;
+      // on explique la derniere erreur ET on revele le mot avant la fin de partie
+      $("ask").innerHTML = 'Non : ça, c\'est <b>'+choices[i].m+'</b>. Le mot cherché était <b>'+target.m+'</b> !';
+      setTimeout(function(){ endRun(target); }, 1400);
+      return;
+    }
+    // on explique l'erreur : nommer l'image touchée, et preciser la longueur
+    // (utile en "Plus dur", ou une autre image peut commencer par la meme lettre)
+    $("ask").innerHTML = 'Non : ça, c\'est <b>'+choices[i].m+'</b>. Cherche un mot de <b>'+target.m.length+' lettres</b> qui commence par <b>'+target.m[0]+'</b> !';
   }
 
-  function endRun(){
+  function endRun(missed){
     $("endTitle").textContent = stars>0 ? "Bien joué !" : "On réessaie ?";
     $("endStars").textContent = "⭐ " + stars;
     $("endSub").textContent = (stars>=best && stars>0)
       ? "C'est ton meilleur score !"
       : "Ton record : " + best + (best>1 ? " étoiles" : " étoile");
+    var ew = $("endWord");
+    if(missed){ ew.innerHTML = 'Le mot était <b>'+missed.m+'</b> '+missed.e; ew.style.display="block"; }
+    else { ew.style.display="none"; }
     $("endOverlay").classList.add("open");
   }
   function startRun(){
