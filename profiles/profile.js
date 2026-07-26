@@ -367,6 +367,15 @@
 .dist .bar{ display:flex; align-items:center; gap:8px; font-size:13px; }
 .dist .bar .k{ width:12px; color:var(--ink-dim); font-weight:700; }
 .dist .bar .t{ background:var(--accent); height:22px; border-radius:5px; min-width:26px; display:flex; align-items:center; justify-content:flex-end; padding:0 8px; color:#fff; font-weight:700; font-size:12px; }
+.perso{ margin-bottom:14px; }
+.perso-t{ font-size:12px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.4px; margin:0 0 8px; }
+.perso-themes{ display:flex; gap:8px; margin-bottom:10px; }
+.perso-th{ flex:1; height:40px; border:none; border-radius:11px; background:var(--cell); color:var(--ink-dim); box-shadow:inset 0 0 0 1.5px var(--cell-edge); font-weight:700; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; }
+.perso-th.on{ background:var(--accent); color:#fff; box-shadow:none; }
+.perso-swatches{ display:grid; grid-template-columns:repeat(7,1fr); gap:8px; }
+.perso-sw{ display:flex; flex-direction:column; align-items:center; gap:4px; background:none; border:none; cursor:pointer; padding:2px; }
+.perso-dot{ width:30px; height:30px; border-radius:50%; box-shadow:inset 0 0 0 2px rgba(255,255,255,.25); }
+.perso-sw.on .perso-dot{ box-shadow:0 0 0 2px var(--bg), 0 0 0 4px var(--accent); }
 #badgeToast{ position:fixed; left:50%; bottom:24px; transform:translate(-50%,20px); background:var(--ink); color:var(--bg); padding:12px 18px; border-radius:14px; display:flex; align-items:center; gap:10px; opacity:0; pointer-events:none; transition:.25s; z-index:300; box-shadow:0 10px 30px rgba(0,0,0,.45); max-width:88vw; }
 #badgeToast.show{ opacity:1; transform:translate(-50%,0); }
 #badgeToast .be{ font-size:28px; }
@@ -402,6 +411,7 @@
       </div>
       <div id="nextGoals"></div>
       <div id="gameStats"></div>
+      <div id="personalizeBox"></div>
       <details class="prof-sync">
         <summary>Synchroniser sur un autre appareil</summary>
         <p>Ton code (à coller sur l'autre appareil) :</p>
