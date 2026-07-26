@@ -143,6 +143,15 @@
     </div>
   </div>
 
+  <div class="overlay" id="confirmOverlay">
+    <div class="modal">
+      <h2>Changer de niveau ?</h2>
+      <p id="confirmMsg">Tu vas recommencer une nouvelle partie.</p>
+      <button class="btn" id="confirmYes">Oui, changer</button>
+      <button class="btn" id="confirmNo" style="background:var(--cell); color:var(--ink); box-shadow:inset 0 0 0 1.5px var(--cell-edge);">Non, continuer</button>
+    </div>
+  </div>
+
   <div class="overlay" id="helpOverlay">
     <div class="modal">
       <h2>Comment jouer</h2>
@@ -156,7 +165,7 @@
     </div>
   </div>
 
-<script src="./dico/motus-enfant.js?v=1.20.0"></script>
+<script src="./dico/motus-enfant.js?v=1.22.1"></script>
 <script>
 (function(){
   "use strict";
@@ -264,7 +273,8 @@
     $("word").classList.add("shake");
     setTimeout(function(){ $("word").classList.remove("shake"); }, 350);
     if(lives<=0){ locked = true; setTimeout(endRun, 500); return; }
-    $("ask").innerHTML = 'Non, essaie encore : le mot commence par <b>'+target.m[0]+'</b>';
+    // on explique l'erreur : nommer l'image touchée aide à comprendre pourquoi ce n'est pas la bonne
+    $("ask").innerHTML = 'Non : ça, c\'est <b>'+choices[i].m+'</b>. Le mot cherché commence par <b>'+target.m[0]+'</b> !';
   }
 
   function endRun(){
@@ -285,11 +295,21 @@
   $("btnGame").addEventListener("click", function(){ location.href="./index.html"; });
   $("btnHelp").addEventListener("click", function(){ $("helpOverlay").classList.add("open"); });
   $("btnHelpOk").addEventListener("click", function(){ $("helpOverlay").classList.remove("open"); });
+  // vrai s'il y a une progression en cours qui serait perdue (au moins une etoile
+  // ou un coeur deja entame) : dans ce cas on demande avant de recommencer.
+  function hasProgress(){ return stars>0 || lives<LIVES; }
+  function switchLevel(lv){
+    level = lv; store.set("motus.enfant.level", level);
+    Array.prototype.forEach.call(document.querySelectorAll(".lv"), function(x){ x.classList.toggle("on", x.dataset.lv===level); });
+    startRun();
+  }
   Array.prototype.forEach.call(document.querySelectorAll(".lv"), function(b){
     b.addEventListener("click", function(){
-      level = b.dataset.lv; store.set("motus.enfant.level", level);
-      Array.prototype.forEach.call(document.querySelectorAll(".lv"), function(x){ x.classList.toggle("on", x===b); });
-      startRun();
+      if(b.dataset.lv === level) return;              // deja ce niveau : on ne touche a rien
+      if(!hasProgress()){ switchLevel(b.dataset.lv); return; }
+      $("confirmOverlay").classList.add("open");
+      $("confirmYes").onclick = function(){ $("confirmOverlay").classList.remove("open"); switchLevel(b.dataset.lv); };
+      $("confirmNo").onclick = function(){ $("confirmOverlay").classList.remove("open"); };
     });
   });
   window.addEventListener("resize", function(){ if(target) sizeTiles(target.m.length); });

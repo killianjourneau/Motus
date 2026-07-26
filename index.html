@@ -549,17 +549,18 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.21.1"></script>
-<script src="./dico/motus-prenoms.js?v=1.21.1"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.21.1"></script>
-<script src="./dico/motus-maladies.js?v=1.21.1"></script>
-<script src="./dico/motus-villes.js?v=1.21.1"></script>
-<script src="./dico/motus-villes-info.js?v=1.21.1"></script>
-<script src="./dico/motus-race.js?v=1.21.1"></script>
-<script src="./dico/motus-expert.js?v=1.21.1"></script>
-<script src="./profiles/config.js?v=1.21.1"></script>
-<script src="./profiles/profile.js?v=1.21.1"></script>
-<script src="./duel/duel.js?v=1.21.1"></script>
+<script src="./dico/motus-words.js?v=1.22.1"></script>
+<script src="./dico/motus-prenoms.js?v=1.22.1"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.22.1"></script>
+<script src="./dico/motus-maladies.js?v=1.22.1"></script>
+<script src="./dico/motus-maladies-info.js?v=1.22.1"></script>
+<script src="./dico/motus-villes.js?v=1.22.1"></script>
+<script src="./dico/motus-villes-info.js?v=1.22.1"></script>
+<script src="./dico/motus-race.js?v=1.22.1"></script>
+<script src="./dico/motus-expert.js?v=1.22.1"></script>
+<script src="./profiles/config.js?v=1.22.1"></script>
+<script src="./profiles/profile.js?v=1.22.1"></script>
+<script src="./duel/duel.js?v=1.22.1"></script>
 <script>
 (() => {
   "use strict";
@@ -608,7 +609,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.21.1";
+  const VERSION = "1.22.1";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -2214,11 +2215,13 @@
   }
 
   /* ---------- Fin de partie ---------- */
-  const VILLE_INFO  = window.MOTUS_VILLES_INFO  || {};
-  const PRENOM_INFO = window.MOTUS_PRENOMS_INFO || {};
+  const VILLE_INFO   = window.MOTUS_VILLES_INFO   || {};
+  const PRENOM_INFO  = window.MOTUS_PRENOMS_INFO  || {};
+  const MALADIE_INFO = window.MOTUS_MALADIES_INFO || {};
   function cityNote(){
-    const t = (mode==="villes")  ? VILLE_INFO[answer]
-            : (mode==="prenoms") ? PRENOM_INFO[answer]
+    const t = (mode==="villes")    ? VILLE_INFO[answer]
+            : (mode==="prenoms")   ? PRENOM_INFO[answer]
+            : (mode==="maladies")  ? MALADIE_INFO[answer]
             : null;
     return t ? `<div class="city-note">${t}</div>` : "";
   }
