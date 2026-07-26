@@ -165,6 +165,8 @@
   if (!state) state = { id: uuid(), pseudo: "", xp: 0, games: 0, wins: 0, level: 1 };
   if (!state.id) state.id = uuid();
   if (!state.b) state.b = freshCounters();
+  if (state.elo == null) state.elo = 1000;          // valeur serveur, relue à chaque synchro
+  if (state.eloGames == null) state.eloGames = 0;
   else { var f = freshCounters(); for (var k in f) if (state.b[k] === undefined) state.b[k] = f[k]; }
   if (!state.badges) state.badges = [];
   if (!state.emblem) state.emblem = "";
@@ -228,6 +230,10 @@
      compteur et l'union des jours joués et des badges. */
   function mergeRemote(rem) {
     if (!rem) return;
+    // Elo : calculé et détenu par la base. On le recopie tel quel, sans jamais
+    // le fusionner ni le renvoyer — sinon un client pourrait le gonfler.
+    state.elo = (rem.elo == null) ? 1000 : rem.elo;
+    state.eloGames = rem.elo_games || 0;
     state.xp = Math.max(state.xp || 0, rem.xp || 0);
     state.games = Math.max(state.games || 0, rem.games || 0);
     state.wins = Math.max(state.wins || 0, rem.wins || 0);
@@ -349,6 +355,13 @@
 .lb .r .em{ font-size:16px; }
 .lb .r .lv{ color:var(--ink-dim); font-size:12px; }
 .lb .r.me{ box-shadow:inset 0 0 0 1.5px var(--accent); }
+.rank-tabs{ display:flex; gap:6px; margin-bottom:12px; }
+.rk-tab{ flex:1; height:34px; border:none; border-radius:9px; background:var(--cell); color:var(--ink-dim); box-shadow:inset 0 0 0 1.5px var(--cell-edge); font-weight:800; font-size:13px; cursor:pointer; }
+.rk-tab.on{ background:var(--accent); color:#fff; box-shadow:none; }
+.elo-line{ display:flex; align-items:center; justify-content:space-between; gap:10px; background:var(--cell); border-radius:12px; padding:11px 14px; margin-bottom:12px; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
+.elo-line .lbl{ font-size:13px; color:var(--ink-dim); font-weight:700; }
+.elo-line .val{ font-size:22px; font-weight:800; color:var(--accent); }
+.elo-line small{ display:block; font-size:11px; color:var(--ink-dim); font-weight:700; }
 .myrank{ text-align:center; font-weight:700; margin-bottom:12px; font-size:15px; }
 .myrank b{ color:var(--accent); font-size:20px; }
 .today-head{ text-align:center; margin-bottom:14px; }
@@ -428,6 +441,10 @@
     </div>
 
     <div class="pane" id="pane-rank" style="display:none">
+      <div class="rank-tabs">
+        <button class="rk-tab on" data-rk="xp">Expérience</button>
+        <button class="rk-tab" data-rk="elo">⚔️ Duel</button>
+      </div>
       <div class="myrank" id="myRank"></div>
       <button class="btn ghost refresh-btn" id="btnRefreshRank">↻ Actualiser</button>
       <div id="leaderboard" class="lb"></div>
@@ -486,6 +503,14 @@
       if (!configured) { m.textContent = "Base non configurée"; return; }
       m.textContent = "Synchronisation…";
       syncNow(function (ok) { m.textContent = ok ? "À jour ✓" : "Échec — réessaie"; fillProfil(); });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll(".rk-tab"), function (b) {
+      b.addEventListener("click", function () {
+        if (rankMode === b.dataset.rk) return;
+        rankMode = b.dataset.rk;
+        Array.prototype.forEach.call(document.querySelectorAll(".rk-tab"), function (x) { x.classList.toggle("on", x === b); });
+        loadRank();
+      });
     });
     el("btnRefreshRank").addEventListener("click", function () {
       var b = el("btnRefreshRank"); b.classList.add("spin"); b.textContent = "Actualisation…";
@@ -640,10 +665,14 @@
     box.innerHTML = html;
   }
 
+  var rankMode = "xp";
   function loadRank(done) {
     var box = el("leaderboard"), mr = el("myRank");
     if (!configured) { mr.textContent = ""; box.innerHTML = '<div class="muted">Classement disponible une fois la base configurée.</div>'; if (done) done(); return; }
     mr.textContent = "…"; box.innerHTML = '<div class="muted">Chargement…</div>';
+
+    if (rankMode === "elo") return loadRankElo(done);
+
     Promise.all([countQuery("profiles?select=id&xp=gt." + state.xp), countQuery("profiles?select=id")])
       .then(function (r) {
         if (r[0] != null && r[1] != null) mr.innerHTML = "Ta place : <b>#" + (r[0] + 1) + "</b> sur " + r[1] + " joueurs";
@@ -659,6 +688,39 @@
           var em = p.badge ? '<span class="em">' + escapeHtml(p.badge) + "</span>" : "";
           return '<div class="r' + me + '"><span class="rk">' + (i + 1) + '</span><span class="nm">' + escapeHtml(nm) + "</span>" + em +
                  '<span class="lv">Niv. ' + (p.level || 1) + " · " + (p.xp || 0) + " XP</span></div>";
+        }).join("");
+      })
+      .catch(function () { box.innerHTML = '<div class="muted">Classement indisponible</div>'; })
+      .then(function () { if (done) done(); });
+  }
+
+  /* Classement Elo : seuls les joueurs ayant disputé au moins un duel y figurent. */
+  function loadRankElo(done) {
+    var box = el("leaderboard"), mr = el("myRank");
+    var myElo = state.elo || 1000, myGames = state.eloGames || 0;
+    var head = '<div class="elo-line"><div><span class="lbl">Ton classement Duel</span>'
+             + '<small>' + (myGames ? myGames + (myGames > 1 ? " duels classés" : " duel classé") : "aucun duel classé") + '</small></div>'
+             + '<span class="val">' + myElo + '</span></div>';
+
+    Promise.all([
+      countQuery("profiles?select=id&elo_games=gt.0&elo=gt." + myElo),
+      countQuery("profiles?select=id&elo_games=gt.0")
+    ]).then(function (r) {
+      if (!myGames) { mr.innerHTML = head + "Joue un duel pour entrer au classement."; }
+      else if (r[0] != null && r[1] != null) mr.innerHTML = head + "Ta place : <b>#" + (r[0] + 1) + "</b> sur " + r[1] + " joueurs classés";
+      else mr.innerHTML = head;
+    });
+
+    fetch(API + "/rest/v1/profiles?select=id,pseudo,badge,elo,elo_games&elo_games=gt.0&order=elo.desc&limit=20", { headers: headers(), cache: "no-store" })
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (rows) {
+        if (!rows.length) { box.innerHTML = '<div class="muted">Aucun duel classé pour l\'instant — lance le premier !</div>'; return; }
+        box.innerHTML = rows.map(function (p, i) {
+          var me = p.id === state.id ? " me" : "";
+          var nm = (p.pseudo && p.pseudo.trim()) ? p.pseudo : "Anonyme";
+          var em = p.badge ? '<span class="em">' + escapeHtml(p.badge) + "</span>" : "";
+          return '<div class="r' + me + '"><span class="rk">' + (i + 1) + '</span><span class="nm">' + escapeHtml(nm) + "</span>" + em +
+                 '<span class="lv">' + (p.elo || 1000) + " · " + (p.elo_games || 0) + " duels</span></div>";
         }).join("");
       })
       .catch(function () { box.innerHTML = '<div class="muted">Classement indisponible</div>'; })
