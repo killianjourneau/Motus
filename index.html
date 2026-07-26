@@ -77,6 +77,11 @@
   .mode-item.active{ background:var(--accent); box-shadow:none; }
   .mode-item.active i{ color:rgba(255,255,255,.75); }
   .city-note{ margin-top:10px; padding:9px 12px; background:var(--cell); border-radius:10px; box-shadow:inset 0 0 0 1.5px var(--cell-edge); color:var(--ink); font-size:14px; font-weight:700; text-align:center; }
+  .elo-res{ display:none; text-align:center; font-size:15px; font-weight:800; margin:8px 0 2px; }
+  .elo-res.show{ display:block; }
+  .elo-res .up{ color:#39d98a; }
+  .elo-res .down{ color:var(--red); }
+  .elo-res small{ display:block; font-size:12px; color:var(--ink-dim); font-weight:700; margin-top:2px; }
   .spy{ display:none; margin:12px 0 4px; }
   .spy.show{ display:block; }
   .spy-t{ font-size:11px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.6px; font-weight:800; margin-bottom:8px; }
@@ -528,6 +533,7 @@
         <div class="duel-res" id="duelResTitle">—</div>
         <p class="sub" id="duelResWhy"></p>
         <div class="duel-word" id="duelResWord"></div>
+        <div class="elo-res" id="duelElo"></div>
         <div class="spy" id="duelSpy"></div>
         <div class="duel-score" id="duelScore"></div>
         <div class="duel-rematch-offer" id="duelRematchOffer"></div>
@@ -549,18 +555,18 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.22.2"></script>
-<script src="./dico/motus-prenoms.js?v=1.22.2"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.22.2"></script>
-<script src="./dico/motus-maladies.js?v=1.22.2"></script>
-<script src="./dico/motus-maladies-info.js?v=1.22.2"></script>
-<script src="./dico/motus-villes.js?v=1.22.2"></script>
-<script src="./dico/motus-villes-info.js?v=1.22.2"></script>
-<script src="./dico/motus-race.js?v=1.22.2"></script>
-<script src="./dico/motus-expert.js?v=1.22.2"></script>
-<script src="./profiles/config.js?v=1.22.2"></script>
-<script src="./profiles/profile.js?v=1.22.2"></script>
-<script src="./duel/duel.js?v=1.22.2"></script>
+<script src="./dico/motus-words.js?v=1.23.0"></script>
+<script src="./dico/motus-prenoms.js?v=1.23.0"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.23.0"></script>
+<script src="./dico/motus-maladies.js?v=1.23.0"></script>
+<script src="./dico/motus-maladies-info.js?v=1.23.0"></script>
+<script src="./dico/motus-villes.js?v=1.23.0"></script>
+<script src="./dico/motus-villes-info.js?v=1.23.0"></script>
+<script src="./dico/motus-race.js?v=1.23.0"></script>
+<script src="./dico/motus-expert.js?v=1.23.0"></script>
+<script src="./profiles/config.js?v=1.23.0"></script>
+<script src="./profiles/profile.js?v=1.23.0"></script>
+<script src="./duel/duel.js?v=1.23.0"></script>
 <script>
 (() => {
   "use strict";
@@ -609,7 +615,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.22.2";
+  const VERSION = "1.23.0";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -1523,6 +1529,7 @@
     document.querySelectorAll("#duelTabs .dtab").forEach(x=>x.classList.toggle("active", x.dataset.dt==="quick"));
     $("duelCodeShow").style.display=""; const sh=$("duelShare"); if(sh) sh.style.display="";
     const spy=$("duelSpy"); if(spy){ spy.classList.remove("show"); spy.innerHTML=""; }
+    const eb=$("duelElo"); if(eb){ eb.classList.remove("show"); eb.innerHTML=""; }
     duelShowStep(1); duelSetMsg(""); $("duelWord").value=""; $("duelCode").value=""; $("duelJoinBox").style.display="none";
     mpShowCount("duel"); mpShowLastCode("duel");
     [6,7,8].forEach(loadDicoForce);        // pour valider le mot proposé
@@ -1691,7 +1698,8 @@
 
   function duelShowOpponent(d){
     $("oppName").textContent = d.opp.pseudo || "Anonyme";
-    $("oppLevel").textContent = "Niveau " + (d.opp.level||1);
+    $("oppLevel").textContent = "Niveau " + (d.opp.level||1)
+      + (d.oppElo ? " · ⚔️ " + d.oppElo : "");
     $("oppBadge").textContent = d.opp.badge || "🎖️";
     duelShowStep(3);
   }
@@ -1761,6 +1769,7 @@
     rw.textContent = myFound ? "" : ("Le mot était " + (duelRow.target||answer));
     rw.style.display = myFound ? "none" : "block";
     $("duelScore").innerHTML = duelScoreHTML();
+    duelShowElo(duelRow);
     duelDrawSpy(duelRow);
     $("duelReplay").style.display = "";
     const off0=$("duelRematchOffer"); off0.classList.remove("show"); off0.dataset.shownFor="";
@@ -1775,6 +1784,19 @@
       });
     }
     duelResultWatch();
+  }
+
+  /* Variation de classement Elo, calculée par la base et simplement affichée. */
+  function duelShowElo(d){
+    const box=$("duelElo"); if(!box) return;
+    if(!d || d.myDelta == null){ box.classList.remove("show"); return; }
+    const n = d.myDelta;
+    const sign = n>0 ? "+" : "";
+    const cls = n>0 ? "up" : (n<0 ? "down" : "");
+    const base = (d.myElo != null) ? (d.myElo + n) : null;
+    box.innerHTML = '⚔️ Classement <span class="'+cls+'">'+sign+n+'</span>'
+      + (base != null ? '<small>Tu es maintenant à '+base+' points</small>' : "");
+    box.classList.add("show");
   }
 
   /* Suivi en direct de la grille adverse. Il devine le mot que J'AI choisi,
