@@ -170,6 +170,10 @@
         ? { tries: d.p1_tries, ms: d.p1_ms, done: !!d.p1_done, won: !!d.p1_won }
         : { tries: d.p2_tries, ms: d.p2_ms, done: !!d.p2_done, won: !!d.p2_won };
       d.oppEmote = d.side === 2 ? (d.p1_emote || "") : (d.p2_emote || "");
+      // classement Elo : calculé et écrit par la base, jamais par le client
+      d.myElo    = d.side === 2 ? d.p2_elo : d.p1_elo;
+      d.oppElo   = d.side === 2 ? d.p1_elo : d.p2_elo;
+      d.myDelta  = d.side === 2 ? d.p2_elo_delta : d.p1_elo_delta;
       var raw = d.side === 2 ? (d.p1_moves || "") : (d.p2_moves || "");
       d.oppMoves = raw ? show(raw).split(",").filter(Boolean) : [];
       d.rematch = d.rematch_code || "";

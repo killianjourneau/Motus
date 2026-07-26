@@ -32,6 +32,17 @@ alter table duels add column if not exists words text;
 alter table duels add column if not exists p1_moves text;
 alter table duels add column if not exists p2_moves text;
 
+-- Classement Elo du Duel. Le calcul est fait par la base (voir duel_apply_elo) :
+-- elle possède déjà les deux résultats, donc le verdict n'est pas manipulable
+-- depuis un téléphone. Le client lit ces valeurs mais ne les écrit jamais.
+alter table profiles add column if not exists elo int default 1000;
+alter table profiles add column if not exists elo_games int default 0;
+alter table duels add column if not exists p1_elo int;
+alter table duels add column if not exists p2_elo int;
+alter table duels add column if not exists p1_elo_delta int;
+alter table duels add column if not exists p2_elo_delta int;
+create index if not exists profiles_elo_idx on profiles (elo desc);
+
 -- Salon public : visible par tous, rejoignable sans code.
 alter table duels add column if not exists is_public boolean default false;
 create index if not exists duels_public_idx
@@ -66,8 +77,9 @@ begin
                                  1 + floor(random() * 32)::int, 1);
     end loop;
     begin
-      insert into duels (id, status, p1_id, p1_pseudo, p1_level, p1_badge, word1)
-      values (v_code, 'waiting', p_id, p_pseudo, p_level, p_badge, p_word)
+      insert into duels (id, status, p1_id, p1_pseudo, p1_level, p1_badge, word1, p1_elo)
+      values (v_code, 'waiting', p_id, p_pseudo, p_level, p_badge, p_word,
+              coalesce((select elo from profiles where id = p_id), 1000))
       returning * into v_row;
       return v_row;
     exception when unique_violation then
@@ -85,6 +97,7 @@ begin
   update duels set
     p2_id = p_id, p2_pseudo = p_pseudo, p2_level = p_level, p2_badge = p_badge,
     word2 = p_word, status = 'playing',
+    p2_elo = coalesce((select elo from profiles where id = p_id), 1000),
     started_at = coalesce(started_at, now())
   where id = v_code
     and p1_id <> p_id
@@ -135,6 +148,8 @@ begin
 
   if coalesce(v_row.p1_done,false) and coalesce(v_row.p2_done,false) then
     update duels set status = 'done' where id = v_code returning * into v_row;
+    perform duel_apply_elo(v_code);                       -- classement mis à jour une seule fois
+    select * into v_row from duels where id = v_code;     -- on renvoie la ligne avec les deltas
   end if;
   return v_row;
 end $$;
@@ -371,6 +386,55 @@ begin
   return v_row;
 end $$;
 
+-- ---------- Classement Elo (Duel uniquement) ----------
+-- Appelée une seule fois par duel, quand les deux joueurs ont terminé.
+create or replace function duel_apply_elo(p_code text)
+returns void language plpgsql security definer as $$
+declare
+  d duels; ea numeric; sa numeric;
+  ra int; rb int; ga int; gb int; ka int; kb int; na int; nb int;
+begin
+  select * into d from duels where id = p_code for update;
+  if d.id is null then return; end if;
+  if coalesce(d.kind,'duel') <> 'duel' then return; end if;      -- la Course n'est pas classée
+  if d.p1_id is null or d.p2_id is null or d.p1_id = d.p2_id then return; end if;
+  if not (coalesce(d.p1_done,false) and coalesce(d.p2_done,false)) then return; end if;
+  if d.p1_elo_delta is not null then return; end if;              -- déjà appliqué
+
+  select coalesce(elo,1000), coalesce(elo_games,0) into ra, ga from profiles where id = d.p1_id;
+  if not found then ra := 1000; ga := 0; end if;
+  select coalesce(elo,1000), coalesce(elo_games,0) into rb, gb from profiles where id = d.p2_id;
+  if not found then rb := 1000; gb := 0; end if;
+
+  -- verdict : exactement les règles du jeu (le moins d'essais, puis le temps)
+  if coalesce(d.p1_won,false) and not coalesce(d.p2_won,false) then sa := 1;
+  elsif coalesce(d.p2_won,false) and not coalesce(d.p1_won,false) then sa := 0;
+  elsif coalesce(d.p1_won,false) and coalesce(d.p2_won,false) then
+    if    coalesce(d.p1_tries,99) < coalesce(d.p2_tries,99) then sa := 1;
+    elsif coalesce(d.p2_tries,99) < coalesce(d.p1_tries,99) then sa := 0;
+    elsif coalesce(d.p1_ms,0) < coalesce(d.p2_ms,0) then sa := 1;
+    elsif coalesce(d.p2_ms,0) < coalesce(d.p1_ms,0) then sa := 0;
+    else sa := 0.5; end if;
+  else sa := 0.5; end if;                                          -- aucun n'a trouvé
+
+  ea := 1.0 / (1.0 + power(10.0, (rb - ra)::numeric / 400.0));
+  -- coefficient plus élevé tant que le classement n'est pas stabilisé
+  ka := case when ga < 10 then 40 else 24 end;
+  kb := case when gb < 10 then 40 else 24 end;
+
+  na := greatest(100, round(ra + ka * (sa - ea))::int);
+  nb := greatest(100, round(rb + kb * ((1 - sa) - (1 - ea)))::int);
+
+  insert into profiles (id, elo, elo_games) values (d.p1_id, na, ga + 1)
+    on conflict (id) do update set elo = excluded.elo, elo_games = excluded.elo_games;
+  insert into profiles (id, elo, elo_games) values (d.p2_id, nb, gb + 1)
+    on conflict (id) do update set elo = excluded.elo, elo_games = excluded.elo_games;
+
+  update duels set p1_elo = ra, p2_elo = rb,
+                   p1_elo_delta = na - ra, p2_elo_delta = nb - rb
+   where id = d.id;
+end $$;
+
 -- ---------- Droits ----------
 grant execute on function duel_create(uuid,text,int,text,text)            to anon, authenticated;
 grant execute on function duel_join(text,uuid,text,int,text,text)         to anon, authenticated;
@@ -385,3 +449,4 @@ grant execute on function duel_quick(uuid,text,int,text,text)             to ano
 grant execute on function race_quick(uuid,text,int,text,text)             to anon, authenticated;
 grant execute on function mp_waiting(text)                                to anon, authenticated;
 grant execute on function duel_moves(text,uuid,text)                      to anon, authenticated;
+grant execute on function duel_apply_elo(text)                            to anon, authenticated;
