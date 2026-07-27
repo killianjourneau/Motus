@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Motus Junior — reconnais le mot grâce à sa première lettre.">
+<meta name="description" content="Motus Junior — quatre petits jeux d'observation, dès 5 ans.">
 <title>Motus Junior</title>
 
 <link rel="manifest" href="./manifest.json">
@@ -57,19 +57,28 @@
     box-shadow:inset 0 0 0 1.5px var(--cell-edge); font-size:17px; cursor:pointer; }
   .icon-btn:active{ transform:scale(.93); }
 
-  .bar{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px clamp(12px,4vw,22px); }
+  .games{ display:grid; grid-template-columns:repeat(4,1fr); gap:6px; padding:8px clamp(12px,4vw,22px) 4px; }
+  .gm{ border:none; border-radius:12px; background:var(--cell); color:var(--ink-dim);
+    box-shadow:inset 0 0 0 1.5px var(--cell-edge); cursor:pointer; padding:7px 2px 6px;
+    display:flex; flex-direction:column; align-items:center; gap:2px; }
+  .gm .ic{ font-size:19px; line-height:1; }
+  .gm .tx{ font-size:10.5px; font-weight:800; }
+  .gm.on{ background:var(--accent); color:#fff; box-shadow:none; }
+
+  .bar{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:4px clamp(12px,4vw,22px) 6px; }
   .levels{ display:flex; gap:6px; }
-  .lv{ height:34px; padding:0 14px; border:none; border-radius:10px; background:var(--cell); color:var(--ink-dim);
-    box-shadow:inset 0 0 0 1.5px var(--cell-edge); font-weight:800; font-size:13px; cursor:pointer; }
+  .lv{ height:32px; padding:0 13px; border:none; border-radius:10px; background:var(--cell); color:var(--ink-dim);
+    box-shadow:inset 0 0 0 1.5px var(--cell-edge); font-weight:800; font-size:12.5px; cursor:pointer; }
   .lv.on{ background:var(--accent); color:#fff; box-shadow:none; }
-  .score{ display:flex; align-items:center; gap:10px; font-weight:800; font-size:16px; }
+  .score{ display:flex; align-items:center; gap:10px; font-weight:800; font-size:15px; }
   .score .hearts{ letter-spacing:1px; }
+  .score .hearts.hide{ display:none; }
 
-  main{ flex:1; display:flex; flex-direction:column; align-items:center; gap:12px; padding:6px 10px 14px; }
+  main{ flex:1; display:flex; flex-direction:column; align-items:center; gap:12px; padding:2px 10px 14px; }
+  .ask{ font-size:16px; font-weight:800; text-align:center; min-height:22px; line-height:1.35; }
+  .ask b{ color:var(--accent); font-size:21px; }
 
-  .ask{ font-size:16px; font-weight:800; text-align:center; min-height:22px; }
-  .ask b{ color:var(--accent); font-size:22px; }
-
+  /* --- jeu des lettres --- */
   #word{ display:flex; gap:7px; flex-wrap:wrap; justify-content:center; }
   .tile{ width:var(--t); height:var(--t); border-radius:12px; background:var(--cell);
     box-shadow:inset 0 0 0 2px var(--cell-edge); display:grid; place-items:center;
@@ -77,19 +86,43 @@
   .tile.first{ background:var(--red); box-shadow:none; color:#fff; }
   .tile.done{ background:var(--accent); box-shadow:none; color:#fff; animation:pop .2s ease; }
   .tile.jump{ animation:jump .5s ease; }
-  @keyframes pop{ from{transform:scale(.7)} to{transform:scale(1)} }
-  @keyframes jump{ 0%,100%{transform:translateY(0)} 40%{transform:translateY(-16px)} }
-  #word.shake{ animation:shk .34s ease; }
-  @keyframes shk{ 0%,100%{transform:translateX(0)} 20%{transform:translateX(-9px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(4px)} }
 
+  /* --- grille de choix, commune à plusieurs jeux --- */
   #choices{ display:grid; gap:10px; width:100%; max-width:440px; }
-  #choices.c4{ grid-template-columns:repeat(2,1fr); }
-  #choices.c6{ grid-template-columns:repeat(3,1fr); }
+  #choices.c2{ grid-template-columns:repeat(2,1fr); }
+  #choices.c3{ grid-template-columns:repeat(3,1fr); }
   .ch{ border:none; border-radius:18px; background:var(--cell); box-shadow:inset 0 0 0 2px var(--cell-edge);
     color:var(--ink); aspect-ratio:1.15; font-size:min(15vw,54px); cursor:pointer; display:grid; place-items:center; }
   .ch:active{ transform:scale(.94); }
   .ch.wrong{ opacity:.28; box-shadow:inset 0 0 0 2px var(--absent); pointer-events:none; }
   .ch.good{ background:var(--accent); box-shadow:none; }
+
+  /* --- jeu du comptage --- */
+  #countBox{ display:flex; flex-wrap:wrap; gap:10px; justify-content:center; align-items:center;
+    max-width:420px; min-height:130px; padding:12px; background:var(--cell); border-radius:18px;
+    box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
+  #countBox span{ font-size:min(11vw,40px); line-height:1; animation:pop .2s ease; }
+  .nums{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; max-width:440px; }
+  .num{ width:56px; height:56px; border:none; border-radius:16px; background:var(--cell); color:var(--ink);
+    box-shadow:inset 0 0 0 2px var(--cell-edge); font-size:24px; font-weight:800; cursor:pointer; }
+  .num:active{ transform:scale(.93); }
+  .num.wrong{ opacity:.3; pointer-events:none; }
+  .num.good{ background:var(--accent); color:#fff; box-shadow:none; }
+
+  /* --- jeu de mémoire --- */
+  #memo{ display:grid; gap:9px; width:100%; max-width:400px; }
+  #memo.m3{ grid-template-columns:repeat(3,1fr); }
+  #memo.m4{ grid-template-columns:repeat(4,1fr); }
+  .card{ aspect-ratio:1; border:none; border-radius:16px; background:var(--accent); cursor:pointer;
+    display:grid; place-items:center; font-size:min(11vw,38px); color:transparent; transition:background .18s; }
+  .card.up{ background:var(--cell); box-shadow:inset 0 0 0 2px var(--cell-edge); color:var(--ink); }
+  .card.done{ background:var(--cell); box-shadow:none; opacity:.4; color:var(--ink); pointer-events:none; }
+  .card:active{ transform:scale(.95); }
+
+  @keyframes pop{ from{transform:scale(.7)} to{transform:scale(1)} }
+  @keyframes jump{ 0%,100%{transform:translateY(0)} 40%{transform:translateY(-16px)} }
+  .shake{ animation:shk .34s ease; }
+  @keyframes shk{ 0%,100%{transform:translateX(0)} 20%{transform:translateX(-9px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(4px)} }
 
   .overlay{ position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; padding:18px; z-index:100; }
   .overlay.open{ display:flex; }
@@ -100,6 +133,7 @@
   .big{ font-size:44px; font-weight:800; margin:6px 0; color:var(--accent); }
   .btn{ width:100%; height:52px; border:none; border-radius:14px; background:var(--accent); color:#fff;
     font-weight:800; font-size:17px; cursor:pointer; margin-top:8px; }
+  .btn.ghost{ background:var(--cell); color:var(--ink); box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
   .btn:active{ transform:scale(.97); }
   .rules{ text-align:left; list-style:none; }
   .rules li{ padding:10px 12px; margin-bottom:7px; background:var(--cell); border-radius:12px;
@@ -117,6 +151,13 @@
     </div>
   </header>
 
+  <div class="games" id="games">
+    <button class="gm" data-g="intrus"><span class="ic">🧩</span><span class="tx">Intrus</span></button>
+    <button class="gm" data-g="compter"><span class="ic">🔢</span><span class="tx">Compter</span></button>
+    <button class="gm" data-g="memo"><span class="ic">🧠</span><span class="tx">Mémoire</span></button>
+    <button class="gm" data-g="lettre"><span class="ic">🔠</span><span class="tx">Lettres</span></button>
+  </div>
+
   <div class="bar">
     <div class="levels">
       <button class="lv on" data-lv="facile">Facile</button>
@@ -131,7 +172,10 @@
   <main>
     <div class="ask" id="ask"></div>
     <div id="word"></div>
-    <div id="choices" class="c4"></div>
+    <div id="countBox" style="display:none"></div>
+    <div id="choices"></div>
+    <div class="nums" id="nums" style="display:none"></div>
+    <div id="memo" style="display:none"></div>
   </main>
 
   <div class="overlay" id="endOverlay">
@@ -146,42 +190,43 @@
 
   <div class="overlay" id="confirmOverlay">
     <div class="modal">
-      <h2>Changer de niveau ?</h2>
-      <p id="confirmMsg">Tu vas recommencer une nouvelle partie.</p>
-      <button class="btn" id="confirmYes">Oui, changer</button>
-      <button class="btn" id="confirmNo" style="background:var(--cell); color:var(--ink); box-shadow:inset 0 0 0 1.5px var(--cell-edge);">Non, continuer</button>
+      <h2>Recommencer ?</h2>
+      <p>Ta partie en cours va repartir de zéro.</p>
+      <button class="btn" id="confirmYes">Oui</button>
+      <button class="btn ghost" id="confirmNo">Non, continuer</button>
     </div>
   </div>
 
   <div class="overlay" id="helpOverlay">
     <div class="modal">
       <h2>Comment jouer</h2>
-      <ul class="rules">
-        <li>Un mot est caché. Tu vois sa <b>première lettre</b> et le nombre de lettres.</li>
-        <li>Touche l'image du mot qui commence par cette lettre.<br>Exemple : <b>K</b> ➜ le 🥝 <b>kiwi</b>.</li>
-        <li>Bonne réponse : le mot s'écrit et tu gagnes une <b>⭐ étoile</b>.</li>
-        <li>Erreur : tu perds un <b>❤️ cœur</b>. Avec trois erreurs, la partie s'arrête.</li>
-      </ul>
+      <ul class="rules" id="helpRules"></ul>
       <button class="btn" id="btnHelpOk">J'ai compris</button>
     </div>
   </div>
 
-<script src="./dico/motus-enfant.js?v=1.23.0"></script>
+<script src="./dico/motus-enfant.js?v=1.24.0"></script>
 <script>
 (function(){
   "use strict";
   var $ = function(id){ return document.getElementById(id); };
-  var IMAGES = (window.MOTUS_ENFANT && window.MOTUS_ENFANT.images) || [{e:"🐱",m:"CHAT"}];
-  var LIVES = 3;
+  var DATA   = window.MOTUS_ENFANT || {};
+  var IMAGES = DATA.images || [{e:"🐱",m:"CHAT",c:"animal"}];
+  var CATS   = DATA.cats || {};
+  var LIVES  = 3;
 
   var store = {
     get:function(k,d){ try{ var v=localStorage.getItem(k); return v===null?d:JSON.parse(v); }catch(e){ return d; } },
     set:function(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
   };
 
+  var game   = store.get("motus.enfant.game","intrus");   // sans lecture par défaut : jouable dès 5 ans
   var level  = store.get("motus.enfant.level","facile");
-  var best   = store.get("motus.enfant.best",0);
-  var target = null, choices = [], lives = LIVES, stars = 0, locked = false;
+  var best   = store.get("motus.enfant.best",{}) || {};
+  var lives = LIVES, stars = 0, locked = false;
+  var target = null, choices = [];        // lettres / intrus
+  var countN = 0;                          // comptage
+  var memo = [], memoUp = [], memoDone = 0; // mémoire
 
   /* ---------- thème ---------- */
   var theme = store.get("motus.theme","dark");
@@ -196,140 +241,312 @@
 
   /* ---------- outils ---------- */
   function shuffle(a){ for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var x=a[i]; a[i]=a[j]; a[j]=x; } return a; }
-  function pickOne(a){ return a[Math.floor(Math.random()*a.length)]; }
+  function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
   function vibrate(p){ try{ if(navigator.vibrate) navigator.vibrate(p); }catch(e){} }
+  function byCat(c){ return IMAGES.filter(function(x){ return x.c===c; }); }
+  function group(c){ return (CATS[c]||{}).g || c; }
+  function catName(c){ return (CATS[c]||{}).n || "autre chose"; }
+  function shakeEl(id){ var e=$(id); if(!e) return; e.classList.add("shake"); setTimeout(function(){ e.classList.remove("shake"); }, 350); }
+  function hide(){ ["word","countBox","choices","nums","memo"].forEach(function(id){ $(id).style.display="none"; $(id).innerHTML=""; }); }
 
-  /* ---------- affichage ---------- */
+  function paintScore(){
+    var h=$("hearts");
+    h.classList.toggle("hide", game==="memo");        // en mémoire, se tromper ne coûte rien
+    h.textContent = "❤️".repeat(Math.max(0,lives)) + "🖤".repeat(Math.max(0,LIVES-lives));
+    $("stars").textContent = "⭐ " + stars;
+  }
+  function bestKey(){ return game + ":" + level; }
+  function bestVal(){ return best[bestKey()] || 0; }
+
+  /* =======================================================
+     JEU 1 — L'INTRUS  (aucune lecture : dès 5 ans)
+     ======================================================= */
+  function roundIntrus(){
+    var total = (level==="moyen") ? 6 : 4;
+    var voisines = function(c){
+      return Object.keys(CATS).filter(function(o){ return o!==c && byCat(o).length && group(o)===group(c); });
+    };
+    var cats = Object.keys(CATS).filter(function(c){
+      if(byCat(c).length < total) return false;
+      // en Plus dur, la famille doit avoir une famille voisine, sinon l'intrus saute aux yeux
+      return (level==="moyen") ? voisines(c).length > 0 : true;
+    });
+    var c = pick(cats);
+    // Facile : l'intrus vient d'un tout autre univers. Plus dur : univers voisin.
+    var others = (level==="moyen")
+      ? voisines(c)
+      : Object.keys(CATS).filter(function(o){ return o!==c && byCat(o).length && group(o)!==group(c); });
+    if(!others.length) others = Object.keys(CATS).filter(function(o){ return o!==c && byCat(o).length; });
+    var oc = pick(others);
+    var same = shuffle(byCat(c).slice()).slice(0, total-1);
+    var odd  = pick(byCat(oc));
+    target = odd; target.__cat = c;
+    choices = shuffle(same.concat([odd]));
+
+    var box = $("choices");
+    box.style.display=""; box.className = (total===6) ? "c3" : "c2";
+    box.innerHTML = choices.map(function(x,i){
+      return '<button class="ch" data-i="'+i+'" aria-label="Choix '+(i+1)+'">'+x.e+'</button>';
+    }).join("");
+    Array.prototype.forEach.call(box.querySelectorAll(".ch"), function(b){
+      b.addEventListener("click", function(){ answerIntrus(+b.dataset.i, b); });
+    });
+    $("ask").innerHTML = "Touche celui qui n'est <b>pas comme les autres</b>";
+  }
+  function answerIntrus(i, btn){
+    if(locked) return;
+    if(choices[i].m === target.m){
+      locked = true; btn.classList.add("good");
+      win("Bravo ! " + target.m + ", ce n'est pas " + catName(target.__cat) + ".");
+      return;
+    }
+    btn.classList.add("wrong");
+    loseLife("Non : " + choices[i].m + ", c'est " + catName(target.__cat) + ", comme les autres.",
+             "L'intrus, c'était " + target.m + ".");
+  }
+
+  /* =======================================================
+     JEU 2 — COMPTER  (aucune lecture : dès 5 ans)
+     ======================================================= */
+  function roundCompter(){
+    target = null;                       // ce jeu ne révèle pas de mot en fin de partie
+    var max = (level==="moyen") ? 9 : 5;
+    countN = 1 + Math.floor(Math.random()*max);
+    var img = pick(IMAGES);
+    var box = $("countBox"); box.style.display="flex";
+    box.innerHTML = new Array(countN+1).join('<span>'+img.e+'</span>');
+
+    var nums = $("nums"); nums.style.display="flex";
+    var html=""; for(var n=1;n<=max;n++) html += '<button class="num" data-n="'+n+'">'+n+'</button>';
+    nums.innerHTML = html;
+    Array.prototype.forEach.call(nums.querySelectorAll(".num"), function(b){
+      b.addEventListener("click", function(){ answerCompter(+b.dataset.n, b); });
+    });
+    $("ask").innerHTML = "Combien y en a-t-il ?";
+  }
+  function answerCompter(n, btn){
+    if(locked) return;
+    if(n === countN){
+      locked = true; btn.classList.add("good");
+      win("Bravo ! Il y en a bien " + countN + ".");
+      return;
+    }
+    btn.classList.add("wrong");
+    loseLife(n < countN ? "Non, il y en a plus que " + n + "." : "Non, il y en a moins que " + n + ".",
+             "Il y en avait " + countN + ".");
+  }
+
+  /* =======================================================
+     JEU 3 — MÉMOIRE  (aucune lecture : dès 5 ans)
+     ======================================================= */
+  function roundMemo(){
+    target = null;
+    var pairs = (level==="moyen") ? 8 : 3;
+    var chosen = shuffle(IMAGES.slice()).slice(0, pairs);
+    memo = shuffle(chosen.concat(chosen).map(function(x,i){ return {e:x.e, m:x.m, id:i}; }));
+    memoUp = []; memoDone = 0;
+    var box = $("memo"); box.style.display="grid";
+    box.className = (pairs>=6) ? "m4" : "m3";
+    box.innerHTML = memo.map(function(c,i){
+      return '<button class="card" data-i="'+i+'" aria-label="Carte '+(i+1)+'">'+c.e+'</button>';
+    }).join("");
+    Array.prototype.forEach.call(box.querySelectorAll(".card"), function(b){
+      b.addEventListener("click", function(){ flip(+b.dataset.i, b); });
+    });
+    $("ask").innerHTML = "Retrouve les <b>paires</b> identiques";
+  }
+  function flip(i, btn){
+    if(locked || btn.classList.contains("up") || btn.classList.contains("done")) return;
+    btn.classList.add("up");
+    memoUp.push({i:i, el:btn});
+    if(memoUp.length < 2) return;
+    locked = true;
+    var a = memoUp[0], b = memoUp[1];
+    if(memo[a.i].m === memo[b.i].m){
+      setTimeout(function(){
+        a.el.classList.add("done"); b.el.classList.add("done");
+        memoUp = []; memoDone++; locked = false;
+        stars++; paintScore(); vibrate([10]);
+        $("ask").innerHTML = "Bravo ! Une paire de <b>" + memo[a.i].m + "</b>";
+        if(memoDone * 2 === memo.length){
+          locked = true;
+          setTimeout(function(){ endRun(null, "Tableau terminé !"); }, 900);
+        }
+      }, 320);
+    } else {
+      vibrate([25]);
+      setTimeout(function(){
+        a.el.classList.remove("up"); b.el.classList.remove("up");
+        memoUp = []; locked = false;
+        $("ask").innerHTML = "Pas pareil — essaie encore !";
+      }, 900);
+    }
+  }
+
+  /* =======================================================
+     JEU 4 — LES LETTRES  (demande de connaître l'alphabet)
+     ======================================================= */
   function sizeTiles(n){
     var w = Math.min(window.innerWidth-28, 420);
     var t = Math.floor(Math.min((w-(n-1)*7)/n, 54));
     document.documentElement.style.setProperty("--t", Math.max(26,t)+"px");
   }
   function drawWord(reveal){
-    var m = target.m;
-    sizeTiles(m.length);
+    var m = target.m; sizeTiles(m.length);
     var html = "";
     for(var i=0;i<m.length;i++){
       if(i===0) html += '<div class="tile first">'+m[0]+'</div>';
       else if(reveal) html += '<div class="tile done">'+m[i]+'</div>';
       else html += '<div class="tile"></div>';
     }
-    $("word").innerHTML = html;
+    $("word").innerHTML = html; $("word").style.display="flex";
   }
-  function paintScore(){
-    $("hearts").textContent = "❤️".repeat(Math.max(0,lives)) + "🖤".repeat(Math.max(0,LIVES-lives));
-    $("stars").textContent = "⭐ " + stars;
-  }
-
-  /* ---------- tirage ---------- */
-  /* Facile : toutes les intruses commencent par une AUTRE lettre — reconnaître
-     l'initiale suffit. Plus dur : au moins deux intruses partagent la même
-     initiale, il faut donc aussi regarder la longueur du mot. */
-  function newRound(){
-    locked = false;
-    target = pickOne(IMAGES);
+  function roundLettre(){
+    target = pick(IMAGES);
     var ini = target.m[0];
     var others = IMAGES.filter(function(x){ return x.m !== target.m; });
     var diff = shuffle(others.filter(function(x){ return x.m[0] !== ini; }));
     var same = shuffle(others.filter(function(x){ return x.m[0] === ini && x.m.length !== target.m.length; }));
-
     var total = (level==="moyen") ? 6 : 4;
-    var picked = [];
-    if(level==="moyen") picked = same.slice(0,2);
+    var picked = (level==="moyen") ? same.slice(0,2) : [];
     picked = picked.concat(diff.slice(0, total-1-picked.length));
     choices = shuffle(picked.concat([target]));
 
     var box = $("choices");
-    box.className = (total===6) ? "c6" : "c4";
+    box.style.display=""; box.className = (total===6) ? "c3" : "c2";
     box.innerHTML = choices.map(function(x,i){
       return '<button class="ch" data-i="'+i+'" aria-label="Choix '+(i+1)+'">'+x.e+'</button>';
     }).join("");
     Array.prototype.forEach.call(box.querySelectorAll(".ch"), function(b){
-      b.addEventListener("click", function(){ answer(+b.dataset.i, b); });
+      b.addEventListener("click", function(){ answerLettre(+b.dataset.i, b); });
     });
-
     $("ask").innerHTML = 'Quel mot commence par <b>'+ini+'</b> ?';
     drawWord(false);
   }
-
-  /* ---------- réponse ---------- */
-  function answer(i, btn){
+  function answerLettre(i, btn){
     if(locked) return;
     if(choices[i].m === target.m){
-      locked = true;
-      btn.classList.add("good");
-      stars++; paintScore();
-      if(stars > best){ best = stars; store.set("motus.enfant.best", best); }
+      locked = true; btn.classList.add("good");
       drawWord(true);
-      vibrate([12,40,12]);
       var tiles = $("word").querySelectorAll(".tile");
       Array.prototype.forEach.call(tiles, function(t,k){ setTimeout(function(){ t.classList.add("jump"); }, k*70); });
-      $("ask").innerHTML = 'Bravo ! C\'est le mot <b>'+target.m+'</b>';
-      setTimeout(newRound, 1500);
+      win("Bravo ! C'est le mot " + target.m);
       return;
     }
     btn.classList.add("wrong");
-    lives--; paintScore();
-    vibrate([30,60,30]);
-    $("word").classList.add("shake");
-    setTimeout(function(){ $("word").classList.remove("shake"); }, 350);
-    if(lives<=0){
-      locked = true;
-      // on explique la derniere erreur ET on revele le mot avant la fin de partie
-      $("ask").innerHTML = 'Non : ça, c\'est <b>'+choices[i].m+'</b>. Le mot cherché était <b>'+target.m+'</b> !';
-      setTimeout(function(){ endRun(target); }, 1400);
-      return;
-    }
-    // on explique l'erreur : nommer l'image touchée, et preciser la longueur
-    // (utile en "Plus dur", ou une autre image peut commencer par la meme lettre)
-    $("ask").innerHTML = 'Non : ça, c\'est <b>'+choices[i].m+'</b>. Cherche un mot de <b>'+target.m.length+' lettres</b> qui commence par <b>'+target.m[0]+'</b> !';
+    loseLife("Non : ça, c'est " + choices[i].m + ". Cherche un mot de " + target.m.length + " lettres qui commence par " + target.m[0] + " !",
+             "Le mot cherché était " + target.m + ".");
   }
 
-  function endRun(missed){
-    $("endTitle").textContent = stars>0 ? "Bien joué !" : "On réessaie ?";
+  /* =======================================================
+     Déroulement commun
+     ======================================================= */
+  function win(msg){
+    stars++; paintScore(); vibrate([12,40,12]);
+    $("ask").innerHTML = msg;
+    setTimeout(newRound, 1400);
+  }
+  /* msg = explication de l'erreur ; last = ce qu'on révèle si c'était la dernière vie */
+  function loseLife(msg, last){
+    lives--; paintScore(); vibrate([30,60,30]);
+    shakeEl(game==="lettre" ? "word" : "choices");
+    if(lives<=0){
+      locked = true;
+      $("ask").innerHTML = msg + " " + last;
+      setTimeout(function(){ endRun(target); }, 1600);
+      return;
+    }
+    $("ask").innerHTML = msg;
+  }
+
+  function newRound(){
+    locked = false; hide();
+    if(game==="intrus")       roundIntrus();
+    else if(game==="compter") roundCompter();
+    else if(game==="memo")    roundMemo();
+    else                      roundLettre();
+  }
+
+  function endRun(missed, title){
+    var b = bestVal();
+    if(stars > b){ best[bestKey()] = stars; store.set("motus.enfant.best", best); b = stars; }
+    $("endTitle").textContent = title || (stars>0 ? "Bien joué !" : "On réessaie ?");
     $("endStars").textContent = "⭐ " + stars;
-    $("endSub").textContent = (stars>=best && stars>0)
-      ? "C'est ton meilleur score !"
-      : "Ton record : " + best + (best>1 ? " étoiles" : " étoile");
+    $("endSub").textContent = (stars>=b && stars>0) ? "C'est ton meilleur score !"
+      : "Ton record : " + b + (b>1 ? " étoiles" : " étoile");
     var ew = $("endWord");
-    if(missed){ ew.innerHTML = 'Le mot était <b>'+missed.m+'</b> '+missed.e; ew.style.display="block"; }
+    if(missed){ ew.innerHTML = 'C\'était <b>'+missed.m+'</b> '+missed.e; ew.style.display="block"; }
     else { ew.style.display="none"; }
     $("endOverlay").classList.add("open");
   }
   function startRun(){
     $("endOverlay").classList.remove("open");
-    lives = LIVES; stars = 0; paintScore(); newRound();
+    lives = LIVES; stars = 0; locked = false;
+    paintScore(); newRound();
+  }
+
+  /* ---------- changement de jeu ou de niveau ---------- */
+  function hasProgress(){ return stars>0 || lives<LIVES; }
+  function askSwitch(apply){
+    if(!hasProgress()){ apply(); return; }
+    $("confirmOverlay").classList.add("open");
+    $("confirmYes").onclick = function(){ $("confirmOverlay").classList.remove("open"); apply(); };
+    $("confirmNo").onclick  = function(){ $("confirmOverlay").classList.remove("open"); };
+  }
+  function paintPickers(){
+    Array.prototype.forEach.call(document.querySelectorAll(".gm"), function(x){ x.classList.toggle("on", x.dataset.g===game); });
+    Array.prototype.forEach.call(document.querySelectorAll(".lv"), function(x){ x.classList.toggle("on", x.dataset.lv===level); });
+  }
+  Array.prototype.forEach.call(document.querySelectorAll(".gm"), function(b){
+    b.addEventListener("click", function(){
+      if(b.dataset.g === game) return;
+      askSwitch(function(){
+        game = b.dataset.g; store.set("motus.enfant.game", game);
+        paintPickers(); startRun();
+      });
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll(".lv"), function(b){
+    b.addEventListener("click", function(){
+      if(b.dataset.lv === level) return;
+      askSwitch(function(){
+        level = b.dataset.lv; store.set("motus.enfant.level", level);
+        paintPickers(); startRun();
+      });
+    });
+  });
+
+  /* ---------- aide, adaptée au jeu en cours ---------- */
+  var HELP = {
+    intrus: ["Quatre images sont affichées. Trois vont ensemble, une seule est différente.",
+             "Touche <b>l'intrus</b> : celui qui n'est pas comme les autres.",
+             "En <b>Plus dur</b>, l'intrus ressemble davantage aux autres."],
+    compter:["Des images apparaissent. Compte-les !",
+             "Touche le <b>bon chiffre</b> en dessous.",
+             "En <b>Facile</b> on compte jusqu'à 5, en <b>Plus dur</b> jusqu'à 9."],
+    memo:   ["Toutes les cartes cachent une image.",
+             "Touche deux cartes : si elles sont <b>identiques</b>, elles restent retournées et tu gagnes une ⭐.",
+             "Se tromper ne coûte rien : prends ton temps !"],
+    lettre: ["Un mot est caché. Tu vois sa <b>première lettre</b> et le nombre de lettres.",
+             "Touche l'image du mot qui commence par cette lettre. Exemple : <b>K</b> ➜ le 🥝 kiwi.",
+             "Erreur : tu perds un ❤️. Avec trois erreurs, la partie s'arrête."]
+  };
+  function fillHelp(){
+    $("helpRules").innerHTML = (HELP[game]||[]).map(function(t){ return "<li>"+t+"</li>"; }).join("");
   }
 
   /* ---------- écouteurs ---------- */
   $("btnAgain").addEventListener("click", startRun);
   $("btnGame").addEventListener("click", function(){ location.href="./index.html"; });
-  $("btnHelp").addEventListener("click", function(){ $("helpOverlay").classList.add("open"); });
+  $("btnHelp").addEventListener("click", function(){ fillHelp(); $("helpOverlay").classList.add("open"); });
   $("btnHelpOk").addEventListener("click", function(){ $("helpOverlay").classList.remove("open"); });
-  // vrai s'il y a une progression en cours qui serait perdue (au moins une etoile
-  // ou un coeur deja entame) : dans ce cas on demande avant de recommencer.
-  function hasProgress(){ return stars>0 || lives<LIVES; }
-  function switchLevel(lv){
-    level = lv; store.set("motus.enfant.level", level);
-    Array.prototype.forEach.call(document.querySelectorAll(".lv"), function(x){ x.classList.toggle("on", x.dataset.lv===level); });
-    startRun();
-  }
-  Array.prototype.forEach.call(document.querySelectorAll(".lv"), function(b){
-    b.addEventListener("click", function(){
-      if(b.dataset.lv === level) return;              // deja ce niveau : on ne touche a rien
-      if(!hasProgress()){ switchLevel(b.dataset.lv); return; }
-      $("confirmOverlay").classList.add("open");
-      $("confirmYes").onclick = function(){ $("confirmOverlay").classList.remove("open"); switchLevel(b.dataset.lv); };
-      $("confirmNo").onclick = function(){ $("confirmOverlay").classList.remove("open"); };
-    });
-  });
-  window.addEventListener("resize", function(){ if(target) sizeTiles(target.m.length); });
+  window.addEventListener("resize", function(){ if(game==="lettre" && target) sizeTiles(target.m.length); });
 
   /* ---------- démarrage ---------- */
   applyTheme();
-  Array.prototype.forEach.call(document.querySelectorAll(".lv"), function(x){ x.classList.toggle("on", x.dataset.lv===level); });
+  paintPickers();
   startRun();
-  if(!store.get("motus.enfant.seen2",false)){ $("helpOverlay").classList.add("open"); store.set("motus.enfant.seen2",true); }
+  if(!store.get("motus.enfant.seen3",false)){ fillHelp(); $("helpOverlay").classList.add("open"); store.set("motus.enfant.seen3",true); }
 })();
 </script>
 </body>
