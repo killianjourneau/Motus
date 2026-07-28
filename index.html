@@ -136,6 +136,17 @@
   .race-th{ border:none; border-radius:11px; background:var(--cell); box-shadow:inset 0 0 0 1.5px var(--cell-edge); color:var(--ink); height:44px; font-weight:700; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px; }
   .race-th.sel{ background:var(--accent); color:#fff; box-shadow:none; }
   .race-th:disabled{ opacity:.35; cursor:default; }
+  .rec-box{ display:none; margin:2px 0 12px; }
+  .rec-box.show{ display:block; }
+  .rec-t{ font-size:11px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.6px; font-weight:800; margin-bottom:7px; }
+  .rec-r{ display:flex; align-items:center; gap:8px; font-size:13px; padding:6px 10px; background:var(--cell); border-radius:9px; margin-bottom:5px; }
+  .rec-r .th{ width:78px; font-weight:800; flex:none; }
+  .rec-r .who{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--ink-dim); font-weight:700; }
+  .rec-r .tm{ font-weight:800; font-variant-numeric:tabular-nums; }
+  .rec-r.mine{ box-shadow:inset 0 0 0 1.5px var(--accent); }
+  .rec-r .none{ flex:1; color:var(--ink-dim); font-weight:700; font-style:italic; }
+  .rec-new{ display:none; text-align:center; font-size:15px; font-weight:800; color:var(--accent); margin:6px 0 2px; }
+  .rec-new.show{ display:block; }
   .race-brief{ text-align:center; font-size:14px; line-height:1.5; margin-bottom:14px; }
   .race-brief b{ font-size:16px; }
   #raceHud{ display:none; align-items:center; gap:7px; font-weight:800; }
@@ -447,6 +458,7 @@
           <p class="race-lbl">Mots à recopier</p>
           <div class="race-themes" id="raceThemes"></div>
         </div>
+        <div class="rec-box" id="raceRecords"></div>
         <div id="raceMsg" class="duel-msg"></div>
         <button class="btn" id="raceGo">Valider</button>
       </div>
@@ -472,6 +484,7 @@
       <div id="raceStep4" style="display:none">
         <div class="duel-res" id="raceResTitle">—</div>
         <p class="sub" id="raceResWhy"></p>
+        <div class="rec-new" id="raceRecNew"></div>
         <div class="duel-score" id="raceScore"></div>
         <div class="duel-rematch-offer" id="raceRematchOffer"></div>
         <button class="btn ghost emote-open" id="raceResEmote">💬 Envoyer une émote</button>
@@ -555,18 +568,18 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.25.0"></script>
-<script src="./dico/motus-prenoms.js?v=1.25.0"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.25.0"></script>
-<script src="./dico/motus-maladies.js?v=1.25.0"></script>
-<script src="./dico/motus-maladies-info.js?v=1.25.0"></script>
-<script src="./dico/motus-villes.js?v=1.25.0"></script>
-<script src="./dico/motus-villes-info.js?v=1.25.0"></script>
-<script src="./dico/motus-race.js?v=1.25.0"></script>
-<script src="./dico/motus-expert.js?v=1.25.0"></script>
-<script src="./profiles/config.js?v=1.25.0"></script>
-<script src="./profiles/profile.js?v=1.25.0"></script>
-<script src="./duel/duel.js?v=1.25.0"></script>
+<script src="./dico/motus-words.js?v=1.26.0"></script>
+<script src="./dico/motus-prenoms.js?v=1.26.0"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.26.0"></script>
+<script src="./dico/motus-maladies.js?v=1.26.0"></script>
+<script src="./dico/motus-maladies-info.js?v=1.26.0"></script>
+<script src="./dico/motus-villes.js?v=1.26.0"></script>
+<script src="./dico/motus-villes-info.js?v=1.26.0"></script>
+<script src="./dico/motus-race.js?v=1.26.0"></script>
+<script src="./dico/motus-expert.js?v=1.26.0"></script>
+<script src="./profiles/config.js?v=1.26.0"></script>
+<script src="./profiles/profile.js?v=1.26.0"></script>
+<script src="./duel/duel.js?v=1.26.0"></script>
 <script>
 (() => {
   "use strict";
@@ -615,7 +628,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.25.0";
+  const VERSION = "1.26.0";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -650,7 +663,7 @@
   let raceCode="", raceRow=null, raceStop=null, raceMode="quick", raceTheme="mots",
       raceList=[], raceIdx=0, raceLives=3, raceTyped="", raceStarted=false, raceReported=false,
       raceCounted=false, raceDeadline=0, raceWaitMsg="En attente d'un adversaire…",
-      raceRematchMine="", raceRematchOldCode="";
+      raceRematchMine="", raceRematchOldCode="", raceRecords=null, raceRecBefore=null;
   let duelCode="", duelRow=null, duelStop=null, duelReported=false, duelMode="quick", duelDeadline=0, duelStarted=false, duelCounted=false, duelLastEmote="", duelRematchMine="", duelRematchOldCode="", duelWaitMsg="En attente d'un adversaire…";
 
   const $ = id => document.getElementById(id);
@@ -1086,6 +1099,26 @@
     }
     return out;
   }
+  /* Meilleurs temps par thème, tenus par la base. */
+  function raceLoadRecords(){
+    const box=$("raceRecords"); if(!box || !window.Race || !Race.records) return;
+    box.classList.add("show");
+    box.innerHTML = '<div class="rec-t">Meilleurs temps</div><div class="rec-r"><span class="none">Chargement…</span></div>';
+    Race.records().then(by=>{
+      if(!by){ box.classList.remove("show"); box.innerHTML=""; return; }
+      raceRecords = by;
+      const me = (window.Profile && Profile.state && Profile.state.id) || "";
+      box.innerHTML = '<div class="rec-t">Meilleurs temps</div>' + RACE_THEMES.map(t=>{
+        const r = by[t.id];
+        if(!r) return '<div class="rec-r"><span class="th">'+t.e+' '+t.n+'</span><span class="none">à battre !</span></div>';
+        const mine = (r.player_id && r.player_id===me) ? " mine" : "";
+        const who = (r.pseudo||"Anonyme").replace(/[<>]/g,"");
+        return '<div class="rec-r'+mine+'"><span class="th">'+t.e+' '+t.n+'</span>'
+             + '<span class="who">'+who+'</span><span class="tm">'+fmtTime(r.ms||0)+'</span></div>';
+      }).join("");
+    });
+  }
+
   function raceThemeName(id){
     const t = RACE_THEMES.filter(x=>x.id===id)[0];
     return t ? t.n : "Mots";
@@ -1150,7 +1183,7 @@
     $("raceCodeShow").style.display=""; const sh=$("raceShare"); if(sh) sh.style.display="";
     raceBuildThemes();
     raceShowStep(1); raceSetMsg(""); $("raceCode").value=""; $("raceJoinBox").style.display="none";
-    mpShowCount("race"); mpShowLastCode("race");
+    mpShowCount("race"); mpShowLastCode("race"); raceLoadRecords();
     openOverlay("raceOverlay");
   }
   function raceStopWatch(){ if(raceStop){ raceStop(); raceStop=null; } }
@@ -1268,6 +1301,7 @@
     mode="race"; over=false; ended=false; won=false; guesses=[]; rowStates=[];
     raceIdx=0; raceLives=RACE_LIVES; raceTyped=""; raceStarted=true; raceReported=false;
     raceDeadline = (raceRow && raceRow.deadline) || (Date.now() + DUEL_LIMIT);
+    raceRecBefore = (raceRecords && raceRecords[raceTheme]) ? raceRecords[raceTheme].ms : null;
     duelLastEmote = (raceRow && raceRow.oppEmote) || "";
     setActiveSeg("race"); raceRender(); raceUpdateHud(); updateHud();
     timerStart(0);
@@ -1383,6 +1417,14 @@
     const v = Race.verdict(raceRow);
     $("raceResTitle").textContent = v.r==="win" ? "Victoire ! 🏆" : v.r==="lose" ? "Défaite" : "Égalité";
     $("raceResWhy").textContent = v.why;
+    // record du thème : la base tranche, on se contente de l'annoncer
+    const rn = $("raceRecNew");
+    const perf = raceRow.mine || {};
+    if(perf.won && perf.ms && (raceRecBefore===null || perf.ms < raceRecBefore)){
+      rn.innerHTML = "🏆 Nouveau record en " + raceThemeName(raceTheme) + " : " + fmtTime(perf.ms);
+      rn.classList.add("show");
+      raceRecords = null;                  // à recharger au prochain écran
+    } else rn.classList.remove("show");
     $("raceReplay").style.display="";
     const off=$("raceRematchOffer"); off.classList.remove("show"); off.dataset.shownFor="";
     raceShowStep(4); openOverlay("raceOverlay");
