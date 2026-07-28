@@ -32,6 +32,24 @@ alter table duels add column if not exists words text;
 alter table duels add column if not exists p1_moves text;
 alter table duels add column if not exists p2_moves text;
 
+-- Thème de la course, en clair : il n'a rien de secret (les deux joueurs le
+-- voient) et il permet à la base de tenir elle-même les records par thème.
+alter table duels add column if not exists race_theme text;
+
+-- Meilleur temps par thème. Écrit uniquement par race_record_check ci-dessous,
+-- donc non manipulable depuis un téléphone.
+create table if not exists race_records (
+  theme     text primary key,
+  player_id uuid,
+  pseudo    text,
+  ms        int,
+  words     int,
+  at        timestamptz default now()
+);
+alter table race_records enable row level security;
+drop policy if exists "lecture records" on race_records;
+create policy "lecture records" on race_records for select using (true);
+
 -- Classement Elo du Duel. Le calcul est fait par la base (voir duel_apply_elo) :
 -- elle possède déjà les deux résultats, donc le verdict n'est pas manipulable
 -- depuis un téléphone. Le client lit ces valeurs mais ne les écrit jamais.
@@ -146,6 +164,10 @@ begin
 
   if v_row.id is null then raise exception 'introuvable'; end if;
 
+  if coalesce(v_row.kind,'duel') = 'race' and p_won then
+    perform race_record_check(v_code, p_id);        -- suite terminée : record éventuel
+  end if;
+
   if coalesce(v_row.p1_done,false) and coalesce(v_row.p2_done,false) then
     update duels set status = 'done' where id = v_code returning * into v_row;
     perform duel_apply_elo(v_code);                       -- classement mis à jour une seule fois
@@ -197,8 +219,10 @@ end $$;
 --  pour que les deux joueurs recopient exactement les mêmes mots.
 -- ===================================================================
 
+-- Ancienne signature conservée pour les clients pas encore mis à jour :
+-- ils jouent normalement mais ne peuvent pas battre de record (thème inconnu).
 create or replace function race_create(
-  p_id uuid, p_pseudo text, p_level int, p_badge text, p_words text
+  p_id uuid, p_pseudo text, p_level int, p_badge text, p_words text, p_theme text
 ) returns duels language plpgsql security definer as $$
 declare v_code text; v_row duels; v_n int := 0;
 begin
@@ -211,8 +235,8 @@ begin
                                  1 + floor(random() * 32)::int, 1);
     end loop;
     begin
-      insert into duels (id, status, kind, p1_id, p1_pseudo, p1_level, p1_badge, words)
-      values (v_code, 'waiting', 'race', p_id, p_pseudo, p_level, p_badge, p_words)
+      insert into duels (id, status, kind, p1_id, p1_pseudo, p1_level, p1_badge, words, race_theme)
+      values (v_code, 'waiting', 'race', p_id, p_pseudo, p_level, p_badge, p_words, p_theme)
       returning * into v_row;
       return v_row;
     exception when unique_violation then
@@ -220,6 +244,14 @@ begin
     end;
   end loop;
 end $$;
+
+-- Ancienne signature conservée pour les clients pas encore mis à jour : ils
+-- jouent normalement mais ne peuvent pas battre de record (thème inconnu).
+create or replace function race_create(
+  p_id uuid, p_pseudo text, p_level int, p_badge text, p_words text
+) returns duels language sql security definer as $$
+  select race_create(p_id, p_pseudo, p_level, p_badge, p_words, null::text);
+$$;
 
 -- Rejoindre une course : pas de mot à fournir, la suite est déjà fixée.
 create or replace function race_join(
@@ -256,7 +288,7 @@ end $$;
 
 -- Revanche de course : le 1er relance, le 2e rejoint (même principe que le duel).
 create or replace function race_rematch(
-  p_code text, p_id uuid, p_pseudo text, p_level int, p_badge text, p_words text
+  p_code text, p_id uuid, p_pseudo text, p_level int, p_badge text, p_words text, p_theme text
 ) returns duels language plpgsql security definer as $$
 declare v_old duels; v_code text := upper(trim(p_code));
 begin
@@ -266,7 +298,7 @@ begin
   if v_old.rematch_code is null then
     declare v_new duels;
     begin
-      v_new := race_create(p_id, p_pseudo, p_level, p_badge, p_words);
+      v_new := race_create(p_id, p_pseudo, p_level, p_badge, p_words, p_theme);
       update duels set rematch_code = v_new.id where id = v_code;
       return v_new;
     end;
@@ -274,6 +306,12 @@ begin
     return race_join(v_old.rematch_code, p_id, p_pseudo, p_level, p_badge);
   end if;
 end $$;
+
+create or replace function race_rematch(
+  p_code text, p_id uuid, p_pseudo text, p_level int, p_badge text, p_words text
+) returns duels language sql security definer as $$
+  select race_rematch(p_code, p_id, p_pseudo, p_level, p_badge, p_words, null::text);
+$$;
 
 -- ===================================================================
 --  PARTIES PUBLIQUES
@@ -321,7 +359,7 @@ begin
 end $$;
 
 create or replace function race_quick(
-  p_id uuid, p_pseudo text, p_level int, p_badge text, p_words text
+  p_id uuid, p_pseudo text, p_level int, p_badge text, p_words text, p_theme text
 ) returns duels language plpgsql security definer as $$
 declare v_row duels; v_code text; v_n int := 0; v_target text;
 begin
@@ -348,8 +386,8 @@ begin
                                  1 + floor(random() * 32)::int, 1);
     end loop;
     begin
-      insert into duels (id, status, kind, is_public, p1_id, p1_pseudo, p1_level, p1_badge, words)
-      values (v_code, 'waiting', 'race', true, p_id, p_pseudo, p_level, p_badge, p_words)
+      insert into duels (id, status, kind, is_public, p1_id, p1_pseudo, p1_level, p1_badge, words, race_theme)
+      values (v_code, 'waiting', 'race', true, p_id, p_pseudo, p_level, p_badge, p_words, p_theme)
       returning * into v_row;
       return v_row;
     exception when unique_violation then
@@ -357,6 +395,12 @@ begin
     end;
   end loop;
 end $$;
+
+create or replace function race_quick(
+  p_id uuid, p_pseudo text, p_level int, p_badge text, p_words text
+) returns duels language sql security definer as $$
+  select race_quick(p_id, p_pseudo, p_level, p_badge, p_words, null::text);
+$$;
 
 -- ---------- Nombre de salons publics en attente ----------
 -- Même filtre que l'appariement, pour que le compte affiché corresponde
@@ -435,6 +479,41 @@ begin
    where id = d.id;
 end $$;
 
+-- ---------- Record de la Course, par thème ----------
+-- Appelée quand un joueur vient de terminer toute la suite. Le temps vient de
+-- la base, jamais d'un calcul du téléphone.
+create or replace function race_record_check(p_code text, p_id uuid)
+returns void language plpgsql security definer as $$
+declare d duels; v_ms int; v_words int; v_pseudo text; v_theme text; cur int;
+begin
+  select * into d from duels where id = upper(trim(p_code));
+  if d.id is null or coalesce(d.kind,'duel') <> 'race' then return; end if;
+  v_theme := d.race_theme;
+  if v_theme is null then return; end if;          -- client trop ancien : pas de record
+
+  if d.p1_id = p_id then
+    if not coalesce(d.p1_won,false) then return; end if;
+    v_ms := d.p1_ms; v_words := d.p1_tries; v_pseudo := d.p1_pseudo;
+  elsif d.p2_id = p_id then
+    if not coalesce(d.p2_won,false) then return; end if;
+    v_ms := d.p2_ms; v_words := d.p2_tries; v_pseudo := d.p2_pseudo;
+  else return;
+  end if;
+  if v_ms is null or v_ms <= 0 then return; end if;
+
+  select ms into cur from race_records where theme = v_theme;
+  if cur is null then
+    insert into race_records (theme, player_id, pseudo, ms, words, at)
+    values (v_theme, p_id, coalesce(nullif(trim(v_pseudo),''),'Anonyme'), v_ms, v_words, now())
+    on conflict (theme) do nothing;
+  elsif v_ms < cur then
+    update race_records
+       set player_id = p_id, pseudo = coalesce(nullif(trim(v_pseudo),''),'Anonyme'),
+           ms = v_ms, words = v_words, at = now()
+     where theme = v_theme and ms > v_ms;
+  end if;
+end $$;
+
 -- ---------- Droits ----------
 grant execute on function duel_create(uuid,text,int,text,text)            to anon, authenticated;
 grant execute on function duel_join(text,uuid,text,int,text,text)         to anon, authenticated;
@@ -443,6 +522,10 @@ grant execute on function duel_report(text,uuid,int,int,boolean)          to ano
 grant execute on function duel_rematch(text,uuid,text,int,text,text)      to anon, authenticated;
 grant execute on function duel_emote(text,uuid,text)                      to anon, authenticated;
 grant execute on function race_create(uuid,text,int,text,text)            to anon, authenticated;
+grant execute on function race_create(uuid,text,int,text,text,text)       to anon, authenticated;
+grant execute on function race_quick(uuid,text,int,text,text,text)        to anon, authenticated;
+grant execute on function race_rematch(text,uuid,text,int,text,text,text) to anon, authenticated;
+grant execute on function race_record_check(text,uuid)                    to anon, authenticated;
 grant execute on function race_join(text,uuid,text,int,text)              to anon, authenticated;
 grant execute on function race_rematch(text,uuid,text,int,text,text)      to anon, authenticated;
 grant execute on function duel_quick(uuid,text,int,text,text)             to anon, authenticated;

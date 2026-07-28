@@ -245,7 +245,7 @@
       var m = me();
       return rpc("race_create", {
         p_id: m.id, p_pseudo: m.pseudo, p_level: m.level, p_badge: m.badge,
-        p_words: hide(JSON.stringify({ t: theme, w: words }))
+        p_words: hide(JSON.stringify({ t: theme, w: words })), p_theme: theme
       }).then(function (row) {
         if (!row || !row.id) throw new Error("creation-impossible");
         return R.parse(row);
@@ -256,11 +256,25 @@
        En cas de jonction, la suite de mots déjà fixée l'emporte. */
     publicCount: function () { return waitingCount("race"); },
 
+    /* Meilleurs temps par thème. Tenus par la base, jamais écrits par le client. */
+    records: function () {
+      if (!configured) return Promise.resolve(null);
+      return fetch(API + "/rest/v1/race_records?select=theme,pseudo,ms,words", { headers: headers(), cache: "no-store" })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (rows) {
+          if (!rows) return null;
+          var by = {};
+          rows.forEach(function (x) { if (x && x.theme) by[x.theme] = x; });
+          return by;
+        })
+        .catch(function () { return null; });
+    },
+
     quick: function (theme, words) {
       var m = me();
       return rpc("race_quick", {
         p_id: m.id, p_pseudo: m.pseudo, p_level: m.level, p_badge: m.badge,
-        p_words: hide(JSON.stringify({ t: theme, w: words }))
+        p_words: hide(JSON.stringify({ t: theme, w: words })), p_theme: theme
       }).then(function (row) {
         if (!row || !row.id) throw new Error("creation-impossible");
         return R.parse(row);
@@ -283,7 +297,7 @@
       return rpc("race_rematch", {
         p_code: String(code || "").toUpperCase(),
         p_id: m.id, p_pseudo: m.pseudo, p_level: m.level, p_badge: m.badge,
-        p_words: hide(JSON.stringify({ t: theme, w: words }))
+        p_words: hide(JSON.stringify({ t: theme, w: words })), p_theme: theme
       }).then(function (row) {
         if (!row || !row.id) throw new Error("revanche-impossible");
         return R.parse(row);
