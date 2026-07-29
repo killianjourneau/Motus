@@ -44,6 +44,7 @@
              duelPlay:0, duelWin:0, duelWinStreak:0, duelBestStreak:0, duelPerfect:0, duelRevenge:0,
              racePlay:0, raceWin:0, raceStreak:0, raceBest:0, raceClean:0, raceFast:0,
              raceWords:0, raceThemes:[],
+             hints:0, cleanStreak:0, cleanBest:0,
              duelLostTo:[] };
   }
 
@@ -126,6 +127,9 @@
     {id:"rclean", e:"💯", n:"Sans faute",       d:"Terminer une suite sans perdre une seule vie", c:"Course", h:1, t:function(b){return b.raceClean>=1;}},
     {id:"rfast",  e:"⏲️", n:"Doigts de fée",    d:"Terminer une suite en moins d'une minute", c:"Course", h:1, t:function(b){return b.raceFast>=1;}},
 
+    // — Indices —
+    {id:"hint1",  e:"🆘", n:"Bouée de sauvetage", d:"Utiliser un indice pour la première fois", c:"Indices", t:function(b){return b.hints>=1;}},
+
     // — Quotidien —
     {id:"d7",    e:"🗓️", n:"Semaine pleine",     d:"7 mots du jour trouvés",        c:"Quotidien", t:function(b){return b.daily>=7;}, p:[function(b){return b.daily;},7]},
     {id:"d30",   e:"📆", n:"Mois complet",       d:"30 mots du jour trouvés",       c:"Quotidien", t:function(b){return b.daily>=30;}, p:[function(b){return b.daily;},30]},
@@ -152,7 +156,8 @@
     {id:"slow",  e:"🐢", n:"Prendre son temps",  d:"Trouver un mot après 10 minutes",c:"Cachés", h:1, t:function(b){return b.slow>=1;}},
     {id:"wknd",  e:"🛋️", n:"Grasse matinée",     d:"Jouer un week-end",             c:"Cachés", h:1, t:function(b){return b.wknd>=1;}},
     {id:"xclean",e:"💎", n:"Sans bavure",        d:"Gagner 10 mots en Expert sans perdre une seule tentative", c:"Cachés", h:1, t:function(b){return b.xClean>=10;}},
-    {id:"xstrk", e:"⚔️", n:"Sang-froid",         d:"5 victoires d'affilée en Expert", c:"Cachés", h:1, t:function(b){return b.xBest>=5;}}
+    {id:"xstrk", e:"⚔️", n:"Sang-froid",         d:"5 victoires d'affilée en Expert", c:"Cachés", h:1, t:function(b){return b.xBest>=5;}},
+    {id:"nohint",e:"🧘", n:"Sans aide",           d:"50 mots trouvés d'affilée sans indice", c:"Cachés", h:1, t:function(b){return b.cleanBest>=50;}}
   ];
 
   var BADGE_BY_ID = {};
@@ -853,6 +858,8 @@
           for (var i = 0; i < a.length; i++) { if (uniq[a[i]]) { dup = true; break; } uniq[a[i]] = 1; }
           if (!dup) b.allDiff++;
         }
+        if (o.hint) { b.hints++; b.cleanStreak = 0; }
+        else { b.cleanStreak++; if (b.cleanStreak > b.cleanBest) b.cleanBest = b.cleanStreak; }
       } else {
         b.streak = 0;
         if (m === "expert") b.xStreak = 0;
