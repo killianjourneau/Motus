@@ -201,6 +201,14 @@
 
   /* Zone de jeu */
   #hud{ display:flex; align-items:center; justify-content:space-between; padding:6px clamp(12px,4vw,22px) 0; font-size:13px; font-weight:700; color:var(--ink-dim); }
+  #hintBtn{ display:none; align-items:center; gap:3px; height:26px; padding:0 9px; border:none; border-radius:8px;
+    background:var(--cell); color:var(--ink); box-shadow:inset 0 0 0 1.5px var(--cell-edge); font-size:13px; font-weight:800; cursor:pointer; }
+  #hintBtn.show{ display:inline-flex; }
+  #hintBtn:disabled{ opacity:.4; }
+  #hintBtn:active{ transform:scale(.94); }
+  #giveUpBtn{ display:none; margin:2px auto 0; padding:2px 4px; border:none; background:none; color:var(--ink-dim);
+    font-size:12px; font-weight:700; text-decoration:underline; cursor:pointer; }
+  #giveUpBtn.show{ display:block; }
   #timer.warn{ background:var(--red); color:#fff; box-shadow:none; animation:pulse 1s ease-in-out infinite; }
   @keyframes pulse{ 0%,100%{opacity:1} 50%{opacity:.6} }
   #timer{ font-variant-numeric:tabular-nums; letter-spacing:.5px; background:var(--cell); padding:4px 10px; border-radius:8px; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
@@ -349,7 +357,8 @@
     </div>
   </div>
 
-  <div id="hud"><span id="hudLeft"><button id="duelEmoteBtn" class="emote-open" aria-label="Envoyer une émote">💬</button><span id="hudMode"></span><span id="raceHud"></span></span><span id="timer">0:00</span></div>
+  <div id="hud"><span id="hudLeft"><button id="duelEmoteBtn" class="emote-open" aria-label="Envoyer une émote">💬</button><button id="hintBtn" aria-label="Utiliser un indice">💡 <span id="hintCount">0</span></button><span id="hudMode"></span><span id="raceHud"></span></span><span id="timer">0:00</span></div>
+  <button id="giveUpBtn" aria-label="Abandonner la partie">Abandonner</button>
 
   <main><div id="board" role="grid" aria-label="Grille de jeu"></div></main>
 
@@ -403,7 +412,7 @@
       <div class="dist-title">Contenu</div>
       <p style="text-align:center;margin-bottom:6px" id="aboutCounts"></p>
       <div class="dist-title">Nouveautés</div>
-      <p style="text-align:center;font-size:13px;color:var(--ink-dim)">Motus Junior (6-8 ans) · mode Expert · parties publiques · Course à l'écriture</p>
+      <p style="text-align:center;font-size:13px;color:var(--ink-dim)">Indices &amp; abandon · Course en solo · Motus Junior enrichi · records par thème</p>
       <button class="btn" data-close>Fermer</button>
     </div>
   </div>
@@ -448,6 +457,7 @@
           <button class="dtab active" data-rt="quick">🌍 Publique</button>
           <button class="dtab" data-rt="new">🔒 Privée</button>
           <button class="dtab" data-rt="join">🔑 Code</button>
+          <button class="dtab" data-rt="solo">🎯 Seul</button>
         </div>
         <div class="mp-count" id="racePublicCount"></div>
         <div id="raceJoinBox" style="display:none">
@@ -568,18 +578,18 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.26.0"></script>
-<script src="./dico/motus-prenoms.js?v=1.26.0"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.26.0"></script>
-<script src="./dico/motus-maladies.js?v=1.26.0"></script>
-<script src="./dico/motus-maladies-info.js?v=1.26.0"></script>
-<script src="./dico/motus-villes.js?v=1.26.0"></script>
-<script src="./dico/motus-villes-info.js?v=1.26.0"></script>
-<script src="./dico/motus-race.js?v=1.26.0"></script>
-<script src="./dico/motus-expert.js?v=1.26.0"></script>
-<script src="./profiles/config.js?v=1.26.0"></script>
-<script src="./profiles/profile.js?v=1.26.0"></script>
-<script src="./duel/duel.js?v=1.26.0"></script>
+<script src="./dico/motus-words.js?v=1.27.0"></script>
+<script src="./dico/motus-prenoms.js?v=1.27.0"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.27.0"></script>
+<script src="./dico/motus-maladies.js?v=1.27.0"></script>
+<script src="./dico/motus-maladies-info.js?v=1.27.0"></script>
+<script src="./dico/motus-villes.js?v=1.27.0"></script>
+<script src="./dico/motus-villes-info.js?v=1.27.0"></script>
+<script src="./dico/motus-race.js?v=1.27.0"></script>
+<script src="./dico/motus-expert.js?v=1.27.0"></script>
+<script src="./profiles/config.js?v=1.27.0"></script>
+<script src="./profiles/profile.js?v=1.27.0"></script>
+<script src="./duel/duel.js?v=1.27.0"></script>
 <script>
 (() => {
   "use strict";
@@ -628,7 +638,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.26.0";
+  const VERSION = "1.27.0";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -658,12 +668,17 @@
   let tStart=0, tElapsed=0, tTimer=null;
   // défi du jour : 3 mots enchaînés
   let defiStep=0, defiKey="", defiNum=0, defiTimes=[], defiTries=[], defiFailed=false;
+  // système d'indice : jetons locaux, gagnés par le mot du jour et le défi réussis
+  let hintTokens = store.get("motus.hintTokens", 0);
+  let hintCols = [], hintsThisGame = 0;
+  const HINT_MODES = ["court","normal","long","prenoms","maladies","villes","daily","defi"];
+  const HINT_MAX_PER_WORD = 2;
   // duel
   // course à l'écriture
   let raceCode="", raceRow=null, raceStop=null, raceMode="quick", raceTheme="mots",
       raceList=[], raceIdx=0, raceLives=3, raceTyped="", raceStarted=false, raceReported=false,
       raceCounted=false, raceDeadline=0, raceWaitMsg="En attente d'un adversaire…",
-      raceRematchMine="", raceRematchOldCode="", raceRecords=null, raceRecBefore=null;
+      raceRematchMine="", raceRematchOldCode="", raceRecords=null, raceRecBefore=null, raceTraining=false;
   let duelCode="", duelRow=null, duelStop=null, duelReported=false, duelMode="quick", duelDeadline=0, duelStarted=false, duelCounted=false, duelLastEmote="", duelRematchMine="", duelRematchOldCode="", duelWaitMsg="En attente d'un adversaire…";
 
   const $ = id => document.getElementById(id);
@@ -872,17 +887,19 @@
     // le chrono démarre au premier caractère saisi, jamais avant — sauf en Duel/Course,
     // où il est déjà lancé délibérément au moment de "C'est parti"
     if(mode!=="duel" && mode!=="race") timerStartIfNeeded();
-    if(col<1 || col>=len){ const e=firstEmpty(1); if(e<0) return; col=e; }
+    if(col<1 || col>=len || isLocked(col)){ const e=firstEmpty(1); if(e<0) return; col=e; }
     setCell(row,col,ch);
     const nxt=firstEmpty(col+1);
     col = (nxt<0) ? len : nxt;
     drawCursor();
+    refreshGiveUpUI();
   }
   function backspace(){
     // efface la case courante si elle contient une lettre, sinon la précédente remplie
-    if(col<len && col>=1 && grid[row][col]){ setCell(row,col,""); drawCursor(); return; }
+    // (les cases verrouillées — 1re lettre donnée ou indice — ne s'effacent jamais)
+    if(col<len && col>=1 && grid[row][col] && !isLocked(col)){ setCell(row,col,""); drawCursor(); return; }
     let c=Math.min(col,len)-1;
-    while(c>=1 && !grid[row][c]) c--;
+    while(c>=1 && (!grid[row][c] || isLocked(c))) c--;
     if(c<1){ col=Math.max(col,1); drawCursor(); return; }
     col=c; setCell(row,col,""); drawCursor();
   }
@@ -935,7 +952,9 @@
   function awardXp(win){
     if(!window.Profile) return;
     const f = MODE_FACTOR[mode] || 1;
-    const xp = win ? Math.round((15 + Math.max(0,6-guesses.length)*4) * f) : 5;
+    let xp = win ? Math.round((15 + Math.max(0,6-guesses.length)*4) * f) : 5;
+    // un indice reste une aide : la victoire compte, mais rapporte moins
+    if(win && hintsThisGame>0) xp = Math.round(xp * (1 - 0.25*hintsThisGame));
     // victoire sans aucune lettre jaune (uniquement du rouge et du gris)
     const noYellow = win && !rowStates.some(st => st.indexOf("present") >= 0);
     // longueur réelle jouée (le défi et le mot du jour empruntent un autre mode)
@@ -956,9 +975,13 @@
     Profile.addGame({
       won:win, xp, mode, sub,
       tries: win ? guesses.length : 0,
-      ms: timerValue(), answer, noYellow, capital, foreign, rare, clean
+      ms: timerValue(), answer, noYellow, capital, foreign, rare, clean,
+      hint: hintsThisGame>0
     });
-    if(mode==="daily") Profile.submitDaily({ game:"motus", day:dailyKey, tries: win?guesses.length:6, won:win });
+    if(mode==="daily"){
+      Profile.submitDaily({ game:"motus", day:dailyKey, tries: win?guesses.length:6, won:win });
+      if(win) grantHintOnce("daily", dailyKey);
+    }
   }
 
   /* Expert : mot inconnu = tentative perdue. La ligne est barrée et
@@ -990,9 +1013,11 @@
       if(mode==="defi"){ save(); setTimeout(()=>defiAdvance(false), 360); return; }
       save(); setTimeout(()=>showEnd(false), 360); return;
     }
-    col=1; over=false;
+    over=false;
     setCell(row,0,answer[0]); tileAt(row,0).classList.add("correct");
-    drawCursor();
+    hintCols.forEach(c=>{ setCell(row,c,answer[c]); tileAt(row,c).classList.add("correct"); });
+    col = firstEmpty(1);
+    drawCursor(); refreshHintUI(); refreshGiveUpUI();
     save();
   }
 
@@ -1174,6 +1199,7 @@
   }
   function raceFresh(){
     mpClear();
+    raceTraining=false;
     raceRow=null; raceCode=""; raceList=[]; raceIdx=0; raceLives=RACE_LIVES; raceTyped="";
     raceStarted=false; raceReported=false; raceCounted=false; raceDeadline=0;
     raceRematchMine=""; raceMode="quick"; raceWaitMsg="Recherche d'un adversaire…";
@@ -1200,7 +1226,7 @@
 
   function raceSubmit(){
     $("raceGo").disabled=true;
-    if(["quick","new","join","rematch"].indexOf(raceMode)<0) raceMode="quick";   // valeur inattendue
+    if(["quick","new","join","rematch","solo"].indexOf(raceMode)<0) raceMode="quick";   // valeur inattendue
     if(raceMode==="join"){
       const code=($("raceCode").value||"").trim().toUpperCase();
       if(code.length<4){ raceSetMsg("Code invalide", true); $("raceGo").disabled=false; return; }
@@ -1213,6 +1239,13 @@
     }
     const list = raceBuildList(raceTheme);
     if(list.length<4){ raceSetMsg("Pas assez de mots dans ce thème", true); $("raceGo").disabled=false; return; }
+    if(raceMode==="solo"){
+      raceTraining = true;
+      raceList = list; raceRow = null; raceCode = ""; raceRematchMine = "";
+      raceSetMsg(""); $("raceGo").disabled=false;
+      raceStartGame();
+      return;
+    }
     if(raceMode==="quick"){
       raceSetMsg("Recherche d'une partie…");
       Race.quick(raceTheme, list).then(d=>{
@@ -1246,6 +1279,7 @@
   }
   function raceAdopt(d){
     clearRace();
+    raceTraining=false;
     raceRow=d; raceCode=d.id; mpSave("race", d.id); raceList=d.list||[]; raceTheme=d.theme||raceTheme;
     raceIdx=0; raceLives=RACE_LIVES; raceTyped="";
     raceStarted=false; raceReported=false; raceCounted=false; raceDeadline=d.deadline||0;
@@ -1305,8 +1339,8 @@
     duelLastEmote = (raceRow && raceRow.oppEmote) || "";
     setActiveSeg("race"); raceRender(); raceUpdateHud(); updateHud();
     timerStart(0);
-    duelEmoteBtnShow(true); saveRace();
-    if(!raceStop) raceWatch();
+    duelEmoteBtnShow(!raceTraining);
+    if(!raceTraining){ saveRace(); if(!raceStop) raceWatch(); }
   }
 
   /* Affichage : une ligne modèle (le mot à recopier) et une ligne de saisie. */
@@ -1384,13 +1418,34 @@
   function raceFinish(success){
     if(raceReported) return;
     over=true; ended=true; timerStop();
-    clearRace(); duelEmoteBtnShow(false);
+    duelEmoteBtnShow(false);
     raceReported=true;
     const ms=timerValue();
     if(success){ toast("Suite terminée !"); vibrate([12,40,12,40,12]); }
     else if(raceLives<=0) toast("Plus de vies !");
     else toast("Temps écoulé !");
     if(window.Profile) Profile.addGame({ won:success, xp: success ? Math.round(20*1.2) : 5, mode:"race", sub:"race", tries:0, ms, answer:"" });
+
+    if(raceTraining){
+      // aucun réseau : l'entraînement ne compte jamais pour un record ni pour un adversaire
+      raceStarted=false;
+      if(window.Profile && Profile.raceDone){
+        Profile.raceDone({ won:success, finished:success, words:raceIdx, lives:raceLives, ms, theme:raceTheme });
+      }
+      $("raceResTitle").textContent = success ? "Entraînement terminé ! 🎯" : "Entraînement interrompu";
+      $("raceResWhy").textContent = success
+        ? ("Suite recopiée en " + fmtTime(ms) + ".")
+        : (raceIdx + " mot" + (raceIdx>1?"s":"") + " recopié" + (raceIdx>1?"s":"") + ".");
+      $("raceScore").innerHTML = '<div><div class="who">Toi</div><div class="val">'
+        + (success ? ("terminé · "+fmtTime(ms)) : (raceIdx+" mots")) + "</div></div>";
+      $("raceRecNew").classList.remove("show");        // jamais de record en entraînement
+      $("raceReplay").style.display = "none";           // pas d'adversaire à qui proposer une revanche
+      $("raceRematchOffer").classList.remove("show");
+      raceShowStep(4); openOverlay("raceOverlay");
+      return;
+    }
+
+    clearRace();
     Race.report(raceCode, { done: raceIdx, ms, won: success })
       .then(d=>{ if(d) raceRow=d; raceMaybeFinish(); })
       .catch(()=>{ raceMaybeFinish(); });
@@ -1483,7 +1538,7 @@
 
   /* Sauvegarde : permet de revenir dans une course quittée en cours de route. */
   function saveRace(){
-    if(!raceStarted) return;
+    if(!raceStarted || raceTraining) return;   // l'entraînement ne se reprend pas au redémarrage
     store.set("motus.race", { code:raceCode, theme:raceTheme, list:raceList, idx:raceIdx,
                               lives:raceLives, ms:timerValue(), opp: raceRow?raceRow.opp:null,
                               deadline:raceDeadline });
@@ -1994,6 +2049,62 @@
     if(i>=0 && i<DUEL_EMOTES.length) duelShowEmote(i, false);
   }
 
+
+  /* ---------- Indices ---------- */
+  // uniquement les modes solo classiques : jamais Expert (règles strictes),
+  // jamais Duel/Course (compétitif face à quelqu'un), jamais Motus Junior.
+  function hintEligible(){ return HINT_MODES.indexOf(mode) >= 0; }
+  function isLocked(c){ return c===0 || hintCols.indexOf(c) >= 0; }
+  function refreshHintUI(){
+    const b=$("hintBtn"); if(!b) return;
+    const on = hintEligible() && !over && !ended;
+    b.classList.toggle("show", on);
+    if(!on) return;
+    $("hintCount").textContent = hintTokens;
+    b.disabled = hintTokens<=0 || hintCols.length>=HINT_MAX_PER_WORD;
+  }
+  function useHint(){
+    if(!hintEligible() || over || ended) return;
+    if(hintTokens<=0){ toast("Aucun jeton d'indice — réussis le mot du jour ou le défi pour en gagner"); return; }
+    if(hintCols.length>=HINT_MAX_PER_WORD){ toast("Indices déjà utilisés au maximum pour ce mot"); return; }
+    const candidates=[]; for(let c=1;c<len;c++) if(hintCols.indexOf(c)<0) candidates.push(c);
+    if(!candidates.length) return;
+    const c = candidates[Math.floor(Math.random()*candidates.length)];
+    hintCols.push(c); hintsThisGame++;
+    hintTokens--; store.set("motus.hintTokens", hintTokens);
+    setCell(row,c,answer[c]); tileAt(row,c).classList.add("correct");
+    if(col===c || (col>=1 && col<len && grid[row][col])) col = firstEmpty(1);
+    drawCursor(); refreshHintUI(); vibrate([15]);
+    toast("💡 " + (c+1) + "ᵉ lettre révélée : " + answer[c]);
+  }
+  /* Un jeton par jour, uniquement à la première réussite (jamais en rejouant
+     un mot du jour ou un défi déjà bouclé). */
+  function grantHintOnce(kind, key){
+    const seen = store.get("motus.hintGrants", {});
+    if(seen[kind] === key) return;
+    seen[kind] = key; store.set("motus.hintGrants", seen);
+    hintTokens++; store.set("motus.hintTokens", hintTokens);
+    refreshHintUI();
+    toast("💡 Jeton d'indice gagné !", 2200);
+  }
+
+  /* ---------- Abandon ---------- */
+  const GIVEUP_MODES = HINT_MODES.concat(["expert"]);
+  function refreshGiveUpUI(){
+    const b=$("giveUpBtn"); if(!b) return;
+    b.classList.toggle("show", GIVEUP_MODES.indexOf(mode)>=0 && !over && !ended && rowHasInput());
+  }
+  function giveUp(){
+    if(over || ended || GIVEUP_MODES.indexOf(mode)<0) return;
+    askConfirm("Abandonner ?", "Le mot te sera révélé et la partie comptera comme perdue.", doGiveUp);
+  }
+  function doGiveUp(){
+    over=true; ended=true; timerStop();
+    recordResult(false); awardXp(false);
+    if(mode==="defi"){ save(); defiAdvance(false); return; }
+    save(); showEnd(false);
+  }
+
   /* ---------- Défi : temps écoulé ---------- */
   function defiTimeout(){
     if(ended) return;
@@ -2023,6 +2134,7 @@
 
     if(defiStep>=DEFI_STEPS.length){
       if(window.Profile) Profile.defiDone({ success:!defiFailed, ms:defiTimes.reduce((a,b)=>a+b,0) });
+      if(!defiFailed) grantHintOnce("defi", defiKey);
       showDefiEnd(); return;
     }
     // mot suivant
@@ -2127,6 +2239,7 @@
       label += " · " + n + " mots possibles";
     }
     $("hudMode").textContent = label;
+    refreshHintUI(); refreshGiveUpUI();
   }
 
   /* ---------- Sauvegarde ---------- */
@@ -2231,10 +2344,12 @@
   }
   function setupBoardForAnswer(){
     len=answer.length; row=0; col=1;
+    hintCols=[]; hintsThisGame=0;
     grid=Array.from({length:MAX_ROWS},()=>Array(len).fill(""));
     computeSizing(); buildBoard(); resetKeyboardColors();
     setCell(0,0,answer[0]); tileAt(0,0).classList.add("correct");
     drawCursor(); updateDashKey(); updateHud();
+    refreshHintUI(); refreshGiveUpUI();
   }
   function restoreFree(f){
     mode=f.mode; answer=f.answer; guesses=[]; rowStates=[]; won=false; ended=false;
@@ -2319,6 +2434,8 @@
       duelPause(); switchMode(m); return;
     }
     if(mode==="race" && m!=="race" && raceStarted && !ended){
+      // l'entraînement ne se reprend pas : on prévient avant de l'abandonner
+      if(raceTraining){ askConfirm("Quitter l'entraînement ?", "Ta progression sera perdue.", ()=>{ racePause(); switchMode(m); }); return; }
       racePause(); switchMode(m); return;
     }
     if(m===mode){ if(ended) switchMode(m); return; }   // même mode : on relance seulement si la partie est finie
@@ -2440,6 +2557,8 @@
     $("aboutCounts").innerHTML = `<b>${nW.toLocaleString("fr-FR")}</b> mots à deviner · ${nModes} modes de jeu`;
     openOverlay("aboutOverlay");
   });
+  $("hintBtn").addEventListener("click", useHint);
+  $("giveUpBtn").addEventListener("click", giveUp);
   $("btnHelp").addEventListener("click", ()=>openOverlay("helpOverlay"));
   $("btnProfile").addEventListener("click", ()=>{ if(window.Profile){ Profile.open(motusStatsHTML()); renderPersonalize(); } });
   $("btnNew").addEventListener("click", ()=>{
@@ -2448,7 +2567,10 @@
     if(mode==="defi"){ switchMode("normal"); return; }         // le défi est unique aussi
     if(mode==="expert"){ startFree("expert"); return; }        // relance directe, sans rappeler les règles
     if(mode==="duel"){ duelOpen(); return; }                   // le duel se relance depuis sa fenêtre
-    if(mode==="race"){ raceOpen(); return; }                   // la course aussi
+    if(mode==="race"){
+      if(raceTraining && raceStarted && !ended){ askConfirm("Quitter l'entraînement ?", "Ta progression sera perdue.", raceOpen); return; }
+      raceOpen(); return;                                       // la course aussi
+    }
     if(!ended && rowHasInput()) askConfirm("Nouvelle partie ?", "La partie en cours sera perdue.", ()=>startFree(mode));
     else startFree(mode);
   });
