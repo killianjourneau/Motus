@@ -44,7 +44,9 @@
              duelPlay:0, duelWin:0, duelWinStreak:0, duelBestStreak:0, duelPerfect:0, duelRevenge:0,
              racePlay:0, raceWin:0, raceStreak:0, raceBest:0, raceClean:0, raceFast:0,
              raceWords:0, raceThemes:[],
-             hints:0, cleanStreak:0, cleanBest:0,
+             hints:0, cleanStreak:0, cleanBest:0, giveups:0, raceSolo:0,
+             hint2Used:0, hintFirstTry:0, hintSixFail:0,
+             hintMaladies:0, hintPrenoms:0, hintVilles:0, hintOnIndice:0,
              duelLostTo:[] };
   }
 
@@ -126,9 +128,21 @@
     {id:"rtheme", e:"🎨", n:"Éclectique",       d:"Courir dans les 4 thèmes",      c:"Course", t:function(b){return (b.raceThemes||[]).length>=4;}, p:[function(b){return (b.raceThemes||[]).length;},4]},
     {id:"rclean", e:"💯", n:"Sans faute",       d:"Terminer une suite sans perdre une seule vie", c:"Course", h:1, t:function(b){return b.raceClean>=1;}},
     {id:"rfast",  e:"⏲️", n:"Doigts de fée",    d:"Terminer une suite en moins d'une minute", c:"Course", h:1, t:function(b){return b.raceFast>=1;}},
+    {id:"rsolo",  e:"🏃", n:"Courir seul",      d:"Faire une course en entraînement", c:"Course", h:1, t:function(b){return b.raceSolo>=1;}},
 
     // — Indices —
     {id:"hint1",  e:"🆘", n:"Bouée de sauvetage", d:"Utiliser un indice pour la première fois", c:"Indices", t:function(b){return b.hints>=1;}},
+    {id:"nohint", e:"🧘", n:"Sans aide",           d:"50 mots trouvés d'affilée sans indice", c:"Indices", h:1, t:function(b){return b.cleanBest>=50;}},
+    {id:"hint2",  e:"💊", n:"Double dose",         d:"Utiliser 2 indices sur le même mot", c:"Indices", t:function(b){return b.hint2Used>=1;}},
+    {id:"hintfast",e:"🎯", n:"Coup de pouce",      d:"Trouver un mot du premier coup avec un indice", c:"Indices", t:function(b){return b.hintFirstTry>=1;}},
+    {id:"hintfail",e:"🤷", n:"Même pas aidé",      d:"Utiliser un indice et échouer après 6 tentatives", c:"Indices", t:function(b){return b.hintSixFail>=1;}},
+    {id:"hint20", e:"📎", n:"Petites béquilles",   d:"Utiliser un indice 20 fois", c:"Indices", t:function(b){return b.hints>=20;}, p:[function(b){return b.hints;},20]},
+    {id:"hint50", e:"🩹", n:"Grandes béquilles",   d:"Utiliser un indice 50 fois", c:"Indices", t:function(b){return b.hints>=50;}, p:[function(b){return b.hints;},50]},
+    {id:"hint100",e:"🦽", n:"Dépendance totale",   d:"Utiliser un indice 100 fois", c:"Indices", t:function(b){return b.hints>=100;}, p:[function(b){return b.hints;},100]},
+    {id:"hintmal",e:"🩺", n:"Diagnostic assisté",  d:"Trouver une maladie avec un indice", c:"Indices", t:function(b){return b.hintMaladies>=1;}},
+    {id:"hintpre",e:"👶", n:"Souffleur",           d:"Trouver un prénom avec un indice", c:"Indices", t:function(b){return b.hintPrenoms>=1;}},
+    {id:"hintvil",e:"🗺️", n:"Guide touristique",   d:"Trouver une ville avec un indice", c:"Indices", t:function(b){return b.hintVilles>=1;}},
+    {id:"hintind",e:"🔮", n:"Mise en abyme",       d:"Utiliser un indice sur le mot INDICE", c:"Indices", h:1, t:function(b){return b.hintOnIndice>=1;}},
 
     // — Quotidien —
     {id:"d7",    e:"🗓️", n:"Semaine pleine",     d:"7 mots du jour trouvés",        c:"Quotidien", t:function(b){return b.daily>=7;}, p:[function(b){return b.daily;},7]},
@@ -157,7 +171,7 @@
     {id:"wknd",  e:"🛋️", n:"Grasse matinée",     d:"Jouer un week-end",             c:"Cachés", h:1, t:function(b){return b.wknd>=1;}},
     {id:"xclean",e:"💎", n:"Sans bavure",        d:"Gagner 10 mots en Expert sans perdre une seule tentative", c:"Cachés", h:1, t:function(b){return b.xClean>=10;}},
     {id:"xstrk", e:"⚔️", n:"Sang-froid",         d:"5 victoires d'affilée en Expert", c:"Cachés", h:1, t:function(b){return b.xBest>=5;}},
-    {id:"nohint",e:"🧘", n:"Sans aide",           d:"50 mots trouvés d'affilée sans indice", c:"Cachés", h:1, t:function(b){return b.cleanBest>=50;}}
+    {id:"giveup1",e:"🏳️", n:"Abandonné",          d:"Abandonner une partie", c:"Cachés", h:1, t:function(b){return b.giveups>=1;}}
   ];
 
   var BADGE_BY_ID = {};
@@ -821,6 +835,13 @@
       var m = o.mode || "normal";
       if (CLASSIC.indexOf(m) >= 0 && b.modes.indexOf(m) < 0) b.modes.push(m);
 
+      // comptage des indices : indépendant du résultat (victoire, échec ou abandon)
+      if (o.hintCount) {
+        b.hints += o.hintCount;
+        if (o.hintCount >= 2) b.hint2Used = (b.hint2Used || 0) + 1;
+        if (String(o.answer || "") === "INDICE") b.hintOnIndice = (b.hintOnIndice || 0) + 1;
+      }
+
       if (o.won) {
         b.streak++; if (b.streak > b.best) b.best = b.streak;
         var t = o.tries || 0, ms = o.ms || 0;
@@ -858,11 +879,18 @@
           for (var i = 0; i < a.length; i++) { if (uniq[a[i]]) { dup = true; break; } uniq[a[i]] = 1; }
           if (!dup) b.allDiff++;
         }
-        if (o.hint) { b.hints++; b.cleanStreak = 0; }
+        if (o.hint) {
+          b.cleanStreak = 0;
+          if (t === 1) b.hintFirstTry = (b.hintFirstTry || 0) + 1;
+          if (key === "maladies") b.hintMaladies = (b.hintMaladies || 0) + 1;
+          if (key === "prenoms") b.hintPrenoms = (b.hintPrenoms || 0) + 1;
+          if (key === "villes") b.hintVilles = (b.hintVilles || 0) + 1;
+        }
         else { b.cleanStreak++; if (b.cleanStreak > b.cleanBest) b.cleanBest = b.cleanStreak; }
       } else {
         b.streak = 0;
         if (m === "expert") b.xStreak = 0;
+        if (o.hint && o.sixFail) b.hintSixFail = (b.hintSixFail || 0) + 1;
       }
 
       saveLocal(); checkBadges(); pushDebounced(); refreshOpen();
@@ -888,6 +916,22 @@
       } else {
         b.raceStreak = 0;
       }
+      saveLocal(); checkBadges(); pushDebounced(); refreshOpen();
+    },
+
+    /* Course en entraînement : ne compte NI pour l'XP NI pour la progression
+       normale des badges de Course (c'est un mode d'entraînement, pas une
+       vraie partie) — seul ce compteur dédié existe, pour un unique badge secret. */
+    raceSolo: function () {
+      var b = state.b;
+      b.raceSolo = (b.raceSolo || 0) + 1;
+      saveLocal(); checkBadges(); pushDebounced(); refreshOpen();
+    },
+
+    /* Abandon d'une partie : uniquement pour le badge secret dédié. */
+    giveUp: function () {
+      var b = state.b;
+      b.giveups = (b.giveups || 0) + 1;
       saveLocal(); checkBadges(); pushDebounced(); refreshOpen();
     },
 
