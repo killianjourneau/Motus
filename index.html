@@ -578,18 +578,18 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.27.0"></script>
-<script src="./dico/motus-prenoms.js?v=1.27.0"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.27.0"></script>
-<script src="./dico/motus-maladies.js?v=1.27.0"></script>
-<script src="./dico/motus-maladies-info.js?v=1.27.0"></script>
-<script src="./dico/motus-villes.js?v=1.27.0"></script>
-<script src="./dico/motus-villes-info.js?v=1.27.0"></script>
-<script src="./dico/motus-race.js?v=1.27.0"></script>
-<script src="./dico/motus-expert.js?v=1.27.0"></script>
-<script src="./profiles/config.js?v=1.27.0"></script>
-<script src="./profiles/profile.js?v=1.27.0"></script>
-<script src="./duel/duel.js?v=1.27.0"></script>
+<script src="./dico/motus-words.js?v=1.27.2"></script>
+<script src="./dico/motus-prenoms.js?v=1.27.2"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.27.2"></script>
+<script src="./dico/motus-maladies.js?v=1.27.2"></script>
+<script src="./dico/motus-maladies-info.js?v=1.27.2"></script>
+<script src="./dico/motus-villes.js?v=1.27.2"></script>
+<script src="./dico/motus-villes-info.js?v=1.27.2"></script>
+<script src="./dico/motus-race.js?v=1.27.2"></script>
+<script src="./dico/motus-expert.js?v=1.27.2"></script>
+<script src="./profiles/config.js?v=1.27.2"></script>
+<script src="./profiles/profile.js?v=1.27.2"></script>
+<script src="./duel/duel.js?v=1.27.2"></script>
 <script>
 (() => {
   "use strict";
@@ -638,7 +638,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.27.0";
+  const VERSION = "1.27.2";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -670,6 +670,7 @@
   let defiStep=0, defiKey="", defiNum=0, defiTimes=[], defiTries=[], defiFailed=false;
   // système d'indice : jetons locaux, gagnés par le mot du jour et le défi réussis
   let hintTokens = store.get("motus.hintTokens", 0);
+  let gaveUp = false;   // vrai uniquement en cas d'abandon volontaire, jamais après 6 essais épuisés
   let hintCols = [], hintsThisGame = 0;
   const HINT_MODES = ["court","normal","long","prenoms","maladies","villes","daily","defi"];
   const HINT_MAX_PER_WORD = 2;
@@ -976,7 +977,8 @@
       won:win, xp, mode, sub,
       tries: win ? guesses.length : 0,
       ms: timerValue(), answer, noYellow, capital, foreign, rare, clean,
-      hint: hintsThisGame>0
+      hint: hintsThisGame>0, hintCount: hintsThisGame,
+      sixFail: !win && !gaveUp   // vrai échec après 6 essais épuisés, jamais un abandon
     });
     if(mode==="daily"){
       Profile.submitDaily({ game:"motus", day:dailyKey, tries: win?guesses.length:6, won:win });
@@ -1424,14 +1426,12 @@
     if(success){ toast("Suite terminée !"); vibrate([12,40,12,40,12]); }
     else if(raceLives<=0) toast("Plus de vies !");
     else toast("Temps écoulé !");
-    if(window.Profile) Profile.addGame({ won:success, xp: success ? Math.round(20*1.2) : 5, mode:"race", sub:"race", tries:0, ms, answer:"" });
 
     if(raceTraining){
-      // aucun réseau : l'entraînement ne compte jamais pour un record ni pour un adversaire
+      // Entraînement : ni XP, ni progression des badges de Course — seul un
+      // badge secret dédié ("Courir seul") suit qu'une session a eu lieu.
       raceStarted=false;
-      if(window.Profile && Profile.raceDone){
-        Profile.raceDone({ won:success, finished:success, words:raceIdx, lives:raceLives, ms, theme:raceTheme });
-      }
+      if(window.Profile && Profile.raceSolo) Profile.raceSolo();
       $("raceResTitle").textContent = success ? "Entraînement terminé ! 🎯" : "Entraînement interrompu";
       $("raceResWhy").textContent = success
         ? ("Suite recopiée en " + fmtTime(ms) + ".")
@@ -1445,6 +1445,7 @@
       return;
     }
 
+    if(window.Profile) Profile.addGame({ won:success, xp: success ? Math.round(20*1.2) : 5, mode:"race", sub:"race", tries:0, ms, answer:"" });
     clearRace();
     Race.report(raceCode, { done: raceIdx, ms, won: success })
       .then(d=>{ if(d) raceRow=d; raceMaybeFinish(); })
@@ -2054,7 +2055,10 @@
   // uniquement les modes solo classiques : jamais Expert (règles strictes),
   // jamais Duel/Course (compétitif face à quelqu'un), jamais Motus Junior.
   function hintEligible(){ return HINT_MODES.indexOf(mode) >= 0; }
-  function isLocked(c){ return c===0 || hintCols.indexOf(c) >= 0; }
+  // seule la 1re lettre (donnée dès le départ) reste totalement figée ;
+  // une lettre révélée par indice peut être réécrite si le joueur le décide —
+  // elle sert de proposition, pas d'une contrainte imposée.
+  function isLocked(c){ return c===0; }
   function refreshHintUI(){
     const b=$("hintBtn"); if(!b) return;
     const on = hintEligible() && !over && !ended;
@@ -2099,8 +2103,9 @@
     askConfirm("Abandonner ?", "Le mot te sera révélé et la partie comptera comme perdue.", doGiveUp);
   }
   function doGiveUp(){
-    over=true; ended=true; timerStop();
+    over=true; ended=true; timerStop(); gaveUp=true;
     recordResult(false); awardXp(false);
+    if(window.Profile && Profile.giveUp) Profile.giveUp();
     if(mode==="defi"){ save(); defiAdvance(false); return; }
     save(); showEnd(false);
   }
@@ -2344,7 +2349,7 @@
   }
   function setupBoardForAnswer(){
     len=answer.length; row=0; col=1;
-    hintCols=[]; hintsThisGame=0;
+    hintCols=[]; hintsThisGame=0; gaveUp=false;
     grid=Array.from({length:MAX_ROWS},()=>Array(len).fill(""));
     computeSizing(); buildBoard(); resetKeyboardColors();
     setCell(0,0,answer[0]); tileAt(0,0).classList.add("correct");
