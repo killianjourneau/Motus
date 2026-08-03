@@ -643,18 +643,18 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.28.0"></script>
-<script src="./dico/motus-prenoms.js?v=1.28.0"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.28.0"></script>
-<script src="./dico/motus-maladies.js?v=1.28.0"></script>
-<script src="./dico/motus-maladies-info.js?v=1.28.0"></script>
-<script src="./dico/motus-villes.js?v=1.28.0"></script>
-<script src="./dico/motus-villes-info.js?v=1.28.0"></script>
-<script src="./dico/motus-race.js?v=1.28.0"></script>
-<script src="./dico/motus-expert.js?v=1.28.0"></script>
-<script src="./profiles/config.js?v=1.28.0"></script>
-<script src="./profiles/profile.js?v=1.28.0"></script>
-<script src="./duel/duel.js?v=1.28.0"></script>
+<script src="./dico/motus-words.js?v=1.28.1"></script>
+<script src="./dico/motus-prenoms.js?v=1.28.1"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.28.1"></script>
+<script src="./dico/motus-maladies.js?v=1.28.1"></script>
+<script src="./dico/motus-maladies-info.js?v=1.28.1"></script>
+<script src="./dico/motus-villes.js?v=1.28.1"></script>
+<script src="./dico/motus-villes-info.js?v=1.28.1"></script>
+<script src="./dico/motus-race.js?v=1.28.1"></script>
+<script src="./dico/motus-expert.js?v=1.28.1"></script>
+<script src="./profiles/config.js?v=1.28.1"></script>
+<script src="./profiles/profile.js?v=1.28.1"></script>
+<script src="./duel/duel.js?v=1.28.1"></script>
 <script>
 (() => {
   "use strict";
@@ -703,7 +703,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.28.0";
+  const VERSION = "1.28.1";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -1166,7 +1166,13 @@
             return '<div class="def-ev'+(r.seen?"":" new")+'"><span class="ic">'+(r.won?"💥":"🛡️")+'</span><span class="tx">'+txt+'</span></div>';
           }).join("");
       box.classList.add("show");
-      if(unseen) Defense.markSeen();
+      if(unseen){
+        // les plus récentes sont en tête ; on les rejoue de la plus ancienne
+        // à la plus récente pour que la série de badges se calcule juste
+        const fresh = rows.slice(0, unseen).reverse();
+        if(window.Profile && Profile.defenseFeedNew) Profile.defenseFeedNew(fresh);
+        Defense.markSeen();
+      }
     });
   }
 
@@ -1214,6 +1220,7 @@
     $("defSetGo").disabled=true; $("defSetMsg").textContent="Enregistrement…";
     Defense.set(chk.word).then(d=>{
       $("defSetGo").disabled=false; defMineCache=d;
+      if(window.Profile && Profile.defenseWordSet) Profile.defenseWordSet({ len: chk.word.length });
       defShowStep(1); defDrawMine(d); defDrawFeed();
       Defense.targets(20).then(defDrawTargets);
       toast("🛡️ Ton mot est en place");
@@ -1253,6 +1260,7 @@
   function defFinish(win){
     if(defReported || !defTarget) return;
     defReported = true;
+    if(window.Profile && Profile.defenseAttackResult) Profile.defenseAttackResult({ won: win });
     Defense.report(defTarget.player_id, defTarget.version, { tries: win ? guesses.length : 0, won: win })
       .then(()=>{ defMineCache=null; });
   }
