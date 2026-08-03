@@ -394,4 +394,102 @@
   };
 
   window.Race = R;
+
+  /* =====================================================================
+     Mode Défense — multijoueur asynchrone.
+     Chaque joueur pose un mot ; les autres tentent de le percer, une seule
+     fois par version du mot. Toute la logique de droit d'attaque et de
+     comptage est tenue par la base (voir defense_* dans schema.sql).
+     ===================================================================== */
+  var F = {
+    configured: configured,
+
+    /* Poser ou remplacer son mot de défense. */
+    set: function (word) {
+      var m = me(), w = String(word || "").toUpperCase();
+      return rpc("defense_set", {
+        p_id: m.id, p_pseudo: m.pseudo, p_level: m.level, p_badge: m.badge,
+        p_word: hide(w), p_len: w.length
+      }).then(function (row) { return F.parse(row); });
+    },
+
+    /* Ma défense actuelle, ou null si je n'en ai pas encore posé. */
+    mine: function () {
+      var m = me();
+      return rpc("defense_mine", { p_id: m.id })
+        .then(function (row) { return F.parse(row); })
+        .catch(function () { return null; });
+    },
+
+    /* Défenses que je peux attaquer maintenant. */
+    targets: function (limit) {
+      var m = me();
+      return rpc("defense_targets", { p_id: m.id, p_limit: limit || 20 })
+        .then(function (rows) { return rows ? [].concat(rows) : []; })
+        .catch(function () { return []; });
+    },
+
+    /* Lance l'attaque : la tentative est consommée dès cet appel. */
+    attack: function (targetId) {
+      var m = me();
+      return rpc("defense_attack", { p_id: m.id, p_pseudo: m.pseudo, p_target: targetId })
+        .then(function (row) {
+          if (!row) throw new Error("introuvable");
+          return {
+            target: show(row.word),
+            len: row.wlen,
+            version: row.version,
+            pseudo: row.pseudo || "Anonyme"
+          };
+        });
+    },
+
+    report: function (targetId, version, o) {
+      var m = me();
+      o = o || {};
+      return rpc("defense_report", {
+        p_id: m.id, p_target: targetId, p_version: version,
+        p_tries: o.tries || 0, p_won: !!o.won
+      }).catch(function () { return null; });
+    },
+
+    /* Journal des attaques subies (les plus récentes d'abord). */
+    feed: function (limit) {
+      var m = me();
+      return rpc("defense_feed", { p_id: m.id, p_limit: limit || 15 })
+        .then(function (rows) { return rows ? [].concat(rows) : []; })
+        .catch(function () { return []; });
+    },
+
+    markSeen: function () {
+      var m = me();
+      return rpc("defense_seen", { p_id: m.id }).catch(function () { return null; });
+    },
+
+    parse: function (row) {
+      if (!row) return null;
+      var d = Array.isArray(row) ? row[0] : row;
+      if (!d || !d.player_id) return null;
+      return {
+        id: d.player_id, pseudo: d.pseudo || "Anonyme",
+        len: d.wlen, version: d.version,
+        wins: d.wins || 0, losses: d.losses || 0,
+        broken: !!d.broken,
+        word: show(d.word)            // mon propre mot : je peux le relire
+      };
+    },
+
+    /* Message lisible pour les erreurs renvoyées par la base. */
+    err: function (e) {
+      var m = String((e && e.message) || e || "");
+      if (m.indexOf("deja-tente") >= 0)      return "Tu as déjà tenté cette défense — attends qu'il change de mot.";
+      if (m.indexOf("defense-tombee") >= 0)  return "Cette défense vient de tomber, son mot va changer.";
+      if (m.indexOf("soi-meme") >= 0)        return "Tu ne peux pas attaquer ta propre défense.";
+      if (m.indexOf("longueur-invalide") >= 0) return "Le mot doit faire entre 4 et 15 lettres.";
+      if (m.indexOf("introuvable") >= 0)     return "Défense introuvable.";
+      return "Connexion impossible — réessaie.";
+    }
+  };
+
+  window.Defense = F;
 })();

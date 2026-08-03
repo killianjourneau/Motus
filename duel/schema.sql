@@ -533,3 +533,168 @@ grant execute on function race_quick(uuid,text,int,text,text)             to ano
 grant execute on function mp_waiting(text)                                to anon, authenticated;
 grant execute on function duel_moves(text,uuid,text)                      to anon, authenticated;
 grant execute on function duel_apply_elo(text)                            to anon, authenticated;
+
+-- ===================================================================
+--  MODE DÉFENSE (multijoueur asynchrone)
+--  Chaque joueur pose UN mot de défense. N'importe qui peut tenter de
+--  le percer. Un attaquant n'a qu'une seule chance par version du mot :
+--  s'il échoue, il doit attendre que le défenseur en change.
+-- ===================================================================
+
+create table if not exists defenses (
+  player_id  uuid primary key,
+  pseudo     text,
+  level      int  default 1,
+  badge      text,
+  word       text not null,          -- obfusqué, comme les mots de duel
+  wlen       int  not null,
+  version    int  default 1,         -- incrémenté à chaque nouveau mot
+  wins       int  default 0,         -- attaques repoussées
+  losses     int  default 0,         -- fois où le mot est tombé
+  broken     boolean default false,  -- vrai tant qu'un nouveau mot n'est pas posé
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+create index if not exists defenses_active_idx on defenses (broken, updated_at);
+
+-- Une ligne par tentative. Créée AU DÉMARRAGE de l'attaque : abandonner
+-- en cours de route compte donc comme un échec, on ne peut pas réessayer.
+create table if not exists defense_attacks (
+  id           bigserial primary key,
+  defender_id  uuid not null,
+  attacker_id  uuid not null,
+  attacker_pseudo text,
+  version      int  not null,
+  tries        int  default 0,
+  won          boolean default false,
+  done         boolean default false,
+  seen         boolean default false,   -- le défenseur a-t-il vu le résultat ?
+  created_at   timestamptz default now(),
+  unique (defender_id, attacker_id, version)
+);
+create index if not exists defense_attacks_feed_idx
+  on defense_attacks (defender_id, done, seen, created_at desc);
+
+alter table defenses        enable row level security;
+alter table defense_attacks enable row level security;
+-- Aucune écriture directe : tout passe par les fonctions ci-dessous.
+
+-- ---------- Poser (ou remplacer) son mot de défense ----------
+create or replace function defense_set(
+  p_id uuid, p_pseudo text, p_level int, p_badge text, p_word text, p_len int
+) returns defenses language plpgsql security definer as $$
+declare v_row defenses;
+begin
+  if p_len < 4 or p_len > 15 then raise exception 'longueur-invalide'; end if;
+
+  insert into defenses (player_id, pseudo, level, badge, word, wlen, version, broken, updated_at)
+  values (p_id, p_pseudo, p_level, p_badge, p_word, p_len, 1, false, now())
+  on conflict (player_id) do update
+    set pseudo = excluded.pseudo, level = excluded.level, badge = excluded.badge,
+        word = excluded.word, wlen = excluded.wlen,
+        version = defenses.version + 1,     -- remet tous les attaquants à zéro
+        broken = false, updated_at = now()
+  returning * into v_row;
+  return v_row;
+end $$;
+
+-- ---------- Ma défense ----------
+create or replace function defense_mine(p_id uuid)
+returns defenses language sql security definer stable as $$
+  select * from defenses where player_id = p_id;
+$$;
+
+-- ---------- Cibles attaquables ----------
+-- On exclut sa propre défense, celles déjà tombées et non reposées, et
+-- toutes celles qu'on a déjà tentées dans leur version courante.
+create or replace function defense_targets(p_id uuid, p_limit int default 20)
+returns table (
+  player_id uuid, pseudo text, level int, badge text,
+  wlen int, version int, wins int, losses int
+) language sql security definer stable as $$
+  select d.player_id, d.pseudo, d.level, d.badge, d.wlen, d.version, d.wins, d.losses
+    from defenses d
+   where d.player_id <> p_id
+     and not d.broken
+     and not exists (
+       select 1 from defense_attacks a
+        where a.defender_id = d.player_id
+          and a.attacker_id = p_id
+          and a.version = d.version
+     )
+   order by d.updated_at desc
+   limit greatest(1, least(coalesce(p_limit, 20), 50));
+$$;
+
+-- ---------- Lancer une attaque ----------
+-- Renvoie le mot à deviner. La tentative est enregistrée immédiatement :
+-- quitter sans finir vaut échec, et interdit donc de réessayer.
+create or replace function defense_attack(p_id uuid, p_pseudo text, p_target uuid)
+returns table (word text, wlen int, version int, pseudo text) language plpgsql security definer as $$
+declare d defenses;
+begin
+  if p_id = p_target then raise exception 'soi-meme'; end if;
+  select * into d from defenses where player_id = p_target for update;
+  if d.player_id is null then raise exception 'introuvable'; end if;
+  if d.broken then raise exception 'defense-tombee'; end if;
+
+  begin
+    insert into defense_attacks (defender_id, attacker_id, attacker_pseudo, version)
+    values (p_target, p_id, p_pseudo, d.version);
+  exception when unique_violation then
+    raise exception 'deja-tente';
+  end;
+
+  return query select d.word, d.wlen, d.version, d.pseudo;
+end $$;
+
+-- ---------- Résultat d'une attaque ----------
+create or replace function defense_report(
+  p_id uuid, p_target uuid, p_version int, p_tries int, p_won boolean
+) returns void language plpgsql security definer as $$
+declare v_done boolean;
+begin
+  select done into v_done from defense_attacks
+   where defender_id = p_target and attacker_id = p_id and version = p_version;
+  if v_done is null then raise exception 'introuvable'; end if;
+  if v_done then return; end if;                 -- déjà comptabilisé
+
+  update defense_attacks
+     set tries = p_tries, won = p_won, done = true
+   where defender_id = p_target and attacker_id = p_id and version = p_version;
+
+  if p_won then
+    update defenses set losses = losses + 1, broken = true, updated_at = now()
+     where player_id = p_target and version = p_version;
+  else
+    update defenses set wins = wins + 1
+     where player_id = p_target and version = p_version;
+  end if;
+end $$;
+
+-- ---------- Journal des attaques subies ----------
+create or replace function defense_feed(p_id uuid, p_limit int default 15)
+returns table (
+  attacker_pseudo text, tries int, won boolean, seen boolean, created_at timestamptz
+) language sql security definer stable as $$
+  select a.attacker_pseudo, a.tries, a.won, a.seen, a.created_at
+    from defense_attacks a
+   where a.defender_id = p_id and a.done
+   order by a.created_at desc
+   limit greatest(1, least(coalesce(p_limit, 15), 50));
+$$;
+
+-- ---------- Marquer le journal comme lu ----------
+create or replace function defense_seen(p_id uuid)
+returns void language sql security definer as $$
+  update defense_attacks set seen = true
+   where defender_id = p_id and done and not seen;
+$$;
+
+grant execute on function defense_set(uuid,text,int,text,text,int)  to anon, authenticated;
+grant execute on function defense_mine(uuid)                        to anon, authenticated;
+grant execute on function defense_targets(uuid,int)                 to anon, authenticated;
+grant execute on function defense_attack(uuid,text,uuid)            to anon, authenticated;
+grant execute on function defense_report(uuid,uuid,int,int,boolean) to anon, authenticated;
+grant execute on function defense_feed(uuid,int)                    to anon, authenticated;
+grant execute on function defense_seen(uuid)                        to anon, authenticated;
