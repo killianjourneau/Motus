@@ -102,6 +102,11 @@
     max-width:420px; min-height:130px; padding:12px; background:var(--cell); border-radius:18px;
     box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
   #countBox span{ font-size:min(11vw,40px); line-height:1; animation:pop .2s ease; }
+  #countBox.txt{ gap:4px; }
+  #countBox.txt span{ font-size:min(9vw,32px); font-weight:800; color:var(--accent);
+    background:var(--bg); border-radius:8px; padding:4px 7px; min-width:1.1em; text-align:center; }
+  #countBox.phrase{ display:block; text-align:center; font-size:min(6.5vw,24px); font-weight:700;
+    line-height:1.5; color:var(--ink); padding:16px 14px; }
   .nums{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; max-width:440px; }
   .num{ width:56px; height:56px; border:none; border-radius:16px; background:var(--cell); color:var(--ink);
     box-shadow:inset 0 0 0 2px var(--cell-edge); font-size:24px; font-weight:800; cursor:pointer; }
@@ -208,7 +213,7 @@
     </div>
   </div>
 
-<script src="./dico/motus-enfant.js?v=1.26.0"></script>
+<script src="./dico/motus-enfant.js?v=1.27.3"></script>
 <script>
 (function(){
   "use strict";
@@ -216,6 +221,7 @@
   var DATA   = window.MOTUS_ENFANT || {};
   var IMAGES = DATA.images || [{e:"🐱",m:"CHAT",c:"animal"}];
   var CATS   = DATA.cats || {};
+  var PHRASES = DATA.phrases || ["Le chat dort sur le tapis."];
   var LIVES  = 3;
 
   var store = {
@@ -312,34 +318,62 @@
   /* =======================================================
      JEU 2 — COMPTER  (aucune lecture : dès 5 ans)
      ======================================================= */
+  /* Normalise une chaîne pour compter ses lettres : majuscules, sans accents,
+     sans espaces ni ponctuation. */
+  function lettersOnly(s){
+    return String(s).toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Z]/g,"");
+  }
+  /* Choisit une lettre à compter dans "letters". La plupart du temps une lettre
+     réellement présente ; de temps en temps (cas rare) une lettre absente,
+     pour que la réponse 0 soit possible sans jamais être la norme. */
+  function pickCountLetter(letters){
+    var present = {};
+    for(var i=0;i<letters.length;i++) present[letters[i]] = (present[letters[i]]||0)+1;
+    if(Math.random() < 0.18){
+      var missing = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").filter(function(c){ return !present[c]; });
+      if(missing.length) return { letter: missing[Math.floor(Math.random()*missing.length)], n: 0 };
+    }
+    var have = Object.keys(present);
+    var L = have[Math.floor(Math.random()*have.length)];
+    return { letter: L, n: present[L] };
+  }
+
   function roundCompter(){
     target = null;                       // ce jeu ne révèle pas de mot en fin de partie
-    var max, cells;
-    if(level==="expert"){
-      // il faut compter UNE seule sorte au milieu d'autres : bien plus exigeant
-      max = 12;
-      countN = 2 + Math.floor(Math.random()*8);              // 2 à 9 à trouver
+    var box = $("countBox"); box.style.display="flex"; box.className="";
+
+    if(level==="moyen"){
+      // compter une lettre dans un mot
+      var w = pick(IMAGES).m;
+      var pickW = pickCountLetter(w);
+      countN = pickW.n;
+      box.classList.add("txt");
+      box.innerHTML = w.split("").map(function(c){ return '<span>'+c+'</span>'; }).join("");
+      $("ask").innerHTML = 'Combien de fois la lettre <b>'+pickW.letter+'</b> apparaît dans ce mot ?';
+    } else if(level==="expert"){
+      // compter une lettre dans une phrase
+      var ph = pick(PHRASES);
+      var pickP = pickCountLetter(lettersOnly(ph));
+      countN = pickP.n;
+      box.classList.add("txt","phrase");
+      box.textContent = ph;
+      $("ask").innerHTML = 'Combien de fois la lettre <b>'+pickP.letter+'</b> apparaît dans cette phrase ?';
+    } else {
+      // facile : compter une image précise au milieu d'autres (0 possible, rare)
+      countN = (Math.random() < 0.15) ? 0 : 1 + Math.floor(Math.random()*9);
       var cible = pick(IMAGES);
       var autres = shuffle(IMAGES.filter(function(x){ return x.e !== cible.e; })).slice(0,3);
-      cells = [];
+      var cells = [];
       for(var k=0;k<countN;k++) cells.push(cible.e);
-      var bruit = 4 + Math.floor(Math.random()*5);            // 4 à 8 intruses
+      var bruit = 4 + Math.floor(Math.random()*5);
       for(var j=0;j<bruit;j++) cells.push(pick(autres).e);
       shuffle(cells);
+      box.innerHTML = cells.map(function(e){ return '<span>'+e+'</span>'; }).join("");
       $("ask").innerHTML = 'Combien y a-t-il de <b>' + cible.e + '</b> ?';
-    } else {
-      max = (level==="moyen") ? 10 : 6;
-      countN = 1 + Math.floor(Math.random()*max);
-      var img = pick(IMAGES);
-      cells = [];
-      for(var i=0;i<countN;i++) cells.push(img.e);
-      $("ask").innerHTML = "Combien y en a-t-il ?";
     }
-    var box = $("countBox"); box.style.display="flex";
-    box.innerHTML = cells.map(function(e){ return '<span>'+e+'</span>'; }).join("");
 
     var nums = $("nums"); nums.style.display="flex";
-    var html=""; for(var n=1;n<=max;n++) html += '<button class="num" data-n="'+n+'">'+n+'</button>';
+    var html=""; for(var n=0;n<=12;n++) html += '<button class="num" data-n="'+n+'">'+n+'</button>';
     nums.innerHTML = html;
     Array.prototype.forEach.call(nums.querySelectorAll(".num"), function(b){
       b.addEventListener("click", function(){ answerCompter(+b.dataset.n, b); });
@@ -544,9 +578,10 @@
     intrus: ["Des images sont affichées. Toutes vont ensemble, sauf une.",
              "Touche <b>l'intrus</b> : celui qui n'est pas comme les autres.",
              "<b>Facile</b> : 4 images, l'intrus est très différent. <b>Moyen</b> : 6 images, l'intrus vient d'une famille voisine. <b>Expert</b> : 9 images."],
-    compter:["Des images apparaissent. Compte-les et touche le <b>bon chiffre</b>.",
-             "<b>Facile</b> : jusqu'à 6. <b>Moyen</b> : jusqu'à 10.",
-             "<b>Expert</b> : les images sont mélangées, il faut compter <b>une seule sorte</b> !"],
+    compter:["Touche le <b>bon chiffre</b>, de 0 à 12 (0 est possible, mais rare !).",
+             "<b>Facile</b> : des images sont mélangées, il faut compter <b>une seule sorte</b>.",
+             "<b>Moyen</b> : compte les lettres dans un <b>mot</b>.",
+             "<b>Expert</b> : compte les lettres dans une <b>phrase</b> entière !"],
     memo:   ["Toutes les cartes cachent une image.",
              "Touche deux cartes : si elles sont <b>identiques</b>, elles restent retournées et tu gagnes une ⭐.",
              "<b>Facile</b> : 4 paires. <b>Moyen</b> : 8 paires. <b>Expert</b> : 12 paires !",
