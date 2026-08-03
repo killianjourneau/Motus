@@ -46,6 +46,9 @@
              raceWords:0, raceThemes:[],
              hints:0, cleanStreak:0, cleanBest:0, giveups:0, raceSolo:0,
              hint2Used:0, hintFirstTry:0, hintSixFail:0,
+             defAtkPlay:0, defAtkWin:0, defAtkStreak:0, defAtkBest:0,
+             defWinsAsDefender:0, defLossesAsDefender:0, defRepelStreak:0, defRepelBest:0,
+             defMaxWordLen:0,
              hintMaladies:0, hintPrenoms:0, hintVilles:0, hintOnIndice:0,
              duelLostTo:[] };
   }
@@ -143,6 +146,19 @@
     {id:"hintpre",e:"👶", n:"Souffleur",           d:"Trouver un prénom avec un indice", c:"Indices", t:function(b){return b.hintPrenoms>=1;}},
     {id:"hintvil",e:"🗺️", n:"Guide touristique",   d:"Trouver une ville avec un indice", c:"Indices", t:function(b){return b.hintVilles>=1;}},
     {id:"hintind",e:"🔮", n:"Mise en abyme",       d:"Utiliser un indice sur le mot INDICE", c:"Indices", h:1, t:function(b){return b.hintOnIndice>=1;}},
+
+    // — Défense —
+    {id:"defatk1",  e:"🗡️", n:"Premier assaut",    d:"Attaquer une défense pour la première fois", c:"Défense", t:function(b){return b.defAtkPlay>=1;}},
+    {id:"defwin1",  e:"💥", n:"Première brèche",    d:"Percer une défense pour la première fois", c:"Défense", t:function(b){return b.defAtkWin>=1;}},
+    {id:"defwin10", e:"🏹", n:"Brise-forteresse",   d:"Percer 10 défenses", c:"Défense", t:function(b){return b.defAtkWin>=10;}, p:[function(b){return b.defAtkWin;},10]},
+    {id:"defwin25", e:"🪓", n:"Conquérant",         d:"Percer 25 défenses", c:"Défense", t:function(b){return b.defAtkWin>=25;}, p:[function(b){return b.defAtkWin;},25]},
+    {id:"defatkstk",e:"🔥", n:"Rafale",             d:"Percer 3 défenses d'affilée", c:"Défense", t:function(b){return b.defAtkBest>=3;}},
+    {id:"defsh1",   e:"🛡️", n:"Premier bouclier",   d:"Repousser une attaque pour la première fois", c:"Défense", t:function(b){return b.defWinsAsDefender>=1;}},
+    {id:"defsh10",  e:"🏰", n:"Forteresse",         d:"Repousser 10 attaques", c:"Défense", t:function(b){return b.defWinsAsDefender>=10;}, p:[function(b){return b.defWinsAsDefender;},10]},
+    {id:"defsh25",  e:"🏯", n:"Citadelle",          d:"Repousser 25 attaques", c:"Défense", t:function(b){return b.defWinsAsDefender>=25;}, p:[function(b){return b.defWinsAsDefender;},25]},
+    {id:"defrep10", e:"🧱", n:"Rempart",            d:"Repousser 10 attaques d'affilée sans jamais tomber", c:"Défense", h:1, t:function(b){return b.defRepelBest>=10;}},
+    {id:"definvio", e:"👑", n:"Inviolable",         d:"Repousser 30 attaques sans jamais avoir été percé", c:"Défense", h:1, t:function(b){return b.defWinsAsDefender>=30 && b.defLossesAsDefender===0;}},
+    {id:"deflong",  e:"📏", n:"Mot fleuve",         d:"Poser un mot de défense de 15 lettres", c:"Défense", h:1, t:function(b){return b.defMaxWordLen>=15;}},
 
     // — Quotidien —
     {id:"d7",    e:"🗓️", n:"Semaine pleine",     d:"7 mots du jour trouvés",        c:"Quotidien", t:function(b){return b.daily>=7;}, p:[function(b){return b.daily;},7]},
@@ -916,6 +932,41 @@
       } else {
         b.raceStreak = 0;
       }
+      saveLocal(); checkBadges(); pushDebounced(); refreshOpen();
+    },
+
+    /* Attaque terminée (gagnée ou perdue) — côté attaquant. */
+    defenseAttackResult: function (o) {
+      o = o || {};
+      var b = state.b;
+      b.defAtkPlay++;
+      if (o.won) {
+        b.defAtkWin++; b.defAtkStreak++;
+        if (b.defAtkStreak > b.defAtkBest) b.defAtkBest = b.defAtkStreak;
+      } else {
+        b.defAtkStreak = 0;
+      }
+      saveLocal(); checkBadges(); pushDebounced(); refreshOpen();
+    },
+
+    /* Nouvelles entrées (pas encore vues) du journal des attaques subies —
+       côté défenseur. À traiter dans l'ordre chronologique (la plus
+       ancienne d'abord) pour que la série se calcule correctement. */
+    defenseFeedNew: function (list) {
+      if (!list || !list.length) return;
+      var b = state.b;
+      list.forEach(function (a) {
+        if (a.won) { b.defLossesAsDefender++; b.defRepelStreak = 0; }
+        else { b.defWinsAsDefender++; b.defRepelStreak++; if (b.defRepelStreak > b.defRepelBest) b.defRepelBest = b.defRepelStreak; }
+      });
+      saveLocal(); checkBadges(); pushDebounced(); refreshOpen();
+    },
+
+    /* Un mot de défense vient d'être posé. */
+    defenseWordSet: function (o) {
+      o = o || {};
+      var b = state.b;
+      if ((o.len || 0) > b.defMaxWordLen) b.defMaxWordLen = o.len;
       saveLocal(); checkBadges(); pushDebounced(); refreshOpen();
     },
 
