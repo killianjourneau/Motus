@@ -132,6 +132,31 @@
 
   /* Course à l'écriture */
   .race-lbl{ font-size:11px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.6px; font-weight:800; margin:2px 0 7px; }
+  .def-mine{ background:var(--cell); border-radius:14px; padding:12px 14px; margin-bottom:12px; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
+  .def-mine .t{ font-size:11px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.5px; font-weight:800; margin-bottom:6px; }
+  .def-mine .w{ font-size:22px; font-weight:800; letter-spacing:3px; color:var(--accent); }
+  .def-mine .s{ font-size:12.5px; color:var(--ink-dim); font-weight:700; margin-top:4px; }
+  .def-mine .warn{ color:var(--red); font-weight:800; }
+  .def-mine button{ width:100%; height:40px; margin-top:9px; border:none; border-radius:11px;
+    background:var(--accent); color:#fff; font-weight:800; font-size:14px; cursor:pointer; }
+  .def-mine button.ghost{ background:var(--bg-2); color:var(--ink); box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
+  .def-feed{ display:none; margin-bottom:12px; }
+  .def-feed.show{ display:block; }
+  .def-feed .t{ font-size:11px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.5px; font-weight:800; margin-bottom:6px; }
+  .def-ev{ display:flex; align-items:center; gap:8px; font-size:13px; padding:7px 10px; background:var(--cell); border-radius:9px; margin-bottom:5px; }
+  .def-ev .ic{ flex:none; font-size:15px; }
+  .def-ev .tx{ flex:1; overflow:hidden; text-overflow:ellipsis; }
+  .def-ev.new{ box-shadow:inset 0 0 0 1.5px var(--accent); }
+  .def-targets{ margin-bottom:6px; }
+  .def-tg{ display:flex; align-items:center; gap:10px; width:100%; padding:10px 12px; margin-bottom:6px;
+    border:none; border-radius:12px; background:var(--cell); box-shadow:inset 0 0 0 1.5px var(--cell-edge);
+    color:var(--ink); cursor:pointer; text-align:left; }
+  .def-tg:active{ transform:scale(.98); }
+  .def-tg .nm{ flex:1; font-weight:800; font-size:14.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .def-tg .meta{ font-size:11.5px; color:var(--ink-dim); font-weight:700; }
+  .def-tg .ln{ flex:none; font-weight:800; font-size:13px; color:var(--accent); }
+  .def-none{ font-size:13px; color:var(--ink-dim); text-align:center; padding:10px 0; font-style:italic; }
+  .def-who{ text-align:center; font-size:20px; font-weight:800; color:var(--accent); margin-bottom:10px; }
   .race-themes{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
   .race-th{ border:none; border-radius:11px; background:var(--cell); box-shadow:inset 0 0 0 1.5px var(--cell-edge); color:var(--ink); height:44px; font-weight:700; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px; }
   .race-th.sel{ background:var(--accent); color:#fff; box-shadow:none; }
@@ -347,6 +372,7 @@
       <div class="mode-grid">
         <button class="mode-item" data-mode="duel"><span class="mi">⚔️</span><b>Duel</b><i>Contre un ami</i></button>
         <button class="mode-item" data-mode="race"><span class="mi">⌨️</span><b>Course</b><i>Vitesse d'écriture</i></button>
+        <button class="mode-item" data-mode="defense"><span class="mi">🛡️</span><b>Défense</b><i>Protège ton mot</i></button>
       </div>
       <div class="mode-cat">Thèmes</div>
       <div class="mode-grid">
@@ -505,6 +531,45 @@
     </div>
   </div>
 
+  <!-- Défense -->
+  <div class="overlay" id="defOverlay">
+    <div class="modal">
+      <button class="close-x" data-close>&times;</button>
+      <h2>🛡️ Défense</h2>
+
+      <!-- Écran principal : ma défense + cibles -->
+      <div id="defStep1">
+        <div class="def-mine" id="defMine"></div>
+        <div class="def-feed" id="defFeed"></div>
+        <p class="race-lbl" id="defTargetsLbl">Défenses à percer</p>
+        <div class="def-targets" id="defTargets"></div>
+        <p class="duel-msg" id="defMsg"></p>
+      </div>
+
+      <!-- Choisir / remplacer son mot -->
+      <div id="defStep2" style="display:none">
+        <p class="sub" id="defSetSub">Choisis le mot que les autres devront deviner.</p>
+        <input id="defWord" class="duel-in" maxlength="15" autocomplete="off"
+               autocapitalize="characters" spellcheck="false" placeholder="4 à 15 lettres">
+        <p class="duel-msg" id="defSetMsg"></p>
+        <button class="btn" id="defSetGo">Poser ce mot</button>
+        <button class="btn ghost" id="defSetBack">Retour</button>
+      </div>
+
+      <!-- Confirmation avant d'attaquer -->
+      <div id="defStep3" style="display:none">
+        <p class="sub">Tu vas attaquer la défense de</p>
+        <div class="def-who" id="defAtkWho">—</div>
+        <ul class="xrules">
+          <li>Le mot fait <b id="defAtkLen">?</b> lettres. Tu as <b>6 tentatives</b>.</li>
+          <li><b>Une seule chance.</b> Si tu échoues — ou si tu quittes en cours de route — tu ne pourras réessayer que lorsque ce joueur changera de mot.</li>
+        </ul>
+        <button class="btn" id="defAtkGo">Attaquer</button>
+        <button class="btn ghost" id="defAtkBack">Retour</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Duel -->
   <div class="overlay" id="duelOverlay">
     <div class="modal">
@@ -578,18 +643,18 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.27.3"></script>
-<script src="./dico/motus-prenoms.js?v=1.27.3"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.27.3"></script>
-<script src="./dico/motus-maladies.js?v=1.27.3"></script>
-<script src="./dico/motus-maladies-info.js?v=1.27.3"></script>
-<script src="./dico/motus-villes.js?v=1.27.3"></script>
-<script src="./dico/motus-villes-info.js?v=1.27.3"></script>
-<script src="./dico/motus-race.js?v=1.27.3"></script>
-<script src="./dico/motus-expert.js?v=1.27.3"></script>
-<script src="./profiles/config.js?v=1.27.3"></script>
-<script src="./profiles/profile.js?v=1.27.3"></script>
-<script src="./duel/duel.js?v=1.27.3"></script>
+<script src="./dico/motus-words.js?v=1.28.0"></script>
+<script src="./dico/motus-prenoms.js?v=1.28.0"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.28.0"></script>
+<script src="./dico/motus-maladies.js?v=1.28.0"></script>
+<script src="./dico/motus-maladies-info.js?v=1.28.0"></script>
+<script src="./dico/motus-villes.js?v=1.28.0"></script>
+<script src="./dico/motus-villes-info.js?v=1.28.0"></script>
+<script src="./dico/motus-race.js?v=1.28.0"></script>
+<script src="./dico/motus-expert.js?v=1.28.0"></script>
+<script src="./profiles/config.js?v=1.28.0"></script>
+<script src="./profiles/profile.js?v=1.28.0"></script>
+<script src="./duel/duel.js?v=1.28.0"></script>
 <script>
 (() => {
   "use strict";
@@ -638,7 +703,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.27.3";
+  const VERSION = "1.28.0";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -949,7 +1014,7 @@
     setTimeout(()=>finishRow(guess===answer), (len-1)*180+520);
   }
 
-  const MODE_FACTOR = { court:0.8, normal:1, long:1.4, daily:1.1, defi:1.2, prenoms:0.9, maladies:1.1, villes:1.1, duel:1.2, race:1.2, expert:1.5 };
+  const MODE_FACTOR = { court:0.8, normal:1, long:1.4, daily:1.1, defi:1.2, prenoms:0.9, maladies:1.1, villes:1.1, duel:1.2, race:1.2, expert:1.5, defense:1.3 };
   function awardXp(win){
     if(!window.Profile) return;
     const f = MODE_FACTOR[mode] || 1;
@@ -1003,6 +1068,7 @@
       over=true; ended=true; won=true; timerStop(); vibrate([12,40,12]);
       for(let c=0;c<len;c++) setTimeout(()=>tileAt(row,c).classList.add("jump"), c*70);
       recordResult(true, guesses.length); awardXp(true);
+      if(mode==="defense"){ defFinish(true); setTimeout(()=>showEnd(true), 720); return; }
       if(mode==="duel"){ setTimeout(()=>duelReport(true), 720); return; }
       if(mode==="defi"){ setTimeout(()=>defiAdvance(true), 720); save(); return; }
       save();
@@ -1011,6 +1077,7 @@
     row++;
     if(row>=MAX_ROWS){
       over=true; ended=true; timerStop(); recordResult(false); awardXp(false);
+      if(mode==="defense"){ defFinish(false); setTimeout(()=>showEnd(false), 360); return; }
       if(mode==="duel"){ setTimeout(()=>duelReport(false), 360); return; }
       if(mode==="defi"){ save(); setTimeout(()=>defiAdvance(false), 360); return; }
       save(); setTimeout(()=>showEnd(false), 360); return;
@@ -1036,6 +1103,158 @@
   function expertOpen(){
     expertRefreshOpt();
     openOverlay("expertOverlay");
+  }
+
+  /* ===================================================================
+     Mode Défense — multijoueur asynchrone.
+     On pose un mot que les autres tentent de percer. Chaque attaquant n'a
+     qu'une seule chance par version du mot : la base enregistre la tentative
+     dès son lancement, donc abandonner en cours vaut échec.
+     =================================================================== */
+  let defTarget=null, defReported=false, defMineCache=null;
+
+  function defAvailable(){ return !!(window.Defense && Defense.configured); }
+  function defSetMsg(t, err){ const e=$("defMsg"); if(!e) return; e.innerHTML=t||""; e.classList.toggle("err", !!err); }
+  function defShowStep(n){ [1,2,3].forEach(i=>{ const e=$("defStep"+i); if(e) e.style.display=(i===n)?"":"none"; }); }
+
+  function defOpen(){
+    if(!defAvailable()){ toast("Le mode Défense nécessite la connexion au serveur"); return; }
+    defShowStep(1); defSetMsg("");
+    openOverlay("defOverlay");
+    defRefresh();
+  }
+
+  function defRefresh(){
+    $("defMine").innerHTML = '<div class="t">Ma défense</div><div class="s">Chargement…</div>';
+    $("defTargets").innerHTML = '<div class="def-none">Chargement…</div>';
+    Defense.mine().then(d=>{ defMineCache=d; defDrawMine(d); defDrawFeed(); });
+    Defense.targets(20).then(defDrawTargets);
+  }
+
+  function defDrawMine(d){
+    const box=$("defMine");
+    if(!d){
+      box.innerHTML = '<div class="t">Ma défense</div>'
+        + '<div class="s">Tu n\'as pas encore de mot à défendre.</div>'
+        + '<button id="defSetBtn">Poser un mot</button>';
+    } else if(d.broken){
+      box.innerHTML = '<div class="t">Ma défense</div>'
+        + '<div class="s warn">🛡️ Ton mot est tombé ! Choisis-en un nouveau pour te remettre en jeu.</div>'
+        + '<div class="s">'+d.wins+' attaque'+(d.wins>1?'s':'')+' repoussée'+(d.wins>1?'s':'')+' · '+d.losses+' fois percé'+(d.losses>1?'e':'')+'</div>'
+        + '<button id="defSetBtn">Choisir un nouveau mot</button>';
+    } else {
+      box.innerHTML = '<div class="t">Ma défense</div>'
+        + '<div class="w">'+(d.word||"").replace(/[<>]/g,"")+'</div>'
+        + '<div class="s">'+d.wins+' attaque'+(d.wins>1?'s':'')+' repoussée'+(d.wins>1?'s':'')+' · '+d.losses+' fois percé'+(d.losses>1?'e':'')+'</div>'
+        + '<button class="ghost" id="defSetBtn">Changer de mot</button>';
+    }
+    const b=$("defSetBtn");
+    if(b) b.addEventListener("click", ()=>defOpenSet(!!d));
+  }
+
+  function defDrawFeed(){
+    const box=$("defFeed");
+    Defense.feed(10).then(rows=>{
+      if(!rows || !rows.length){ box.classList.remove("show"); box.innerHTML=""; return; }
+      const unseen = rows.filter(r=>!r.seen).length;
+      box.innerHTML = '<div class="t">Attaques subies'+(unseen?' · '+unseen+' nouvelle'+(unseen>1?'s':''):'')+'</div>'
+        + rows.map(r=>{
+            const who=(r.attacker_pseudo||"Anonyme").replace(/[<>]/g,"");
+            const txt = r.won
+              ? who+" a percé ta défense en "+r.tries+" essai"+(r.tries>1?"s":"")
+              : who+" a tenté et a échoué";
+            return '<div class="def-ev'+(r.seen?"":" new")+'"><span class="ic">'+(r.won?"💥":"🛡️")+'</span><span class="tx">'+txt+'</span></div>';
+          }).join("");
+      box.classList.add("show");
+      if(unseen) Defense.markSeen();
+    });
+  }
+
+  function defDrawTargets(list){
+    const box=$("defTargets");
+    if(!list || !list.length){
+      box.innerHTML = '<div class="def-none">Aucune défense à attaquer pour le moment — reviens plus tard !</div>';
+      return;
+    }
+    box.innerHTML = list.map((t,i)=>{
+      const who=(t.pseudo||"Anonyme").replace(/[<>]/g,"");
+      return '<button class="def-tg" data-i="'+i+'">'
+           + '<span class="nm">'+who+'<span class="meta"> · '+t.wins+' repoussée'+(t.wins>1?'s':'')+'</span></span>'
+           + '<span class="ln">'+t.wlen+' lettres</span></button>';
+    }).join("");
+    Array.prototype.forEach.call(box.querySelectorAll(".def-tg"), b=>{
+      b.addEventListener("click", ()=>defConfirmAttack(list[+b.dataset.i]));
+    });
+  }
+
+  /* ---------- Poser son mot ---------- */
+  function defOpenSet(hasOne){
+    $("defSetSub").textContent = hasOne
+      ? "Choisis un nouveau mot. Tous ceux qui ont déjà tenté pourront réessayer."
+      : "Choisis le mot que les autres devront deviner.";
+    $("defWord").value=""; $("defSetMsg").textContent="";
+    defShowStep(2);
+    for(let l=4;l<=15;l++) loadDicoForce(l);
+  }
+  function defCheckWord(w){
+    w=(w||"").toUpperCase().replace(/[^A-Z]/g,"");
+    if(w.length<4 || w.length>15) return { ok:false, msg:"Le mot doit faire entre 4 et 15 lettres" };
+    const d=dicoByLen[w.length];
+    if(d===undefined) return { ok:false, msg:"Dictionnaire en cours de chargement…", retry:true };
+    if(d && !d.has(w)) return { ok:false, msg:"« "+w+" » n'est pas dans le dictionnaire" };
+    return { ok:true, word:w };
+  }
+  function defSubmitWord(){
+    const chk = defCheckWord($("defWord").value);
+    if(!chk.ok){
+      $("defSetMsg").textContent = chk.msg;
+      if(chk.retry) setTimeout(defSubmitWord, 400);
+      return;
+    }
+    $("defSetGo").disabled=true; $("defSetMsg").textContent="Enregistrement…";
+    Defense.set(chk.word).then(d=>{
+      $("defSetGo").disabled=false; defMineCache=d;
+      defShowStep(1); defDrawMine(d); defDrawFeed();
+      Defense.targets(20).then(defDrawTargets);
+      toast("🛡️ Ton mot est en place");
+    }).catch(e=>{
+      $("defSetGo").disabled=false;
+      $("defSetMsg").textContent = Defense.err(e);
+    });
+  }
+
+  /* ---------- Attaquer ---------- */
+  function defConfirmAttack(t){
+    defTarget = t;
+    $("defAtkWho").textContent = (t.pseudo||"Anonyme");
+    $("defAtkLen").textContent = t.wlen;
+    defShowStep(3);
+  }
+  function defStartAttack(){
+    if(!defTarget) return;
+    $("defAtkGo").disabled=true;
+    Defense.attack(defTarget.player_id).then(a=>{
+      $("defAtkGo").disabled=false;
+      closeOverlays();
+      defTarget = Object.assign({}, defTarget, { version:a.version, pseudo:a.pseudo });
+      mode="defense"; over=false; ended=false; won=false; guesses=[]; rowStates=[];
+      defReported=false;
+      answer = a.target;
+      setupBoardForAnswer(); loadDicoForce(len); setActiveSeg("defense");
+      timerStart(0); updateHud();
+      toast("Une seule chance — bonne chance !", 2600);
+    }).catch(e=>{
+      $("defAtkGo").disabled=false;
+      defShowStep(1); defSetMsg(Defense.err(e), true);
+      defRefresh();
+    });
+  }
+  /* Résultat transmis à la base : c'est elle qui compte les points. */
+  function defFinish(win){
+    if(defReported || !defTarget) return;
+    defReported = true;
+    Defense.report(defTarget.player_id, defTarget.version, { tries: win ? guesses.length : 0, won: win })
+      .then(()=>{ defMineCache=null; });
   }
 
   /* ---------- Mémoire de la partie multijoueur en cours ----------
@@ -2234,7 +2453,7 @@
   }
   function timerValue(){ return tTimer ? tElapsed + (Date.now()-tStart) : tElapsed; }
   function updateHud(){
-    const names={court:"Court",normal:"Normal",long:"Long",expert:"Expert",daily:"Mot du jour",defi:"Défi du jour",prenoms:"Prénoms",maladies:"Maladies",villes:"Villes",duel:"Duel",race:"Course"};
+    const names={court:"Court",normal:"Normal",long:"Long",expert:"Expert",daily:"Mot du jour",defi:"Défi du jour",prenoms:"Prénoms",maladies:"Maladies",villes:"Villes",duel:"Duel",race:"Course",defense:"Défense"};
     let label = names[mode]||"";
     if(mode==="race") label = "Course · " + raceThemeName(raceTheme);
     if(mode==="expert") label = "Expert" + (expertRare ? " · mots rares" : "");
@@ -2369,7 +2588,7 @@
     else timerReset();                                        // mot pas encore entamé
   }
 
-  const MODE_LABELS={daily:"📅 Mot du jour",defi:"🔥 Défi du jour",court:"🐤 Court",normal:"🎯 Normal",long:"🐘 Long",expert:"🎓 Expert",prenoms:"👶 Prénoms",maladies:"🩺 Maladies",villes:"🏙️ Villes",duel:"⚔️ Duel",race:"⌨️ Course"};
+  const MODE_LABELS={daily:"📅 Mot du jour",defi:"🔥 Défi du jour",court:"🐤 Court",normal:"🎯 Normal",long:"🐘 Long",expert:"🎓 Expert",prenoms:"👶 Prénoms",maladies:"🩺 Maladies",villes:"🏙️ Villes",duel:"⚔️ Duel",race:"⌨️ Course",defense:"🛡️ Défense"};
   function setActiveSeg(m){
     $("modeBtnLabel").textContent = MODE_LABELS[m] || m;
     document.querySelectorAll(".mode-item").forEach(b=>b.classList.toggle("active", b.dataset.mode===m));
@@ -2434,6 +2653,14 @@
     openOverlay("confirmOverlay");
   }
   function requestMode(m){
+    // Défense : la tentative est déjà consommée côté serveur. Partir sans finir
+    // vaut échec — on prévient clairement et on reporte le résultat honnêtement.
+    if(mode==="defense" && m!=="defense" && !ended && defTarget){
+      askConfirm("Abandonner l'attaque ?",
+        "Ta seule tentative sera perdue : tu ne pourras réessayer que si ce joueur change de mot.",
+        ()=>{ defFinish(false); ended=true; over=true; timerStop(); switchMode(m); });
+      return;
+    }
     if(mode==="duel" && m!=="duel" && duelStarted && !ended){
       // le duel n'est pas perdu : il se met en pause et pourra être repris
       duelPause(); switchMode(m); return;
@@ -2462,6 +2689,7 @@
     else if(m==="expert") expertOpen();
     else if(m==="duel") duelOpen();
     else if(m==="race") raceOpen();
+    else if(m==="defense") defOpen();
     else { duelPause(); racePause(); startFree(m); }
   }
 
@@ -2495,6 +2723,13 @@
     expertRare = !expertRare; store.set("motus.expertRare", expertRare); expertRefreshOpt();
   });
   $("expertStart").addEventListener("click", ()=>{ closeOverlays(); startFree("expert"); });
+
+  /* ---------- Mode Défense ---------- */
+  $("defSetGo").addEventListener("click", defSubmitWord);
+  $("defSetBack").addEventListener("click", ()=>{ defShowStep(1); defSetMsg(""); });
+  $("defWord").addEventListener("keydown", e=>{ if(e.key==="Enter") defSubmitWord(); });
+  $("defAtkGo").addEventListener("click", defStartAttack);
+  $("defAtkBack").addEventListener("click", ()=>{ defTarget=null; defShowStep(1); });
 
   $("duelLastCode").addEventListener("click", ()=>{
     const c = mpLastCode("duel"); if(!c) return;
