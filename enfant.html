@@ -96,6 +96,8 @@
   .ch:active{ transform:scale(.94); }
   .ch.wrong{ opacity:.28; box-shadow:inset 0 0 0 2px var(--absent); pointer-events:none; }
   .ch.good{ background:var(--accent); box-shadow:none; }
+  .ch.word{ aspect-ratio:auto; min-height:56px; font-size:min(6.5vw,20px); font-weight:800;
+    letter-spacing:.5px; padding:10px 6px; }
 
   /* --- jeu du comptage --- */
   #countBox{ display:flex; flex-wrap:wrap; gap:10px; justify-content:center; align-items:center;
@@ -105,6 +107,7 @@
   #countBox.txt{ gap:4px; }
   #countBox.txt span{ font-size:min(9vw,32px); font-weight:800; color:var(--accent);
     background:var(--bg); border-radius:8px; padding:4px 7px; min-width:1.1em; text-align:center; }
+  #countBox.txt span.sep{ background:none; color:var(--ink-dim); padding:0 2px; min-width:0; }
   #countBox.phrase{ display:block; text-align:center; font-size:min(6.5vw,24px); font-weight:700;
     line-height:1.5; color:var(--ink); padding:16px 14px; }
   .nums{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; max-width:440px; }
@@ -213,7 +216,7 @@
     </div>
   </div>
 
-<script src="./dico/motus-enfant.js?v=1.28.0"></script>
+<script src="./dico/motus-enfant.js?v=1.28.2"></script>
 <script>
 (function(){
   "use strict";
@@ -271,18 +274,20 @@
      JEU 1 — L'INTRUS  (aucune lecture : dès 5 ans)
      ======================================================= */
   function roundIntrus(){
-    var total = (level==="expert") ? 9 : (level==="moyen") ? 6 : 4;
-    var proche = (level !== "facile");        // dès Moyen, l'intrus vient d'une famille voisine
+    // Facile fusionne les deux anciens niveaux faciles : 4 ou 6 images, intrus
+    // d'un tout autre univers. Moyen (ex-Expert) : 9 images, famille voisine.
+    // Expert : plus d'emojis — des MOTS à lire, famille voisine.
+    var isWord = (level==="expert");
+    var total = (level==="moyen") ? 9 : isWord ? 6 : pick([4,6]);
+    var proche = (level==="moyen" || isWord);
     var voisines = function(c){
       return Object.keys(CATS).filter(function(o){ return o!==c && byCat(o).length && group(o)===group(c); });
     };
     var cats = Object.keys(CATS).filter(function(c){
       if(byCat(c).length < total) return false;
-      // dès Moyen, la famille doit avoir une voisine, sinon l'intrus saute aux yeux
       return proche ? voisines(c).length > 0 : true;
     });
     var c = pick(cats);
-    // Facile : l'intrus vient d'un tout autre univers. Plus dur : univers voisin.
     var others = proche
       ? voisines(c)
       : Object.keys(CATS).filter(function(o){ return o!==c && byCat(o).length && group(o)!==group(c); });
@@ -296,7 +301,7 @@
     var box = $("choices");
     box.style.display=""; box.className = (total===4) ? "c2" : "c3";
     box.innerHTML = choices.map(function(x,i){
-      return '<button class="ch" data-i="'+i+'" aria-label="Choix '+(i+1)+'">'+x.e+'</button>';
+      return '<button class="ch'+(isWord?" word":"")+'" data-i="'+i+'" aria-label="Choix '+(i+1)+'">'+(isWord?x.m:x.e)+'</button>';
     }).join("");
     Array.prototype.forEach.call(box.querySelectorAll(".ch"), function(b){
       b.addEventListener("click", function(){ answerIntrus(+b.dataset.i, b); });
@@ -323,19 +328,65 @@
   function lettersOnly(s){
     return String(s).toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Z]/g,"");
   }
-  /* Choisit une lettre à compter dans "letters". La plupart du temps une lettre
-     réellement présente ; de temps en temps (cas rare) une lettre absente,
-     pour que la réponse 0 soit possible sans jamais être la norme. */
-  function pickCountLetter(letters){
-    var present = {};
-    for(var i=0;i<letters.length;i++) present[letters[i]] = (present[letters[i]]||0)+1;
-    if(Math.random() < 0.18){
+  /* Choisit une lettre à compter dans "letters". Le cas 0 (lettre absente)
+     reste possible mais doit rester rare. Sinon, deux stratégies :
+     - biasHigh=false : une occurrence prise au hasard dans le texte (déjà
+       penche vers les lettres fréquentes, utilisé pour le comptage d'images).
+     - biasHigh=true : on privilégie nettement la lettre la plus répétée du
+       mot ou de la phrase, pour obtenir des réponses plus hautes et plus
+       variées en Moyen et Expert — un mot de 6 lettres n'a souvent qu'une
+       poignée de répétitions, il ne faut pas les laisser passer inaperçues. */
+  function pickCountLetter(letters, biasHigh){
+    if(Math.random() < 0.08){
+      var present = {};
+      for(var i=0;i<letters.length;i++) present[letters[i]] = true;
       var missing = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").filter(function(c){ return !present[c]; });
       if(missing.length) return { letter: missing[Math.floor(Math.random()*missing.length)], n: 0 };
     }
-    var have = Object.keys(present);
-    var L = have[Math.floor(Math.random()*have.length)];
-    return { letter: L, n: present[L] };
+    if(biasHigh){
+      var counts = {};
+      for(var j=0;j<letters.length;j++) counts[letters[j]] = (counts[letters[j]]||0)+1;
+      var keys = Object.keys(counts).sort(function(a,b){ return counts[b]-counts[a]; });
+      var idx = Math.min(keys.length-1, Math.floor(Math.pow(Math.random(),2) * keys.length));
+      var Lb = keys[idx];
+      return { letter: Lb, n: counts[Lb] };
+    }
+    var L = letters[Math.floor(Math.random()*letters.length)];
+    var n = 0; for(var k=0;k<letters.length;k++) if(letters[k]===L) n++;
+    return { letter: L, n: n };
+  }
+
+  /* Pour le comptage de lettres dans un mot (Moyen) : un mot de 6 lettres
+     n'offre presque jamais de belle répétition si on le tire au hasard —
+     13 mots sur 296 seulement dépassent 2 occurrences d'une même lettre.
+     On privilégie donc les mots les plus "riches" en répétitions, sans
+     jamais exclure les autres (juste moins fréquents). */
+  var WORD_WEIGHTS = null;
+  function pickWordForCount(){
+    if(!WORD_WEIGHTS){
+      WORD_WEIGHTS = [];
+      IMAGES.forEach(function(x){
+        var c={}, mx=1;
+        for(var i=0;i<x.m.length;i++){ c[x.m[i]]=(c[x.m[i]]||0)+1; if(c[x.m[i]]>mx) mx=c[x.m[i]]; }
+        var w = mx*mx;
+        for(var r=0;r<w;r++) WORD_WEIGHTS.push(x);
+      });
+    }
+    return WORD_WEIGHTS[Math.floor(Math.random()*WORD_WEIGHTS.length)];
+  }
+
+  var PHRASE_WEIGHTS = null;
+  function pickPhraseForCount(){
+    if(!PHRASE_WEIGHTS){
+      PHRASE_WEIGHTS = [];
+      PHRASES.forEach(function(ph){
+        var L = lettersOnly(ph), c={}, mx=1;
+        for(var i=0;i<L.length;i++){ c[L[i]]=(c[L[i]]||0)+1; if(c[L[i]]>mx) mx=c[L[i]]; }
+        var w = mx;                 // les phrases ont déjà toutes une bonne richesse (3 à 7)
+        for(var r=0;r<w;r++) PHRASE_WEIGHTS.push(ph);
+      });
+    }
+    return PHRASE_WEIGHTS[Math.floor(Math.random()*PHRASE_WEIGHTS.length)];
   }
 
   function roundCompter(){
@@ -343,24 +394,28 @@
     var box = $("countBox"); box.style.display="flex"; box.className="";
 
     if(level==="moyen"){
-      // compter une lettre dans un mot
-      var w = pick(IMAGES).m;
-      var pickW = pickCountLetter(w);
+      // compter une lettre sur DEUX mots : un seul mot de 6 lettres n'offre
+      // presque jamais assez de répétitions pour varier les réponses.
+      var w1 = pickWordForCount().m, w2;
+      do { w2 = pickWordForCount().m; } while(w2===w1);
+      var pickW = pickCountLetter(w1+w2, true);
       countN = pickW.n;
       box.classList.add("txt");
-      box.innerHTML = w.split("").map(function(c){ return '<span>'+c+'</span>'; }).join("");
-      $("ask").innerHTML = 'Combien de fois la lettre <b>'+pickW.letter+'</b> apparaît dans ce mot ?';
+      box.innerHTML = w1.split("").map(function(c){ return '<span>'+c+'</span>'; }).join("")
+        + '<span class="sep">+</span>'
+        + w2.split("").map(function(c){ return '<span>'+c+'</span>'; }).join("");
+      $("ask").innerHTML = 'Combien de fois la lettre <b>'+pickW.letter+'</b> apparaît dans <b>ces deux mots</b> ?';
     } else if(level==="expert"){
       // compter une lettre dans une phrase
-      var ph = pick(PHRASES);
-      var pickP = pickCountLetter(lettersOnly(ph));
+      var ph = pickPhraseForCount();
+      var pickP = pickCountLetter(lettersOnly(ph), true);
       countN = pickP.n;
       box.classList.add("txt","phrase");
       box.textContent = ph;
       $("ask").innerHTML = 'Combien de fois la lettre <b>'+pickP.letter+'</b> apparaît dans cette phrase ?';
     } else {
       // facile : compter une image précise au milieu d'autres (0 possible, rare)
-      countN = (Math.random() < 0.15) ? 0 : 1 + Math.floor(Math.random()*9);
+      countN = (Math.random() < 0.08) ? 0 : 1 + Math.floor(Math.random()*9);
       var cible = pick(IMAGES);
       var autres = shuffle(IMAGES.filter(function(x){ return x.e !== cible.e; })).slice(0,3);
       var cells = [];
@@ -575,12 +630,14 @@
 
   /* ---------- aide, adaptée au jeu en cours ---------- */
   var HELP = {
-    intrus: ["Des images sont affichées. Toutes vont ensemble, sauf une.",
+    intrus: ["Des images (ou des mots) sont affichés. Tous vont ensemble, sauf un.",
              "Touche <b>l'intrus</b> : celui qui n'est pas comme les autres.",
-             "<b>Facile</b> : 4 images, l'intrus est très différent. <b>Moyen</b> : 6 images, l'intrus vient d'une famille voisine. <b>Expert</b> : 9 images."],
+             "<b>Facile</b> : 4 ou 6 images, l'intrus est très différent.",
+             "<b>Moyen</b> : 9 images, l'intrus vient d'une famille voisine.",
+             "<b>Expert</b> : ce sont des <b>mots</b> à lire, l'intrus vient d'une famille voisine."],
     compter:["Touche le <b>bon chiffre</b>, de 0 à 12 (0 est possible, mais rare !).",
              "<b>Facile</b> : des images sont mélangées, il faut compter <b>une seule sorte</b>.",
-             "<b>Moyen</b> : compte les lettres dans un <b>mot</b>.",
+             "<b>Moyen</b> : compte les lettres dans <b>deux mots</b>.",
              "<b>Expert</b> : compte les lettres dans une <b>phrase</b> entière !"],
     memo:   ["Toutes les cartes cachent une image.",
              "Touche deux cartes : si elles sont <b>identiques</b>, elles restent retournées et tu gagnes une ⭐.",
