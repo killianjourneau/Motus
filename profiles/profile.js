@@ -49,6 +49,7 @@
              defAtkPlay:0, defAtkWin:0, defAtkStreak:0, defAtkBest:0,
              defWinsAsDefender:0, defLossesAsDefender:0, defRepelStreak:0, defRepelBest:0,
              defMaxWordLen:0,
+             penduPlay:0, penduWin:0, penduLoss:0, penduStreak:0, penduBest:0, penduClean:0, penduClose:0,
              hintMaladies:0, hintPrenoms:0, hintVilles:0, hintOnIndice:0,
              duelLostTo:[] };
   }
@@ -159,6 +160,16 @@
     {id:"defrep10", e:"🧱", n:"Rempart",            d:"Repousser 10 attaques d'affilée sans jamais tomber", c:"Défense", h:1, t:function(b){return b.defRepelBest>=10;}},
     {id:"definvio", e:"👑", n:"Inviolable",         d:"Repousser 30 attaques sans jamais avoir été percé", c:"Défense", h:1, t:function(b){return b.defWinsAsDefender>=30 && b.defLossesAsDefender===0;}},
     {id:"deflong",  e:"📏", n:"Mot fleuve",         d:"Poser un mot de défense de 15 lettres", c:"Défense", h:1, t:function(b){return b.defMaxWordLen>=15;}},
+
+    // — Le Pendu —
+    {id:"pendu1",  e:"🪢", n:"Corde coupée",     d:"Jouer une première partie de Pendu", c:"Pendu", t:function(b){return b.penduPlay>=1;}},
+    {id:"penduw1", e:"🎉", n:"Gracié",           d:"Gagner une première partie de Pendu", c:"Pendu", t:function(b){return b.penduWin>=1;}},
+    {id:"penduw10",e:"🤹", n:"Habitué de la potence", d:"Gagner 10 parties de Pendu", c:"Pendu", t:function(b){return b.penduWin>=10;}, p:[function(b){return b.penduWin;},10]},
+    {id:"penduw25",e:"🎭", n:"Maître pendu",     d:"Gagner 25 parties de Pendu", c:"Pendu", t:function(b){return b.penduWin>=25;}, p:[function(b){return b.penduWin;},25]},
+    {id:"penduskt",e:"🔥", n:"Chance insolente", d:"Gagner 5 parties de Pendu d'affilée", c:"Pendu", t:function(b){return b.penduBest>=5;}},
+    {id:"penducln",e:"💯", n:"Sans une seule erreur", d:"Gagner une partie de Pendu sans jamais se tromper", c:"Pendu", h:1, t:function(b){return b.penduClean>=1;}},
+    {id:"penducls",e:"😰", n:"Ric-rac",          d:"Gagner une partie de Pendu avec une seule vie restante", c:"Pendu", h:1, t:function(b){return b.penduClose>=1;}},
+    {id:"pendulos",e:"🪦", n:"Corde au cou",     d:"Perdre 10 parties de Pendu", c:"Pendu", h:1, t:function(b){return b.penduLoss>=10;}},
 
     // — Quotidien —
     {id:"d7",    e:"🗓️", n:"Semaine pleine",     d:"7 mots du jour trouvés",        c:"Quotidien", t:function(b){return b.daily>=7;}, p:[function(b){return b.daily;},7]},
@@ -983,6 +994,23 @@
     giveUp: function () {
       var b = state.b;
       b.giveups = (b.giveups || 0) + 1;
+      saveLocal(); checkBadges(); pushDebounced(); refreshOpen();
+    },
+
+    /* Le Pendu terminé. {won, wrong, lives} — 'wrong' = erreurs commises,
+       'lives' = nombre total de vies disponibles pour la partie. */
+    penduDone: function (o) {
+      o = o || {};
+      var b = state.b;
+      b.penduPlay++;
+      if (o.won) {
+        b.penduWin++; b.penduStreak++;
+        if (b.penduStreak > b.penduBest) b.penduBest = b.penduStreak;
+        if ((o.wrong || 0) === 0) b.penduClean++;
+        if ((o.lives || 0) - (o.wrong || 0) === 1) b.penduClose++;
+      } else {
+        b.penduLoss++; b.penduStreak = 0;
+      }
       saveLocal(); checkBadges(); pushDebounced(); refreshOpen();
     },
 
