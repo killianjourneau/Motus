@@ -240,9 +240,12 @@
   #timer{ font-variant-numeric:tabular-nums; letter-spacing:.5px; background:var(--cell); padding:4px 10px; border-radius:8px; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
   main{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:4px 8px; min-height:0; }
   #board{ display:grid; gap:var(--gap); }
-  #penduBox{ display:flex; flex-direction:column; align-items:center; gap:16px; }
-  .pendu-lives{ font-size:clamp(18px,5vw,26px); letter-spacing:2px; }
-  #penduRow.row{ justify-content:center; }
+  #penduBox{ display:flex; flex-direction:column; align-items:center; gap:6px; }
+  #penduSvg{ display:block; }
+  .pendu-part{ opacity:0; transform:scale(.6); transform-origin:82px 60px; transition:opacity .25s ease, transform .25s ease; }
+  .pendu-part.show{ opacity:1; transform:scale(1); }
+  .pendu-lives{ font-size:13px; font-weight:700; color:var(--ink-dim); margin-bottom:6px; }
+  #penduRow.row{ justify-content:center; margin-top:4px; }
   .row{ display:grid; gap:var(--gap); grid-auto-flow:column; }
   .tile{
     width:var(--tile); height:var(--tile); display:grid; place-items:center; position:relative;
@@ -393,6 +396,23 @@
 
   <main><div id="board" role="grid" aria-label="Grille de jeu"></div>
     <div id="penduBox" style="display:none">
+      <svg id="penduSvg" viewBox="0 0 120 150" width="150" height="188" aria-hidden="true">
+        <line x1="8" y1="140" x2="72" y2="140" stroke="var(--ink-dim)" stroke-width="4" stroke-linecap="round"/>
+        <line x1="28" y1="140" x2="28" y2="8" stroke="var(--ink-dim)" stroke-width="4" stroke-linecap="round"/>
+        <line x1="26" y1="8" x2="82" y2="8" stroke="var(--ink-dim)" stroke-width="4" stroke-linecap="round"/>
+        <line x1="30" y1="24" x2="46" y2="8" stroke="var(--ink-dim)" stroke-width="3" stroke-linecap="round"/>
+        <line x1="82" y1="8" x2="82" y2="26" stroke="var(--ink-dim)" stroke-width="3" stroke-linecap="round"/>
+        <g id="p-corps" class="pendu-part"><line x1="82" y1="52" x2="82" y2="90" stroke="var(--red)" stroke-width="3.5" stroke-linecap="round"/></g>
+        <g id="p-brasg" class="pendu-part"><line x1="82" y1="60" x2="64" y2="78" stroke="var(--red)" stroke-width="3.5" stroke-linecap="round"/></g>
+        <g id="p-brasd" class="pendu-part"><line x1="82" y1="60" x2="100" y2="78" stroke="var(--red)" stroke-width="3.5" stroke-linecap="round"/></g>
+        <g id="p-jambeg" class="pendu-part"><line x1="82" y1="90" x2="66" y2="116" stroke="var(--red)" stroke-width="3.5" stroke-linecap="round"/></g>
+        <g id="p-jambed" class="pendu-part"><line x1="82" y1="90" x2="98" y2="116" stroke="var(--red)" stroke-width="3.5" stroke-linecap="round"/></g>
+        <g id="p-tete" class="pendu-part"><circle cx="82" cy="40" r="13" fill="none" stroke="var(--red)" stroke-width="3.5"/></g>
+        <g id="p-yeux" class="pendu-part">
+          <circle cx="77" cy="38" r="1.6" fill="var(--red)"/><circle cx="87" cy="38" r="1.6" fill="var(--red)"/>
+        </g>
+        <g id="p-bouche" class="pendu-part"><path d="M75 46 Q82 41 89 46" fill="none" stroke="var(--red)" stroke-width="2.2" stroke-linecap="round"/></g>
+      </svg>
       <div class="pendu-lives" id="penduLives"></div>
       <div class="row" id="penduRow"></div>
     </div>
@@ -653,18 +673,18 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.29.0"></script>
-<script src="./dico/motus-prenoms.js?v=1.29.0"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.29.0"></script>
-<script src="./dico/motus-maladies.js?v=1.29.0"></script>
-<script src="./dico/motus-maladies-info.js?v=1.29.0"></script>
-<script src="./dico/motus-villes.js?v=1.29.0"></script>
-<script src="./dico/motus-villes-info.js?v=1.29.0"></script>
-<script src="./dico/motus-race.js?v=1.29.0"></script>
-<script src="./dico/motus-expert.js?v=1.29.0"></script>
-<script src="./profiles/config.js?v=1.29.0"></script>
-<script src="./profiles/profile.js?v=1.29.0"></script>
-<script src="./duel/duel.js?v=1.29.0"></script>
+<script src="./dico/motus-words.js?v=1.29.1"></script>
+<script src="./dico/motus-prenoms.js?v=1.29.1"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.29.1"></script>
+<script src="./dico/motus-maladies.js?v=1.29.1"></script>
+<script src="./dico/motus-maladies-info.js?v=1.29.1"></script>
+<script src="./dico/motus-villes.js?v=1.29.1"></script>
+<script src="./dico/motus-villes-info.js?v=1.29.1"></script>
+<script src="./dico/motus-race.js?v=1.29.1"></script>
+<script src="./dico/motus-expert.js?v=1.29.1"></script>
+<script src="./profiles/config.js?v=1.29.1"></script>
+<script src="./profiles/profile.js?v=1.29.1"></script>
+<script src="./duel/duel.js?v=1.29.1"></script>
 <script>
 (() => {
   "use strict";
@@ -713,7 +733,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.29.0";
+  const VERSION = "1.29.1";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -1324,6 +1344,8 @@
       t.innerHTML="<span></span>"; r.appendChild(t);
     }
   }
+  // ordre d'apparition des parties du dessin : une par erreur, jusqu'à 8
+  const PENDU_PARTS = ["p-tete","p-corps","p-brasg","p-brasd","p-jambeg","p-jambed","p-yeux","p-bouche"];
   function penduRender(){
     const tiles = $("penduRow").children;
     for(let c=0;c<penduLen;c++){
@@ -1332,7 +1354,8 @@
       tiles[c].classList.toggle("filled", known);
       tiles[c].classList.toggle("correct", known);
     }
-    $("penduLives").textContent = "❤️".repeat(Math.max(0,PENDU_LIVES-penduWrong)) + "🖤".repeat(penduWrong);
+    PENDU_PARTS.forEach((id,i)=>{ const el=document.getElementById(id); if(el) el.classList.toggle("show", i<penduWrong); });
+    $("penduLives").textContent = penduWrong===0 ? "Aucune erreur pour l'instant" : penduWrong+" erreur"+(penduWrong>1?"s":"")+" sur "+PENDU_LIVES;
   }
   function penduGuess(letter){
     if(over || penduOver || penduGuessed.indexOf(letter)>=0) return;
