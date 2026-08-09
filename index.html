@@ -349,7 +349,6 @@
       
       <button class="icon-btn" id="btnKid" aria-label="Mode enfant">🧸</button>
       <button class="icon-btn" id="btnRpg" aria-label="Motus Quête">⚔️</button>
-      <button class="icon-btn" id="btnHelp" aria-label="Règles">?</button>
       <button class="icon-btn" id="btnProfile" aria-label="Profil">👤</button>
       <button class="icon-btn" id="btnNew" aria-label="Nouvelle partie">↻</button>
     </div>
@@ -469,8 +468,9 @@
       <div class="dist-title">Contenu</div>
       <p style="text-align:center;margin-bottom:6px" id="aboutCounts"></p>
       <div class="dist-title">Nouveautés</div>
-      <p style="text-align:center;font-size:13px;color:var(--ink-dim)">Indices &amp; abandon · Course en solo · Motus Junior enrichi · records par thème</p>
-      <button class="btn" data-close>Fermer</button>
+      <p style="text-align:center;font-size:13px;color:var(--ink-dim)">Motus Quête · Le Pendu · indices &amp; abandon · Course en solo</p>
+      <button class="btn" id="btnRulesFromAbout">📖 Règles du jeu</button>
+      <button class="btn ghost" data-close>Fermer</button>
     </div>
   </div>
 
@@ -674,18 +674,18 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.30.0"></script>
-<script src="./dico/motus-prenoms.js?v=1.30.0"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.30.0"></script>
-<script src="./dico/motus-maladies.js?v=1.30.0"></script>
-<script src="./dico/motus-maladies-info.js?v=1.30.0"></script>
-<script src="./dico/motus-villes.js?v=1.30.0"></script>
-<script src="./dico/motus-villes-info.js?v=1.30.0"></script>
-<script src="./dico/motus-race.js?v=1.30.0"></script>
-<script src="./dico/motus-expert.js?v=1.30.0"></script>
-<script src="./profiles/config.js?v=1.30.0"></script>
-<script src="./profiles/profile.js?v=1.30.0"></script>
-<script src="./duel/duel.js?v=1.30.0"></script>
+<script src="./dico/motus-words.js?v=1.30.1"></script>
+<script src="./dico/motus-prenoms.js?v=1.30.1"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.30.1"></script>
+<script src="./dico/motus-maladies.js?v=1.30.1"></script>
+<script src="./dico/motus-maladies-info.js?v=1.30.1"></script>
+<script src="./dico/motus-villes.js?v=1.30.1"></script>
+<script src="./dico/motus-villes-info.js?v=1.30.1"></script>
+<script src="./dico/motus-race.js?v=1.30.1"></script>
+<script src="./dico/motus-expert.js?v=1.30.1"></script>
+<script src="./profiles/config.js?v=1.30.1"></script>
+<script src="./profiles/profile.js?v=1.30.1"></script>
+<script src="./duel/duel.js?v=1.30.1"></script>
 <script>
 (() => {
   "use strict";
@@ -734,7 +734,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.30.0";
+  const VERSION = "1.30.1";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -2968,7 +2968,7 @@
   });
   $("hintBtn").addEventListener("click", useHint);
   $("giveUpBtn").addEventListener("click", giveUp);
-  $("btnHelp").addEventListener("click", ()=>openOverlay("helpOverlay"));
+  $("btnRulesFromAbout").addEventListener("click", ()=>{ closeOverlays(); openOverlay("helpOverlay"); });
   $("btnProfile").addEventListener("click", ()=>{ if(window.Profile){ Profile.open(motusStatsHTML()); renderPersonalize(); } });
   $("btnNew").addEventListener("click", ()=>{
     closeOverlays();
