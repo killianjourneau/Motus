@@ -348,6 +348,7 @@
     <div class="tools">
       
       <button class="icon-btn" id="btnKid" aria-label="Mode enfant">🧸</button>
+      <button class="icon-btn" id="btnRpg" aria-label="Motus Quête">⚔️</button>
       <button class="icon-btn" id="btnHelp" aria-label="Règles">?</button>
       <button class="icon-btn" id="btnProfile" aria-label="Profil">👤</button>
       <button class="icon-btn" id="btnNew" aria-label="Nouvelle partie">↻</button>
@@ -673,18 +674,18 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.29.3"></script>
-<script src="./dico/motus-prenoms.js?v=1.29.3"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.29.3"></script>
-<script src="./dico/motus-maladies.js?v=1.29.3"></script>
-<script src="./dico/motus-maladies-info.js?v=1.29.3"></script>
-<script src="./dico/motus-villes.js?v=1.29.3"></script>
-<script src="./dico/motus-villes-info.js?v=1.29.3"></script>
-<script src="./dico/motus-race.js?v=1.29.3"></script>
-<script src="./dico/motus-expert.js?v=1.29.3"></script>
-<script src="./profiles/config.js?v=1.29.3"></script>
-<script src="./profiles/profile.js?v=1.29.3"></script>
-<script src="./duel/duel.js?v=1.29.3"></script>
+<script src="./dico/motus-words.js?v=1.30.0"></script>
+<script src="./dico/motus-prenoms.js?v=1.30.0"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.30.0"></script>
+<script src="./dico/motus-maladies.js?v=1.30.0"></script>
+<script src="./dico/motus-maladies-info.js?v=1.30.0"></script>
+<script src="./dico/motus-villes.js?v=1.30.0"></script>
+<script src="./dico/motus-villes-info.js?v=1.30.0"></script>
+<script src="./dico/motus-race.js?v=1.30.0"></script>
+<script src="./dico/motus-expert.js?v=1.30.0"></script>
+<script src="./profiles/config.js?v=1.30.0"></script>
+<script src="./profiles/profile.js?v=1.30.0"></script>
+<script src="./duel/duel.js?v=1.30.0"></script>
 <script>
 (() => {
   "use strict";
@@ -733,7 +734,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.29.3";
+  const VERSION = "1.30.0";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -2879,6 +2880,7 @@
   });
 
   $("btnKid").addEventListener("click", ()=>{ location.href="./enfant.html"; });
+  $("btnRpg").addEventListener("click", ()=>{ location.href="./rpg.html"; });
   document.querySelectorAll("#duelTabs .dtab").forEach(b=>b.addEventListener("click", ()=>{
     duelMode=b.dataset.dt;
     document.querySelectorAll("#duelTabs .dtab").forEach(x=>x.classList.toggle("active", x===b));

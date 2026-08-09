@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Motus Quête — un jeu de mots façon RPG : affronte des monstres, gagne des niveaux, apprends des compétences.">
+<title>Motus Quête</title>
+
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#071633">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Motus Quête">
+<link rel="apple-touch-icon" href="./icons/icon-512.png">
+
+<script>
+  /* Thème et couleur partagés avec Motus, appliqués avant le rendu. */
+  try{
+    var t=JSON.parse(localStorage.getItem("motus.theme")); if(t) document.documentElement.dataset.theme=t;
+    var a=JSON.parse(localStorage.getItem("motus.accent")); if(a) document.documentElement.dataset.accent=a;
+  }catch(e){}
+</script>
+
+<style>
+  :root{
+    --bg:#071633; --bg-2:#0b2247; --cell:#10305f; --cell-edge:#1d477f;
+    --red:#e23a44; --yellow:#ffcb2e; --absent:#12294a;
+    --ink:#ffffff; --ink-dim:#8aa6cf;
+    --accent:#e23a44;
+    --hp:#3ecf6b; --mana:#3d8bff;
+    --tile:44px; --gap:5px;
+  }
+  :root[data-theme="light"]{
+    --bg:#eef2f9; --bg-2:#dfe7f3; --cell:#cdd8ea; --cell-edge:#b6c5df;
+    --red:#e23a44; --yellow:#f2be14; --absent:#aebbd0;
+    --ink:#14233c; --ink-dim:#5c6c88;
+  }
+  :root[data-accent="blue"]{ --accent:#2f7de6; }
+  :root[data-accent="green"]{ --accent:#0f8a58; }
+  :root[data-accent="purple"]{ --accent:#8b5cf6; }
+  :root[data-accent="orange"]{ --accent:#d4631a; }
+  :root[data-accent="pink"]{ --accent:#cf3580; }
+  :root[data-accent="teal"]{ --accent:#0c8579; }
+
+  *{ box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  html,body{ height:100%; }
+  body{
+    font-family: ui-rounded, "SF Pro Rounded", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    color:var(--ink);
+    background: radial-gradient(120% 90% at 50% 0%, var(--bg-2) 0%, var(--bg) 60%);
+    background-attachment:fixed; min-height:100dvh; display:flex; flex-direction:column;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  header{ display:flex; align-items:center; justify-content:space-between; padding:10px clamp(12px,4vw,22px) 4px; gap:8px; }
+  .brand{ display:flex; align-items:baseline; gap:7px; font-weight:800; font-size:20px; letter-spacing:.5px; }
+  .brand .q{ font-size:12px; color:var(--ink-dim); font-weight:800; text-transform:uppercase; letter-spacing:1px; }
+  .tools{ display:flex; gap:6px; }
+  .icon-btn{ width:38px; height:38px; border:none; border-radius:11px; background:var(--cell); color:var(--ink);
+    box-shadow:inset 0 0 0 1.5px var(--cell-edge); font-size:17px; cursor:pointer; }
+  .icon-btn:active{ transform:scale(.93); }
+
+  main{ flex:1; display:flex; flex-direction:column; align-items:center; padding:4px clamp(10px,3vw,18px) 8px; min-height:0; }
+  .wrap{ width:100%; max-width:520px; }
+
+  /* ---------- Barres ---------- */
+  .bar{ height:14px; border-radius:8px; background:var(--absent); overflow:hidden; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
+  .bar > i{ display:block; height:100%; width:0%; transition:width .35s ease; }
+  .bar.hp > i{ background:var(--hp); }
+  .bar.mana > i{ background:var(--mana); }
+  .bar.xp > i{ background:var(--accent); }
+  .bar.foe > i{ background:var(--red); }
+  .barline{ display:flex; align-items:center; gap:8px; font-size:12px; font-weight:800; color:var(--ink-dim); margin-bottom:5px; }
+  .barline .lbl{ flex:none; width:28px; }
+  .barline .bar{ flex:1; }
+  .barline .val{ flex:none; font-variant-numeric:tabular-nums; }
+
+  /* ---------- Accueil ---------- */
+  .card{ background:var(--cell); border-radius:16px; padding:14px; margin-bottom:12px;
+    box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
+  .hero{ display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+  .hero .av{ width:52px; height:52px; flex:none; border-radius:14px; background:var(--bg-2);
+    display:grid; place-items:center; font-size:26px; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
+  .hero .nm{ font-size:17px; font-weight:800; }
+  .hero .sub{ font-size:12.5px; color:var(--ink-dim); font-weight:700; }
+  .zone-t{ font-size:11px; text-transform:uppercase; letter-spacing:.6px; font-weight:800; color:var(--ink-dim); margin-bottom:5px; }
+  .zone-n{ font-size:17px; font-weight:800; margin-bottom:3px; }
+  .zone-i{ font-size:12.5px; color:var(--ink-dim); font-style:italic; margin-bottom:10px; }
+  .foe-row{ display:flex; align-items:center; gap:12px; }
+  .foe-row .ic{ font-size:38px; flex:none; }
+  .foe-row .nm{ font-size:16px; font-weight:800; }
+  .foe-row .st{ font-size:12.5px; color:var(--ink-dim); font-weight:700; }
+  .btn{ width:100%; height:48px; border:none; border-radius:13px; background:var(--accent); color:#fff;
+    font-size:15.5px; font-weight:800; cursor:pointer; margin-top:4px; }
+  .btn:active{ transform:scale(.98); }
+  .btn.ghost{ background:var(--cell); color:var(--ink); box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
+  .btn:disabled{ opacity:.45; }
+  .prog{ display:flex; gap:5px; margin-top:9px; }
+  .prog i{ flex:1; height:5px; border-radius:3px; background:var(--absent); }
+  .prog i.done{ background:var(--accent); }
+  .prog i.now{ background:var(--yellow); }
+
+  .sk-list{ display:flex; flex-direction:column; gap:7px; }
+  .sk{ display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:11px; background:var(--bg-2); }
+  .sk .e{ font-size:19px; flex:none; }
+  .sk .n{ font-weight:800; font-size:14px; }
+  .sk .d{ font-size:12px; color:var(--ink-dim); font-weight:600; }
+  .sk.lock{ opacity:.45; }
+  .sk .cost{ flex:none; font-size:12px; font-weight:800; color:var(--mana); }
+
+  /* ---------- Combat ---------- */
+  .foe-panel{ text-align:center; margin-bottom:8px; }
+  .foe-panel .ic{ font-size:clamp(44px,13vw,62px); line-height:1; display:inline-block; }
+  .foe-panel .ic.hit{ animation:shake .3s ease; }
+  .foe-panel .nm{ font-size:15px; font-weight:800; margin:2px 0 6px; }
+  @keyframes shake{ 0%,100%{transform:translateX(0)} 25%{transform:translateX(-7px)} 75%{transform:translateX(7px)} }
+  .float{ position:fixed; left:50%; transform:translateX(-50%); font-size:22px; font-weight:800;
+    pointer-events:none; z-index:60; animation:rise 1s ease forwards; }
+  @keyframes rise{ 0%{opacity:1; transform:translate(-50%,0)} 100%{opacity:0; transform:translate(-50%,-46px)} }
+
+  #board{ display:grid; gap:var(--gap); justify-content:center; margin:6px 0 8px; }
+  .row{ display:grid; gap:var(--gap); grid-auto-flow:column; justify-content:center; }
+  .tile{ width:var(--tile); height:var(--tile); border-radius:9px; background:var(--cell);
+    box-shadow:inset 0 0 0 1.5px var(--cell-edge); display:grid; place-items:center;
+    font-size:calc(var(--tile) * .5); font-weight:800; }
+  .tile.correct{ background:var(--red); box-shadow:none; }
+  .tile.present{ background:var(--cell); box-shadow:none; position:relative; }
+  .tile.present::before{ content:""; position:absolute; inset:12%; border-radius:50%; background:var(--yellow); }
+  .tile.present span{ position:relative; color:#14233c; }
+  .tile.absent{ background:var(--absent); box-shadow:none; color:var(--ink-dim); }
+  .tile.cur{ box-shadow:inset 0 0 0 2.5px var(--accent); }
+
+  .sk-bar{ display:flex; gap:6px; justify-content:center; margin-bottom:7px; flex-wrap:wrap; }
+  .sk-btn{ min-width:44px; height:38px; padding:0 9px; border:none; border-radius:11px; background:var(--cell);
+    box-shadow:inset 0 0 0 1.5px var(--cell-edge); color:var(--ink); font-size:16px; cursor:pointer;
+    display:flex; align-items:center; gap:4px; }
+  .sk-btn .c{ font-size:11px; font-weight:800; color:var(--mana); }
+  .sk-btn:disabled{ opacity:.35; }
+  .sk-btn:active{ transform:scale(.94); }
+  .sk-btn.on{ box-shadow:inset 0 0 0 2.5px var(--accent); }
+
+  #kb{ display:flex; flex-direction:column; gap:5px; padding:4px clamp(6px,2vw,14px) 8px; }
+  .kbrow{ display:flex; gap:4px; justify-content:center; }
+  .key{ flex:1; max-width:42px; height:44px; border:none; border-radius:8px; background:var(--cell);
+    color:var(--ink); font-size:14px; font-weight:800; cursor:pointer; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
+  .key.wide{ max-width:64px; font-size:11.5px; }
+  .key.correct{ background:var(--red); box-shadow:none; }
+  .key.present{ background:var(--yellow); color:#14233c; box-shadow:none; }
+  .key.absent{ background:var(--absent); color:var(--ink-dim); box-shadow:none; }
+  .key:active{ transform:scale(.94); }
+
+  .msg{ text-align:center; font-size:13px; font-weight:700; color:var(--ink-dim); min-height:18px; margin-bottom:4px; }
+
+  /* ---------- Overlays ---------- */
+  .overlay{ position:fixed; inset:0; background:rgba(3,10,24,.72); display:none; align-items:center;
+    justify-content:center; padding:18px; z-index:80; }
+  .overlay.open{ display:flex; }
+  .modal{ width:100%; max-width:400px; background:var(--bg-2); border-radius:20px; padding:20px;
+    box-shadow:0 18px 50px rgba(0,0,0,.45); position:relative; max-height:86dvh; overflow:auto; }
+  .modal h2{ font-size:19px; margin-bottom:10px; text-align:center; }
+  .modal p{ font-size:14px; line-height:1.55; color:var(--ink-dim); margin-bottom:9px; }
+  .modal p b{ color:var(--ink); }
+  .close-x{ position:absolute; top:10px; right:12px; width:32px; height:32px; border:none; border-radius:9px;
+    background:var(--cell); color:var(--ink); font-size:19px; cursor:pointer; }
+  .res-ic{ text-align:center; font-size:52px; margin-bottom:6px; }
+  .res-t{ text-align:center; font-size:21px; font-weight:800; margin-bottom:6px; }
+  .res-s{ text-align:center; font-size:14px; color:var(--ink-dim); font-weight:700; margin-bottom:14px; }
+  .gain{ display:flex; justify-content:center; gap:14px; font-size:14px; font-weight:800; margin-bottom:14px; }
+  .toast{ position:fixed; left:50%; bottom:86px; transform:translateX(-50%); background:var(--cell);
+    color:var(--ink); padding:10px 16px; border-radius:12px; font-size:13.5px; font-weight:700;
+    box-shadow:0 10px 26px rgba(0,0,0,.4); z-index:90; opacity:0; pointer-events:none; transition:opacity .2s; max-width:90vw; text-align:center; }
+  .toast.show{ opacity:1; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">Motus <span class="q">Quête</span></div>
+  <div class="tools">
+    <button class="icon-btn" id="btnHelp" aria-label="Règles">?</button>
+    <button class="icon-btn" id="btnReset" aria-label="Recommencer l'aventure">↻</button>
+    <button class="icon-btn" id="btnBack" aria-label="Retour à Motus">🏠</button>
+  </div>
+</header>
+
+<main>
+  <!-- ===== Accueil ===== -->
+  <div class="wrap" id="scHome">
+    <div class="card">
+      <div class="hero">
+        <div class="av" id="hAv">🧙</div>
+        <div style="flex:1">
+          <div class="nm" id="hLvl">Niveau 1</div>
+          <div class="sub" id="hXp">0 / 40 XP</div>
+        </div>
+      </div>
+      <div class="barline"><span class="lbl">XP</span><span class="bar xp"><i id="bXp"></i></span></div>
+      <div class="barline"><span class="lbl">PV</span><span class="bar hp"><i id="bHp"></i></span><span class="val" id="vHp">60/60</span></div>
+      <div class="barline"><span class="lbl">MP</span><span class="bar mana"><i id="bMp"></i></span><span class="val" id="vMp">30/30</span></div>
+    </div>
+
+    <div class="card">
+      <div class="zone-t" id="zTag">Zone 1 sur 5</div>
+      <div class="zone-n" id="zNom">🌲 Forêt murmurante</div>
+      <div class="zone-i" id="zIntro">…</div>
+      <div class="foe-row">
+        <span class="ic" id="fIc">🧌</span>
+        <div style="flex:1">
+          <div class="nm" id="fNom">Gobelin</div>
+          <div class="st" id="fSt">24 PV · 4 dégâts par tour</div>
+        </div>
+      </div>
+      <div class="prog" id="zProg"></div>
+      <button class="btn" id="btnFight">Combattre</button>
+    </div>
+
+    <div class="card">
+      <div class="zone-t">Compétences</div>
+      <div class="sk-list" id="skList"></div>
+    </div>
+  </div>
+
+  <!-- ===== Combat ===== -->
+  <div class="wrap" id="scFight" style="display:none">
+    <div class="foe-panel">
+      <div class="ic" id="cIc">🧌</div>
+      <div class="nm" id="cNom">Gobelin</div>
+      <div class="barline"><span class="lbl">PV</span><span class="bar foe"><i id="cHp"></i></span><span class="val" id="cHpV">24/24</span></div>
+    </div>
+    <div class="barline"><span class="lbl">Toi</span><span class="bar hp"><i id="pHp"></i></span><span class="val" id="pHpV">60/60</span></div>
+    <div class="barline"><span class="lbl">MP</span><span class="bar mana"><i id="pMp"></i></span><span class="val" id="pMpV">30/30</span></div>
+    <div id="board"></div>
+    <div class="msg" id="cMsg"></div>
+    <div class="sk-bar" id="skBar"></div>
+  </div>
+</main>
+
+<div id="kb" style="display:none"></div>
+
+<!-- ===== Règles ===== -->
+<div class="overlay" id="ovHelp">
+  <div class="modal">
+    <button class="close-x" data-close>&times;</button>
+    <h2>Comment jouer</h2>
+    <p>Chaque mot proposé est une <b>attaque</b>. Les lettres trouvées blessent le monstre :</p>
+    <p>🟥 lettre <b>bien placée</b> → 3 dégâts<br>🟡 lettre <b>mal placée</b> → 1 dégât<br>🎯 mot <b>entièrement trouvé</b> → 12 dégâts bonus</p>
+    <p>Après chaque tentative, le monstre <b>riposte</b>. Si tes points de vie tombent à zéro, tu perds le combat — mais tu gardes ton niveau et ton expérience.</p>
+    <p>Si tu ne trouves pas le mot en 6 essais, un nouveau mot apparaît et le monstre en profite pour frapper plus fort.</p>
+    <p>Gagne de l'<b>expérience</b> à chaque victoire pour monter de niveau, gagner des points de vie et débloquer des <b>compétences</b>.</p>
+    <p>Ta progression est enregistrée sur cet appareil.</p>
+  </div>
+</div>
+
+<!-- ===== Résultat ===== -->
+<div class="overlay" id="ovRes">
+  <div class="modal">
+    <div class="res-ic" id="rIc">🎉</div>
+    <div class="res-t" id="rTit">Victoire !</div>
+    <div class="res-s" id="rSub"></div>
+    <div class="gain" id="rGain"></div>
+    <button class="btn" id="rNext">Continuer</button>
+  </div>
+</div>
+
+<!-- ===== Confirmation ===== -->
+<div class="overlay" id="ovConf">
+  <div class="modal">
+    <h2 id="cfTit">Recommencer ?</h2>
+    <p id="cfMsg" style="text-align:center"></p>
+    <button class="btn" id="cfYes">Confirmer</button>
+    <button class="btn ghost" id="cfNo">Annuler</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="./dico/motus-words.js?v=1.30.0"></script>
+<script src="./dico/motus-rpg.js?v=1.30.0"></script>
+<script>
+(function(){
+  "use strict";
+  var $ = function(id){ return document.getElementById(id); };
+  var DATA = window.MOTUS_RPG || { zones:[], skills:[] };
+  var WORDS = window.MOTUS_WORDS || { court:[], normal:[], long:[] };
+  var ZONES = DATA.zones, SKILLS = DATA.skills;
+  var MAX_ROWS = 6;
+
+  /* ---------- Stockage ---------- */
+  var store = {
+    get: function(k, d){ try{ var v=localStorage.getItem(k); return v===null?d:JSON.parse(v); }catch(e){ return d; } },
+    set: function(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+  };
+
+  /* ---------- Pool de mots par longueur ---------- */
+  var POOL = {};
+  (function(){
+    ["court","normal","long"].forEach(function(k){
+      (WORDS[k]||[]).forEach(function(w){ (POOL[w.length] = POOL[w.length] || []).push(w); });
+    });
+  })();
+  function pickWord(lens){
+    // on ne retient que les longueurs réellement approvisionnées
+    var ok = lens.filter(function(L){ return POOL[L] && POOL[L].length; });
+    if(!ok.length) ok = Object.keys(POOL).map(Number);
+    var L = ok[Math.floor(Math.random()*ok.length)];
+    var p = POOL[L];
+    return p[Math.floor(Math.random()*p.length)];
+  }
+
+  /* ---------- Dictionnaire d'acceptation ---------- */
+  var dicoByLen = {};
+  function loadDico(L){
+    if(dicoByLen[L] !== undefined) return;
+    dicoByLen[L] = null;                      // en cours : on accepte tout en attendant
+    fetch("./dico/dico-" + String(L).padStart(2,"0") + ".txt")
+      .then(function(r){ return r.ok ? r.text() : ""; })
+      .then(function(t){
+        var s = new Set();
+        t.split("\n").forEach(function(w){ w=w.trim(); if(w) s.add(w); });
+        dicoByLen[L] = s.size ? s : null;
+      })
+      .catch(function(){ dicoByLen[L] = null; });
+  }
+  function isValid(w){
+    var s = dicoByLen[w.length];
+    return s ? s.has(w) : true;               // dictionnaire absent : on n'empêche pas de jouer
+  }
+
+  /* ---------- État du joueur ---------- */
+  var P = null;
+  function freshPlayer(){
+    return { lvl:1, xp:0, hp:60, zone:0, foe:0, mana:30 };
+  }
+  function hpMax(){ return 60 + 10*(P.lvl-1); }
+  function manaMax(){ return 30 + 5*(P.lvl-1); }
+  function xpNeed(){ return 40 * P.lvl; }
+  function atkBonus(){ return P.lvl - 1; }
+  function save(){ store.set("motus.rpg", P); }
+  function load(){
+    var s = store.get("motus.rpg", null);
+    if(!s || typeof s.lvl !== "number"){ P = freshPlayer(); return; }
+    P = s;
+    // garde-fous : une sauvegarde d'une version antérieure ne doit pas bloquer le jeu
+    if(P.zone >= ZONES.length){ P.zone = ZONES.length-1; P.foe = ZONES[P.zone].monstres.length-1; }
+    if(P.foe >= ZONES[P.zone].monstres.length) P.foe = 0;
+    if(typeof P.mana !== "number") P.mana = manaMax();
+    if(P.hp > hpMax()) P.hp = hpMax();
+    if(P.hp <= 0) P.hp = hpMax();
+  }
+  function currentZone(){ return ZONES[P.zone]; }
+  function currentFoe(){ return currentZone().monstres[P.foe]; }
+  function unlocked(sk){ return P.lvl >= sk.lvl; }
+  function finished(){ return P.zone >= ZONES.length; }
+
+  /* ---------- Petits utilitaires d'affichage ---------- */
+  var toastT = null;
+  function toast(msg, ms){
+    var el = $("toast"); el.textContent = msg; el.classList.add("show");
+    clearTimeout(toastT); toastT = setTimeout(function(){ el.classList.remove("show"); }, ms||1800);
+  }
+  function setBar(id, cur, max){ $(id).style.width = Math.max(0, Math.min(100, 100*cur/max)) + "%"; }
+  function vibrate(p){ try{ if(navigator.vibrate) navigator.vibrate(p); }catch(e){} }
+  function floatText(txt, color){
+    var el = document.createElement("div");
+    el.className = "float"; el.textContent = txt; el.style.color = color;
+    el.style.top = "34%";
+    document.body.appendChild(el);
+    setTimeout(function(){ el.remove(); }, 1000);
+  }
+
+  /* ---------- Accueil ---------- */
+  function renderHome(){
+    $("scHome").style.display = ""; $("scFight").style.display = "none"; $("kb").style.display = "none";
+    $("hLvl").textContent = "Niveau " + P.lvl;
+    $("hXp").textContent = P.xp + " / " + xpNeed() + " XP";
+    setBar("bXp", P.xp, xpNeed());
+    setBar("bHp", P.hp, hpMax()); $("vHp").textContent = P.hp + "/" + hpMax();
+    setBar("bMp", P.mana, manaMax()); $("vMp").textContent = P.mana + "/" + manaMax();
+
+    if(finished()){
+      $("zTag").textContent = "Aventure terminée";
+      $("zNom").textContent = "👑 Tu as vaincu le Seigneur des Mots";
+      $("zIntro").textContent = "Le royaume est libre. Tu peux recommencer une nouvelle aventure quand tu veux.";
+      $("fIc").textContent = "🏆"; $("fNom").textContent = "Rien ne te résiste";
+      $("fSt").textContent = "Niveau atteint : " + P.lvl;
+      $("zProg").innerHTML = "";
+      $("btnFight").textContent = "Recommencer l'aventure";
+    } else {
+      var z = currentZone(), f = currentFoe();
+      $("zTag").textContent = "Zone " + (P.zone+1) + " sur " + ZONES.length;
+      $("zNom").textContent = z.e + " " + z.nom;
+      $("zIntro").textContent = z.intro;
+      $("fIc").textContent = f.e;
+      $("fNom").textContent = f.n + (f.boss ? "  ⭐ BOSS" : "");
+      $("fSt").textContent = f.pv + " PV · " + f.atk + " dégâts par tour · mots de " + z.lens.join(" ou ") + " lettres";
+      $("zProg").innerHTML = z.monstres.map(function(m, i){
+        return '<i class="' + (i < P.foe ? "done" : i === P.foe ? "now" : "") + '"></i>';
+      }).join("");
+      $("btnFight").textContent = "Combattre";
+    }
+    renderSkillList();
+  }
+  function renderSkillList(){
+    $("skList").innerHTML = SKILLS.map(function(s){
+      var ok = unlocked(s);
+      return '<div class="sk' + (ok ? "" : " lock") + '">'
+        + '<span class="e">' + s.e + '</span>'
+        + '<div style="flex:1"><div class="n">' + s.n + (ok ? "" : "  🔒 niveau " + s.lvl) + '</div>'
+        + '<div class="d">' + s.d + '</div></div>'
+        + '<span class="cost">' + s.cout + ' MP</span></div>';
+    }).join("");
+  }
+
+  /* ---------- Combat : état ---------- */
+  var C = null;   // état du combat en cours
+
+  function startFight(){
+    if(finished()){ askConfirm("Nouvelle aventure ?", "Ta progression actuelle sera effacée.", resetAll); return; }
+    var f = currentFoe();
+    C = {
+      foeHp: f.pv, foeHpMax: f.pv, atk: f.atk,
+      word: "", len: 0, row: 0, col: 0, grid: [], guesses: [],
+      rage: false, garde: false, over: false
+    };
+    if(P.hp <= 0) P.hp = hpMax();
+    newWord();
+    $("scHome").style.display = "none"; $("scFight").style.display = ""; $("kb").style.display = "";
+    $("cIc").textContent = f.e; $("cNom").textContent = f.n + (f.boss ? "  ⭐" : "");
+    buildKeyboard();
+    renderFight();
+    setMsg("Propose un mot de " + C.len + " lettres.");
+  }
+
+  function newWord(){
+    var z = currentZone();
+    C.word = pickWord(z.lens);
+    C.len = C.word.length;
+    C.row = 0; C.col = 0; C.guesses = [];
+    C.grid = [];
+    for(var r=0; r<MAX_ROWS; r++){ C.grid.push(new Array(C.len).fill("")); }
+    loadDico(C.len);
+    buildBoard();
+    resetKeyColors();
+  }
+
+  function buildBoard(){
+    var tile = Math.max(26, Math.min(46, Math.floor((Math.min(window.innerWidth-30, 480) - 5*(C.len-1)) / C.len)));
+    document.documentElement.style.setProperty("--tile", tile + "px");
+    var b = $("board"); b.innerHTML = "";
+    for(var r=0; r<MAX_ROWS; r++){
+      var row = document.createElement("div"); row.className = "row";
+      row.style.gridTemplateColumns = "repeat(" + C.len + ", var(--tile))";
+      for(var c=0; c<C.len; c++){
+        var t = document.createElement("div"); t.className = "tile"; t.innerHTML = "<span></span>";
+        row.appendChild(t);
+      }
+      b.appendChild(row);
+    }
+    drawCursor();
+  }
+  function tileAt(r,c){ return $("board").children[r].children[c]; }
+  function setCell(r,c,ch){ C.grid[r][c] = ch; tileAt(r,c).querySelector("span").textContent = ch; }
+  function drawCursor(){
+    for(var c=0;c<C.len;c++) tileAt(C.row,c).classList.toggle("cur", c===C.col);
+  }
+
+  function renderFight(){
+    setBar("cHp", C.foeHp, C.foeHpMax); $("cHpV").textContent = Math.max(0,C.foeHp) + "/" + C.foeHpMax;
+    setBar("pHp", P.hp, hpMax()); $("pHpV").textContent = Math.max(0,P.hp) + "/" + hpMax();
+    setBar("pMp", P.mana, manaMax()); $("pMpV").textContent = P.mana + "/" + manaMax();
+    renderSkillBar();
+  }
+  function setMsg(t){ $("cMsg").textContent = t || ""; }
+
+  /* ---------- Compétences ---------- */
+  function renderSkillBar(){
+    var bar = $("skBar"); bar.innerHTML = "";
+    SKILLS.forEach(function(s){
+      if(!unlocked(s)) return;
+      var b = document.createElement("button");
+      b.className = "sk-btn" + ((s.id==="rage" && C.rage) || (s.id==="garde" && C.garde) ? " on" : "");
+      b.innerHTML = s.e + '<span class="c">' + s.cout + '</span>';
+      b.title = s.n + " — " + s.d;
+      b.disabled = C.over || P.mana < s.cout;
+      b.addEventListener("click", function(){ useSkill(s); });
+      bar.appendChild(b);
+    });
+    if(!bar.children.length){
+      bar.innerHTML = '<span style="font-size:12px;color:var(--ink-dim);font-weight:700">Compétences débloquées au niveau 1</span>';
+    }
+  }
+  function useSkill(s){
+    if(C.over || P.mana < s.cout) return;
+    if(s.id === "reveal"){
+      var libres = [];
+      for(var c=0;c<C.len;c++) if(!C.grid[C.row][c]) libres.push(c);
+      if(!libres.length){ toast("La ligne est déjà remplie"); return; }
+      var c2 = libres[Math.floor(Math.random()*libres.length)];
+      setCell(C.row, c2, C.word[c2]);
+      tileAt(C.row, c2).classList.add("correct");
+      C.col = firstEmpty(); drawCursor();
+      toast("🔍 " + (c2+1) + "ᵉ lettre : " + C.word[c2]);
+    } else if(s.id === "soin"){
+      if(P.hp >= hpMax()){ toast("Tes points de vie sont déjà au maximum"); return; }
+      P.hp = Math.min(hpMax(), P.hp + 30);
+      floatText("+30", "var(--hp)"); toast("💚 Tu récupères des forces");
+    } else if(s.id === "rage"){
+      if(C.rage){ toast("La rage est déjà active"); return; }
+      C.rage = true; toast("⚡ Ta prochaine attaque fera le double de dégâts");
+    } else if(s.id === "garde"){
+      if(C.garde){ toast("La garde est déjà levée"); return; }
+      C.garde = true; toast("🛡️ Tu bloqueras la prochaine attaque");
+    } else if(s.id === "exec"){
+      C.foeHp -= 25; floatText("-25", "var(--red)");
+      $("cIc").classList.add("hit"); setTimeout(function(){ $("cIc").classList.remove("hit"); }, 300);
+      toast("☠️ Frappe directe !");
+      if(C.foeHp <= 0){ P.mana -= s.cout; save(); renderFight(); return winFight(); }
+    }
+    P.mana -= s.cout;
+    save(); renderFight();
+  }
+
+  /* ---------- Saisie ---------- */
+  function firstEmpty(){
+    for(var c=0;c<C.len;c++) if(!C.grid[C.row][c]) return c;
+    return C.len;
+  }
+  function type(ch){
+    if(C.over) return;
+    if(C.col >= C.len){ var e = firstEmpty(); if(e >= C.len) return; C.col = e; }
+    setCell(C.row, C.col, ch);
+    var n = firstEmpty();
+    C.col = (n >= C.len) ? C.len : n;
+    drawCursor();
+  }
+  function backspace(){
+    if(C.over) return;
+    if(C.col < C.len && C.grid[C.row][C.col]){ setCell(C.row, C.col, ""); drawCursor(); return; }
+    var c = Math.min(C.col, C.len) - 1;
+    while(c >= 0 && !C.grid[C.row][c]) c--;
+    if(c < 0){ drawCursor(); return; }
+    C.col = c; setCell(C.row, C.col, ""); drawCursor();
+  }
+  function submit(){
+    if(C.over) return;
+    var w = C.grid[C.row].join("");
+    if(w.length < C.len || C.grid[C.row].some(function(x){ return !x; })){ setMsg("Il manque des lettres"); return; }
+    if(!isValid(w)){ setMsg("« " + w + " » n'est pas dans le dictionnaire"); vibrate([12,60,12]); return; }
+    attack(w);
+  }
+
+  /* ---------- Évaluation façon Motus (deux passes pour les doublons) ---------- */
+  function evaluate(guess, answer){
+    var n = answer.length, st = new Array(n).fill("absent");
+    var rest = {};
+    for(var i=0;i<n;i++){
+      if(guess[i] === answer[i]) st[i] = "correct";
+      else rest[answer[i]] = (rest[answer[i]]||0) + 1;
+    }
+    for(var j=0;j<n;j++){
+      if(st[j] === "correct") continue;
+      var ch = guess[j];
+      if(rest[ch] > 0){ st[j] = "present"; rest[ch]--; }
+    }
+    return st;
+  }
+
+  /* ---------- Le cœur du jeu : une proposition = une attaque ---------- */
+  function attack(w){
+    var st = evaluate(w, C.word);
+    var red = 0, yel = 0;
+    for(var i=0;i<C.len;i++){
+      var t = tileAt(C.row, i);
+      t.classList.remove("cur");
+      t.classList.add(st[i]);
+      if(st[i] === "correct"){ red++; }
+      else if(st[i] === "present"){ yel++; t.querySelector("span").style.position = "relative"; }
+      paintKey(w[i], st[i]);
+    }
+    C.guesses.push(w);
+
+    var exact = (w === C.word);
+    var dmg = red*3 + yel*1 + atkBonus();
+    if(exact) dmg += 12;
+    if(C.rage){ dmg *= 2; C.rage = false; }
+
+    C.foeHp -= dmg;
+    floatText("-" + dmg, "var(--red)");
+    $("cIc").classList.add("hit");
+    setTimeout(function(){ $("cIc").classList.remove("hit"); }, 300);
+    vibrate([15]);
+
+    if(C.foeHp <= 0){ renderFight(); return winFight(); }
+
+    // riposte du monstre
+    var back = C.atk;
+    if(C.garde){ back = 0; C.garde = false; toast("🛡️ Attaque bloquée !"); }
+
+    C.row++;
+    var plus = 0;
+    if(exact){
+      setMsg("🎯 Mot trouvé ! " + dmg + " dégâts. Un nouveau mot apparaît.");
+      P.mana = Math.min(manaMax(), P.mana + 6);
+    } else if(C.row >= MAX_ROWS){
+      plus = Math.round(C.atk * 0.6);
+      setMsg("Le mot était « " + C.word + " ». Le monstre en profite !");
+    } else {
+      setMsg(dmg + " dégâts infligés.");
+      P.mana = Math.min(manaMax(), P.mana + 3);
+    }
+
+    if(back + plus > 0){
+      P.hp -= (back + plus);
+      floatText("-" + (back+plus), "var(--yellow)");
+    }
+
+    if(P.hp <= 0){ P.hp = 0; renderFight(); save(); return loseFight(); }
+
+    if(exact || C.row >= MAX_ROWS){
+      setTimeout(function(){ if(!C.over){ newWord(); renderFight(); } }, 900);
+    } else {
+      C.col = 0; drawCursor();
+    }
+    save(); renderFight();
+  }
+
+  /* ---------- Fin de combat ---------- */
+  function winFight(){
+    C.over = true;
+    var f = currentFoe(), gain = f.xp;
+    P.xp += gain;
+    var levels = 0;
+    while(P.xp >= xpNeed()){ P.xp -= xpNeed(); P.lvl++; levels++; }
+    if(levels){ P.hp = hpMax(); P.mana = manaMax(); }
+    else { P.mana = Math.min(manaMax(), P.mana + 10); }
+
+    // progression
+    P.foe++;
+    if(P.foe >= currentZone().monstres.length){ P.zone++; P.foe = 0; }
+    save();
+
+    var newSkills = SKILLS.filter(function(s){ return levels && s.lvl > P.lvl - levels && s.lvl <= P.lvl; });
+    $("rIc").textContent = f.boss ? "👑" : "🎉";
+    $("rTit").textContent = f.boss ? "Boss vaincu !" : "Victoire !";
+    $("rSub").textContent = f.n + " est vaincu.";
+    var g = "<span>+" + gain + " XP</span>";
+    if(levels) g += "<span>🎖️ Niveau " + P.lvl + "</span>";
+    $("rGain").innerHTML = g;
+    if(newSkills.length){
+      $("rSub").textContent += " Nouvelle compétence : " + newSkills.map(function(s){ return s.e+" "+s.n; }).join(", ") + ".";
+    }
+    $("rNext").textContent = finished() ? "Voir la fin" : "Continuer";
+    openOverlay("ovRes");
+  }
+  function loseFight(){
+    C.over = true;
+    P.hp = hpMax(); P.mana = manaMax();   // on repart soigné : l'échec ne bloque jamais
+    save();
+    $("rIc").textContent = "💀";
+    $("rTit").textContent = "Tu es tombé…";
+    $("rSub").textContent = "Tu gardes ton niveau et ton expérience. Le monstre t'attend de pied ferme.";
+    $("rGain").innerHTML = "<span>Niveau " + P.lvl + " conservé</span>";
+    $("rNext").textContent = "Réessayer";
+    openOverlay("ovRes");
+  }
+
+  /* ---------- Clavier ---------- */
+  var keyEls = {};
+  var ROWS = ["AZERTYUIOP", "QSDFGHJKLM", "\u0000WXCVBN\u0001"];
+  function buildKeyboard(){
+    var kb = $("kb"); kb.innerHTML = ""; keyEls = {};
+    ROWS.forEach(function(r){
+      var row = document.createElement("div"); row.className = "kbrow";
+      r.split("").forEach(function(ch){
+        var b = document.createElement("button");
+        if(ch === "\u0000"){ b.className = "key wide"; b.textContent = "ENTRÉE"; b.addEventListener("click", submit); }
+        else if(ch === "\u0001"){ b.className = "key wide"; b.textContent = "⌫"; b.addEventListener("click", backspace); }
+        else {
+          b.className = "key"; b.textContent = ch;
+          keyEls[ch] = b;
+          b.addEventListener("click", function(){ type(ch); });
+        }
+        row.appendChild(b);
+      });
+      kb.appendChild(row);
+    });
+  }
+  function resetKeyColors(){ for(var k in keyEls) keyEls[k].classList.remove("correct","present","absent"); }
+  function paintKey(ch, st){
+    var el = keyEls[ch]; if(!el) return;
+    if(el.classList.contains("correct")) return;
+    if(st === "correct"){ el.classList.remove("present","absent"); el.classList.add("correct"); }
+    else if(st === "present"){ if(!el.classList.contains("present")){ el.classList.remove("absent"); el.classList.add("present"); } }
+    else if(!el.classList.contains("present")) el.classList.add("absent");
+  }
+  document.addEventListener("keydown", function(e){
+    if($("scFight").style.display === "none") return;
+    if(document.querySelector(".overlay.open")) return;
+    var k = e.key;
+    if(k === "Enter"){ e.preventDefault(); submit(); }
+    else if(k === "Backspace"){ e.preventDefault(); backspace(); }
+    else if(/^[a-zA-Z]$/.test(k)){ e.preventDefault(); type(k.toUpperCase()); }
+  });
+
+  /* ---------- Overlays ---------- */
+  function openOverlay(id){ $(id).classList.add("open"); }
+  function closeOverlays(){
+    Array.prototype.forEach.call(document.querySelectorAll(".overlay"), function(o){ o.classList.remove("open"); });
+  }
+  var confirmCb = null;
+  function askConfirm(t, m, cb){
+    $("cfTit").textContent = t; $("cfMsg").textContent = m; confirmCb = cb; openOverlay("ovConf");
+  }
+  $("cfYes").addEventListener("click", function(){ closeOverlays(); var f=confirmCb; confirmCb=null; if(f) f(); });
+  $("cfNo").addEventListener("click", function(){ closeOverlays(); confirmCb=null; });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-close]"), function(b){
+    b.addEventListener("click", closeOverlays);
+  });
+  Array.prototype.forEach.call(document.querySelectorAll(".overlay"), function(o){
+    o.addEventListener("click", function(e){ if(e.target === o && o.id !== "ovRes" && o.id !== "ovConf") closeOverlays(); });
+  });
+
+  /* ---------- Boutons ---------- */
+  $("btnFight").addEventListener("click", startFight);
+  $("btnHelp").addEventListener("click", function(){ openOverlay("ovHelp"); });
+  $("btnBack").addEventListener("click", function(){ location.href = "./index.html"; });
+  $("btnReset").addEventListener("click", function(){
+    askConfirm("Recommencer l'aventure ?", "Ton niveau, ton expérience et ta progression seront remis à zéro.", resetAll);
+  });
+  $("rNext").addEventListener("click", function(){
+    closeOverlays();
+    if(C && C.over && P.hp > 0 && !finished() && $("rTit").textContent === "Tu es tombé…"){ renderHome(); return; }
+    renderHome();
+  });
+  function resetAll(){
+    P = freshPlayer(); save(); closeOverlays(); renderHome();
+    toast("Nouvelle aventure ! Bonne chance.");
+  }
+
+  window.addEventListener("resize", function(){ if(C && $("scFight").style.display !== "none") buildBoard(); });
+
+  /* ---------- Démarrage ---------- */
+  load();
+  renderHome();
+})();
+</script>
+</body>
+</html>
