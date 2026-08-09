@@ -673,18 +673,18 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.29.1"></script>
-<script src="./dico/motus-prenoms.js?v=1.29.1"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.29.1"></script>
-<script src="./dico/motus-maladies.js?v=1.29.1"></script>
-<script src="./dico/motus-maladies-info.js?v=1.29.1"></script>
-<script src="./dico/motus-villes.js?v=1.29.1"></script>
-<script src="./dico/motus-villes-info.js?v=1.29.1"></script>
-<script src="./dico/motus-race.js?v=1.29.1"></script>
-<script src="./dico/motus-expert.js?v=1.29.1"></script>
-<script src="./profiles/config.js?v=1.29.1"></script>
-<script src="./profiles/profile.js?v=1.29.1"></script>
-<script src="./duel/duel.js?v=1.29.1"></script>
+<script src="./dico/motus-words.js?v=1.29.3"></script>
+<script src="./dico/motus-prenoms.js?v=1.29.3"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.29.3"></script>
+<script src="./dico/motus-maladies.js?v=1.29.3"></script>
+<script src="./dico/motus-maladies-info.js?v=1.29.3"></script>
+<script src="./dico/motus-villes.js?v=1.29.3"></script>
+<script src="./dico/motus-villes-info.js?v=1.29.3"></script>
+<script src="./dico/motus-race.js?v=1.29.3"></script>
+<script src="./dico/motus-expert.js?v=1.29.3"></script>
+<script src="./profiles/config.js?v=1.29.3"></script>
+<script src="./profiles/profile.js?v=1.29.3"></script>
+<script src="./duel/duel.js?v=1.29.3"></script>
 <script>
 (() => {
   "use strict";
@@ -733,7 +733,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.29.1";
+  const VERSION = "1.29.3";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -1057,7 +1057,7 @@
     setTimeout(()=>finishRow(guess===answer), (len-1)*180+520);
   }
 
-  const MODE_FACTOR = { court:0.8, normal:1, long:1.4, daily:1.1, defi:1.2, prenoms:0.9, maladies:1.1, villes:1.1, duel:1.2, race:1.2, expert:1.5, defense:1.3, pendu:1.1 };
+  const MODE_FACTOR = { court:0.8, normal:1, long:1.4, daily:1.1, defi:1.2, prenoms:0.9, maladies:1.1, villes:1.1, duel:1.2, race:1.2, expert:1.5, defense:1.3, pendu:1.0 };
   function awardXp(win){
     if(!window.Profile) return;
     const f = MODE_FACTOR[mode] || 1;
@@ -1377,8 +1377,11 @@
     if(penduOver) return;
     penduOver = true; over = true; ended = true; timerStop();
     if(window.Profile){
-      const f = MODE_FACTOR.pendu || 1.1;
-      let xp = win ? Math.round((15 + (PENDU_LIVES-penduWrong)*3) * f) : 5;
+      const f = MODE_FACTOR.pendu || 1;
+      // barème resserré : la moyenne des parties gagnées (quelques erreurs)
+      // ne doit pas frôler le maximum — deviner des lettres va plus vite
+      // qu'un mot de Motus classique, la récompense doit rester modeste.
+      let xp = win ? Math.round((8 + (PENDU_LIVES-penduWrong)*2) * f) : 5;
       if(win && hintsThisGame>0) xp = Math.round(xp * (1 - 0.25*hintsThisGame));
       Profile.addGame({
         won:win, xp, mode:"pendu", sub:"pendu",
