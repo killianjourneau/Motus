@@ -28,9 +28,20 @@ window.MOTUS_RPG = {
     muet:        { e:"🤐", n:"Silence",       d:"Bloque une compétence au hasard à chaque nouveau mot." }
   },
 
+  /* Particularités de ZONE : contrairement aux traits (un seul monstre),
+     elles s'appliquent à TOUS les combats de la zone, tout le temps.
+     C'est elles qui donnent à chaque zone sa propre façon de jouer. */
+  zoneMods: {
+    feuillesZ1: { e:"🍂", n:"Feuilles mortes",     d:"5 lettres, absentes du mot, sont interdites au clavier." },
+    echoZ2:     { e:"🔔", n:"Écho",                d:"Bien placée ou mal placée : impossible à distinguer, tout s'affiche en orange." },
+    orthoZ3:    { e:"🥴", n:"Faute fatale",        d:"Un mot mal orthographié consomme quand même la tentative." },
+    fumeeZ4:    { e:"💨", n:"Fumée",               d:"Certaines cases sont noyées dans la fumée : impossible de savoir ce qu'elles cachent." },
+    chateauZ5:  { e:"🔒", n:"Devoir de mémoire",   d:"Une lettre bien placée doit le rester, une lettre mal placée doit être réutilisée." }
+  },
+
   zones: [
     {
-      id: "foret", nom: "Lisière des Sans-Noms", e: "🌲",
+      id: "foret", nom: "Lisière des Sans-Noms", e: "🌲", mod: "feuillesZ1",
       intro: "Ici vivaient des bêtes ordinaires. Depuis le vol du Lexique, elles ne savent plus ce qu'elles sont.",
       lens: [4, 5],
       monstres: [
@@ -47,7 +58,7 @@ window.MOTUS_RPG = {
       ]
     },
     {
-      id: "grotte", nom: "Grotte des Échos morts", e: "🕯️",
+      id: "grotte", nom: "Grotte des Échos morts", e: "🕯️", mod: "echoZ2",
       intro: "Les parois répétaient autrefois tout ce qu'on leur disait. Aujourd'hui elles avalent les mots sans les rendre.",
       lens: [5, 6],
       monstres: [
@@ -64,7 +75,7 @@ window.MOTUS_RPG = {
       ]
     },
     {
-      id: "marais", nom: "Marais des Serments rompus", e: "🌫️",
+      id: "marais", nom: "Marais des Serments rompus", e: "🌫️", mod: "orthoZ3",
       intro: "On venait y jurer fidélité. Les promesses, faites de mots, ont pourri les premières.",
       lens: [6, 7],
       monstres: [
@@ -81,7 +92,7 @@ window.MOTUS_RPG = {
       ]
     },
     {
-      id: "volcan", nom: "Forge du Premier Mot", e: "🌋",
+      id: "volcan", nom: "Forge du Premier Mot", e: "🌋", mod: "fumeeZ4",
       intro: "C'est ici qu'on forgeait les noms, un par un, dans la roche en fusion. Les forges sont froides.",
       lens: [7, 8],
       monstres: [
@@ -98,7 +109,7 @@ window.MOTUS_RPG = {
       ]
     },
     {
-      id: "citadelle", nom: "Citadelle d'obsidienne", e: "🏰",
+      id: "citadelle", nom: "Citadelle d'obsidienne", e: "🏰", mod: "chateauZ5",
       intro: "Le Lexique est ici, quelque part. Les gardiens ont été payés en noms — les tiens, si tu échoues.",
       lens: [8, 10],
       monstres: [
@@ -117,6 +128,29 @@ window.MOTUS_RPG = {
   ],
 
   epilogue: "Le Lexique retrouvé, les noms reviennent un à un. Le gobelin se souvient du sien. Le vieil arbre récite ses douze syllabes. Le monde recommence à s'appeler.",
+
+  /* Butin : potions (consommables) et équipement (deux emplacements,
+     Arme et Relique). Chaque pièce a une "zmin" : la première zone où
+     elle peut tomber — les zones avancées peuvent toujours faire tomber
+     du matériel plus ancien, jamais l'inverse. */
+  items: {
+    potions: [
+      { id:"potion_pv", e:"🧪", n:"Potion de vie",   d:"Rend 20 PV.", pv:20 },
+      { id:"potion_mp", e:"🔷", n:"Fiole de mana",    d:"Rend 15 MP.", mp:15 }
+    ],
+    equip: [
+      { id:"dague",     e:"🗡️", n:"Dague de ronces",     slot:"arme",    atk:2,  zmin:0 },
+      { id:"cape",      e:"🧣", n:"Cape de mousse",       slot:"relique", pv:10,  zmin:0 },
+      { id:"pioche",    e:"⛏️", n:"Pioche d'écho",        slot:"arme",    atk:4,  zmin:1 },
+      { id:"prisme",    e:"🔮", n:"Prisme des échos",     slot:"relique", mp:12,  zmin:1 },
+      { id:"cuirasse",  e:"🛡️", n:"Cuirasse embourbée",   slot:"relique", pv:18,  zmin:2 },
+      { id:"larme",     e:"💧", n:"Larme de serment",     slot:"relique", mp:18,  zmin:2 },
+      { id:"lame",      e:"🔥", n:"Lame incandescente",   slot:"arme",    atk:6,  zmin:3 },
+      { id:"plaques",   e:"🌋", n:"Plaques de lave",      slot:"relique", pv:26,  zmin:3 },
+      { id:"estoc",     e:"⚔️", n:"Estoc d'obsidienne",   slot:"arme",    atk:9,  zmin:4 },
+      { id:"sceau",     e:"📖", n:"Sceau du Lexique",     slot:"relique", pv:20, mp:20, zmin:4 }
+    ]
+  },
 
   skills: [
     { id: "reveal", e: "🔍", n: "Révélation", lvl: 1,
