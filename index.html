@@ -674,18 +674,18 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.30.1"></script>
-<script src="./dico/motus-prenoms.js?v=1.30.1"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.30.1"></script>
-<script src="./dico/motus-maladies.js?v=1.30.1"></script>
-<script src="./dico/motus-maladies-info.js?v=1.30.1"></script>
-<script src="./dico/motus-villes.js?v=1.30.1"></script>
-<script src="./dico/motus-villes-info.js?v=1.30.1"></script>
-<script src="./dico/motus-race.js?v=1.30.1"></script>
-<script src="./dico/motus-expert.js?v=1.30.1"></script>
-<script src="./profiles/config.js?v=1.30.1"></script>
-<script src="./profiles/profile.js?v=1.30.1"></script>
-<script src="./duel/duel.js?v=1.30.1"></script>
+<script src="./dico/motus-words.js?v=1.31.1"></script>
+<script src="./dico/motus-prenoms.js?v=1.31.1"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.31.1"></script>
+<script src="./dico/motus-maladies.js?v=1.31.1"></script>
+<script src="./dico/motus-maladies-info.js?v=1.31.1"></script>
+<script src="./dico/motus-villes.js?v=1.31.1"></script>
+<script src="./dico/motus-villes-info.js?v=1.31.1"></script>
+<script src="./dico/motus-race.js?v=1.31.1"></script>
+<script src="./dico/motus-expert.js?v=1.31.1"></script>
+<script src="./profiles/config.js?v=1.31.1"></script>
+<script src="./profiles/profile.js?v=1.31.1"></script>
+<script src="./duel/duel.js?v=1.31.1"></script>
 <script>
 (() => {
   "use strict";
@@ -734,7 +734,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.30.1";
+  const VERSION = "1.31.1";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -781,6 +781,7 @@
   const $ = id => document.getElementById(id);
   const board=$("board"), keyboard=$("keyboard"), toastEl=$("toast");
   const keyEls={};
+  let keyEnter=null, keyBack=null;   // masqués en mode Pendu : chaque lettre valide seule, pas de ligne à soumettre ni à corriger
 
   /* ---------- Thème ---------- */
   function applyTheme(){
@@ -933,13 +934,13 @@
 
   /* ---------- Clavier ---------- */
   function buildKeyboard(){
-    keyboard.innerHTML="";
+    keyboard.innerHTML=""; keyEnter=null; keyBack=null;
     AZERTY.forEach((line,i)=>{
       const kr=document.createElement("div"); kr.className="krow";
-      if(i===2) kr.appendChild(makeKey("ENTRÉE","enter",true));
+      if(i===2){ keyEnter = makeKey("ENTRÉE","enter",true); kr.appendChild(keyEnter); }
       for(const ch of line){ const k=makeKey(ch,ch,false); keyEls[ch]=k; kr.appendChild(k); }
       if(i===2){ const kd=makeKey(DASH,DASH,false); kd.classList.add("dash"); keyEls[DASH]=kd; kr.appendChild(kd); }
-      if(i===2) kr.appendChild(makeKey("⌫","back",true));
+      if(i===2){ keyBack = makeKey("⌫","back",true); kr.appendChild(keyBack); }
       keyboard.appendChild(kr);
     });
   }
@@ -949,9 +950,13 @@
   }
   function resetKeyboardColors(){ for(const k in keyEls) keyEls[k].classList.remove("correct","present","absent"); }
   function updateDashKey(){
-    const k = keyEls[DASH]; if(!k) return;
-    k.style.display = (mode==="prenoms" || mode==="villes" ||
+    const k = keyEls[DASH]; if(k) k.style.display = (mode==="prenoms" || mode==="villes" ||
                        (mode==="race" && (raceTheme==="prenoms" || raceTheme==="villes"))) ? "" : "none";
+    // Pendu : chaque lettre est validée immédiatement, il n'y a ni ligne à
+    // soumettre ni case à corriger — ces deux touches n'y servent à rien.
+    const penduMode = (mode==="pendu");
+    if(keyEnter) keyEnter.style.display = penduMode ? "none" : "";
+    if(keyBack)  keyBack.style.display  = penduMode ? "none" : "";
   }
   function paintKey(ch,state){
     const k=keyEls[ch]; if(!k) return;

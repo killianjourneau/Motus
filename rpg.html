@@ -59,7 +59,7 @@
     box-shadow:inset 0 0 0 1.5px var(--cell-edge); font-size:17px; cursor:pointer; }
   .icon-btn:active{ transform:scale(.93); }
 
-  main{ flex:1; display:flex; flex-direction:column; align-items:center; padding:4px clamp(10px,3vw,18px) 8px; min-height:0; }
+  main{ flex:1; display:flex; flex-direction:column; align-items:center; padding:4px clamp(10px,3vw,18px) 8px; min-height:0; overflow-y:auto; }
   .wrap{ width:100%; max-width:520px; }
 
   /* ---------- Barres ---------- */
@@ -107,6 +107,34 @@
   .sk.lock{ opacity:.45; }
   .sk .cost{ flex:none; font-size:12px; font-weight:800; color:var(--mana); }
 
+  .loot-t{ font-size:11px; text-transform:uppercase; letter-spacing:.6px; font-weight:800; color:var(--yellow); text-align:center; margin-bottom:6px; }
+  .loot-row{ display:flex; align-items:center; justify-content:center; gap:8px; font-size:13.5px; font-weight:700; margin-bottom:4px; }
+  .loot-row .lg{ font-size:11px; font-weight:800; color:var(--hp); }
+  .loot-row .ld{ font-size:11px; font-weight:700; color:var(--ink-dim); }
+
+  .eq-row{ display:flex; gap:8px; }
+  .eq-slot{ flex:1; background:var(--bg-2); border-radius:12px; padding:10px; text-align:center; }
+  .eq-slot .e{ font-size:26px; display:block; margin-bottom:4px; }
+  .eq-slot .n{ font-size:12.5px; font-weight:800; }
+  .eq-slot .b{ font-size:11.5px; color:var(--accent); font-weight:800; }
+  .eq-slot .empty{ font-size:12px; color:var(--ink-dim); font-weight:700; font-style:italic; }
+
+  .bag-row{ display:flex; gap:8px; }
+  .bag-it{ flex:1; display:flex; flex-direction:column; align-items:center; gap:5px; background:var(--bg-2);
+    border-radius:12px; padding:10px; }
+  .bag-it .e{ font-size:24px; }
+  .bag-it .n{ font-size:11px; font-weight:800; text-align:center; }
+  .bag-it .c{ font-size:12px; font-weight:800; color:var(--ink-dim); }
+  .bag-it button{ width:100%; height:30px; border:none; border-radius:8px; background:var(--accent); color:#fff;
+    font-size:11.5px; font-weight:800; cursor:pointer; }
+  .bag-it button:disabled{ opacity:.35; }
+  .bag-empty{ font-size:12.5px; color:var(--ink-dim); font-style:italic; text-align:center; width:100%; }
+
+  .zmod{ display:flex; align-items:center; gap:7px; font-size:12px; font-weight:700; color:var(--ink-dim);
+    background:var(--bg-2); padding:7px 10px; border-radius:10px; margin-bottom:9px; }
+  .zmod .e{ font-size:16px; }
+  .zmod b{ color:var(--ink); }
+
   /* ---------- Combat ---------- */
   .foe-panel{ text-align:center; margin-bottom:8px; }
   .foe-panel .ic{ font-size:clamp(44px,13vw,62px); line-height:1; display:inline-block; }
@@ -133,6 +161,9 @@
   .tile.present span{ position:relative; color:#14233c; }
   .tile.absent{ background:var(--absent); box-shadow:none; color:var(--ink-dim); }
   .tile.cur{ box-shadow:inset 0 0 0 2.5px var(--accent); }
+  .tile.smoke{ background:var(--cell); box-shadow:inset 0 0 0 1.5px var(--cell-edge); position:relative; overflow:hidden; }
+  .tile.smoke::after{ content:"💨"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-size:calc(var(--tile) * .55); background:rgba(130,130,150,.6); backdrop-filter:blur(1.5px); }
 
   .sk-bar{ display:flex; gap:6px; justify-content:center; margin-bottom:7px; flex-wrap:wrap; }
   .sk-btn{ min-width:44px; height:38px; padding:0 9px; border:none; border-radius:11px; background:var(--cell);
@@ -151,6 +182,9 @@
   .key.correct{ background:var(--red); box-shadow:none; }
   .key.present{ background:var(--yellow); color:#14233c; box-shadow:none; }
   .key.absent{ background:var(--absent); color:var(--ink-dim); box-shadow:none; }
+  .key.inconnu{ background:repeating-linear-gradient(45deg, var(--cell) 0 4px, var(--bg-2) 4px 8px);
+    color:var(--ink-dim); box-shadow:none; }
+  .key.banned{ opacity:.25; background:var(--absent); text-decoration:line-through; pointer-events:none; }
   .key:active{ transform:scale(.94); }
 
   .msg{ text-align:center; font-size:13px; font-weight:700; color:var(--ink-dim); min-height:18px; margin-bottom:4px; }
@@ -208,6 +242,7 @@
       <div class="zone-t" id="zTag">Zone 1 sur 5</div>
       <div class="zone-n" id="zNom">🌲 Forêt murmurante</div>
       <div class="zone-i" id="zIntro">…</div>
+      <div class="zmod" id="zMod"></div>
       <div class="foe-row">
         <span class="ic" id="fIc">🧌</span>
         <div style="flex:1">
@@ -222,6 +257,16 @@
     </div>
 
     <div class="card">
+      <div class="zone-t">Équipement</div>
+      <div class="eq-row" id="eqRow"></div>
+    </div>
+
+    <div class="card">
+      <div class="zone-t">Sac</div>
+      <div class="bag-row" id="bagRow"></div>
+    </div>
+
+    <div class="card">
       <div class="zone-t">Compétences</div>
       <div class="sk-list" id="skList"></div>
     </div>
@@ -233,6 +278,7 @@
       <div class="ic" id="cIc">🧌</div>
       <div class="nm" id="cNom">Gobelin</div>
       <div class="trait" id="cTrait"></div>
+      <div class="zmod" id="cMod"></div>
       <div class="barline"><span class="lbl">PV</span><span class="bar foe"><i id="cHp"></i></span><span class="val" id="cHpV">24/24</span></div>
     </div>
     <div class="barline"><span class="lbl">Toi</span><span class="bar hp"><i id="pHp"></i></span><span class="val" id="pHpV">60/60</span></div>
@@ -266,6 +312,8 @@
     <p>Si tu ne trouves pas le mot en 6 essais, un nouveau mot apparaît et le monstre en profite pour frapper plus fort.</p>
     <p>Gagne de l'<b>expérience</b> à chaque victoire pour monter de niveau, gagner des points de vie et débloquer des <b>compétences</b>.</p>
     <p>Chaque monstre possède un <b>trait</b> qui change les règles : certains esquivent, d'autres encaissent, empoisonnent, volent ton mana, brouillent les lettres mal placées ou réduisent une compétence au silence. Le trait est toujours affiché avant et pendant le combat — lis-le, il décide de ta tactique.</p>
+    <p>Chaque <b>zone</b> a en plus sa propre particularité, valable pour tous ses combats — toujours affichée, elle aussi. La Forêt interdit 5 lettres absentes du mot. La Grotte confond volontairement les lettres bien et mal placées, toutes deux orange. Le Marais fait perdre la tentative sur un mot mal orthographié. La Forge noie certaines cases dans la fumée. La Citadelle t'impose les mêmes règles que le mode Expert du Motus classique.</p>
+    <p>Les monstres laissent parfois du <b>butin</b> : des potions à utiliser quand tu veux, et de l'équipement (arme, relique) qui s'équipe automatiquement s'il est meilleur que ce que tu portes. Chaque boss garantit deux pièces uniques à sa zone.</p>
     <p>Tu peux <b>toucher une case</b> de la ligne en cours pour y écrire directement, comme dans Motus.</p>
     <p>Ta progression est enregistrée sur cet appareil.</p>
   </div>
@@ -278,6 +326,7 @@
     <div class="res-t" id="rTit">Victoire !</div>
     <div class="res-s" id="rSub"></div>
     <div class="gain" id="rGain"></div>
+    <div id="rLoot"></div>
     <button class="btn" id="rNext">Continuer</button>
   </div>
 </div>
@@ -294,8 +343,8 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="./dico/motus-words.js?v=1.30.1"></script>
-<script src="./dico/motus-rpg.js?v=1.30.1"></script>
+<script src="./dico/motus-words.js?v=1.31.1"></script>
+<script src="./dico/motus-rpg.js?v=1.31.1"></script>
 <script>
 (function(){
   "use strict";
@@ -349,12 +398,19 @@
   /* ---------- État du joueur ---------- */
   var P = null;
   function freshPlayer(){
-    return { lvl:1, xp:0, hp:60, zone:0, foe:0, mana:30 };
+    return { lvl:1, xp:0, hp:60, zone:0, foe:0, mana:30,
+             potions:{ potion_pv:0, potion_mp:0 }, equip:{ arme:null, relique:null } };
   }
-  function hpMax(){ return 60 + 10*(P.lvl-1); }
-  function manaMax(){ return 30 + 5*(P.lvl-1); }
+  function equipBonus(stat){
+    var t = 0;
+    ["arme","relique"].forEach(function(slot){ var it = P.equip[slot]; if(it && it[stat]) t += it[stat]; });
+    return t;
+  }
+  function hpMax(){ return 60 + 10*(P.lvl-1) + equipBonus("pv"); }
+  function manaMax(){ return 30 + 5*(P.lvl-1) + equipBonus("mp"); }
   function xpNeed(){ return 40 * P.lvl; }
-  function atkBonus(){ return P.lvl - 1; }
+  function atkBonus(){ return P.lvl - 1 + equipBonus("atk"); }
+  function zoneMod(){ var z = currentZone(); return z && z.mod ? (DATA.zoneMods||{})[z.mod] : null; }
   function save(){ store.set("motus.rpg", P); }
   function load(){
     var s = store.get("motus.rpg", null);
@@ -363,6 +419,8 @@
     // garde-fous : une sauvegarde d'une version antérieure ne doit pas bloquer le jeu
     if(P.zone >= ZONES.length){ P.zone = ZONES.length-1; P.foe = ZONES[P.zone].monstres.length-1; }
     if(P.foe >= ZONES[P.zone].monstres.length) P.foe = 0;
+    if(!P.potions) P.potions = { potion_pv:0, potion_mp:0 };
+    if(!P.equip) P.equip = { arme:null, relique:null };
     if(typeof P.mana !== "number") P.mana = manaMax();
     if(P.hp > hpMax()) P.hp = hpMax();
     if(P.hp <= 0) P.hp = hpMax();
@@ -393,6 +451,48 @@
     var t = DATA.traits && DATA.traits[id];
     if(!t) return "";
     return '<span class="trait">' + t.e + ' ' + t.n + ' <span class="dd">· ' + t.d + '</span></span>';
+  }
+
+  function zModHtml(){
+    var m = zoneMod();
+    if(!m) return "";
+    return '<span class="e">' + m.e + '</span><span><b>' + m.n + '</b> — ' + m.d + '</span>';
+  }
+  function renderEquip(){
+    var row = $("eqRow"); if(!row) return;
+    row.innerHTML = ["arme","relique"].map(function(slot){
+      var it = P.equip[slot];
+      var label = slot === "arme" ? "Arme" : "Relique";
+      if(!it) return '<div class="eq-slot"><span class="e">➖</span><div class="n">' + label + '</div><div class="empty">aucune</div></div>';
+      var bonus = [];
+      if(it.atk) bonus.push("+" + it.atk + " atq");
+      if(it.pv) bonus.push("+" + it.pv + " PV");
+      if(it.mp) bonus.push("+" + it.mp + " MP");
+      return '<div class="eq-slot"><span class="e">' + it.e + '</span><div class="n">' + it.n + '</div><div class="b">' + bonus.join(" · ") + '</div></div>';
+    }).join("");
+  }
+  function renderBag(inFightCtx){
+    var row = $("bagRow"); if(!row) return;
+    var owned = ITEMS.potions.filter(function(p){ return (P.potions[p.id]||0) > 0; });
+    if(!owned.length){ row.innerHTML = '<div class="bag-empty">Ton sac est vide — les monstres laissent parfois des potions.</div>'; return; }
+    row.innerHTML = owned.map(function(p){
+      return '<div class="bag-it"><span class="e">' + p.e + '</span><span class="n">' + p.n + '</span>'
+        + '<span class="c">x' + P.potions[p.id] + '</span>'
+        + '<button data-id="' + p.id + '">Utiliser</button></div>';
+    }).join("");
+    Array.prototype.forEach.call(row.querySelectorAll("button"), function(b){
+      b.addEventListener("click", function(){ usePotion(b.dataset.id, inFightCtx); });
+    });
+  }
+  function usePotion(id, inFightCtx){
+    var p = ITEMS.potions.find(function(x){ return x.id === id; });
+    if(!p || !(P.potions[id] > 0)) return;
+    P.potions[id]--;
+    if(p.pv) P.hp = Math.min(hpMax(), P.hp + p.pv);
+    if(p.mp) P.mana = Math.min(manaMax(), P.mana + p.mp);
+    toast(p.e + " " + p.n + " utilisée !");
+    save();
+    if(inFightCtx){ renderFight(); } else { renderHome(); }
   }
 
   function renderHome(){
@@ -429,6 +529,8 @@
       }).join("");
       $("btnFight").textContent = "Combattre";
     }
+    $("zMod").innerHTML = zModHtml();
+    renderEquip(); renderBag(false);
     renderSkillList();
   }
   function renderSkillList(){
@@ -457,34 +559,57 @@
       mute: null              // compétence bloquée par le trait Silence
     };
     if(P.hp <= 0) P.hp = hpMax();
+    buildKeyboard();
     newWord();
     $("scHome").style.display = "none"; $("scFight").style.display = ""; $("kb").style.display = "";
     $("btnHome").style.display = "";
     $("cIc").textContent = f.e; $("cNom").textContent = f.n + (f.boss ? "  ⭐" : "");
     $("cTrait").innerHTML = traitHtml(f.trait);
-    buildKeyboard();
+    $("cMod").innerHTML = zModHtml();
     renderFight();
     setMsg("Propose un mot de " + C.len + " lettres.");
   }
 
   function newWord(){
-    var z = currentZone();
+    var z = currentZone(), zm = zoneMod();
     C.word = pickWord(z.lens);
     C.len = C.word.length;
-    C.row = 0; C.col = 0; C.guesses = [];
+    C.row = 0; C.col = 0; C.guesses = []; C.rowStates = [];
     C.grid = [];
     for(var r=0; r<MAX_ROWS; r++){ C.grid.push(new Array(C.len).fill("")); }
     if(C.trait === "muet"){
       var dispo = SKILLS.filter(function(s){ return unlocked(s); });
       C.mute = dispo.length ? dispo[Math.floor(Math.random()*dispo.length)].id : null;
     }
+    // Feuilles mortes : 5 lettres absentes du mot sont interdites au clavier,
+    // recalculées à chaque nouveau mot.
+    C.banned = [];
+    if(zm && zm.n === "Feuilles mortes"){
+      var libres = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").filter(function(c){ return C.word.indexOf(c) < 0; });
+      libres.sort(function(){ return Math.random()-0.5; });
+      C.banned = libres.slice(0, 5);
+    }
+    // Fumée : quelles cases seront noyées dépend du tirage à chaque ligne,
+    // pas d'état à préparer ici — voir attack().
     loadDico(C.len);
     buildBoard();
     resetKeyColors();
+    applyBannedKeys();
   }
 
   function buildBoard(){
     var tile = Math.max(26, Math.min(46, Math.floor((Math.min(window.innerWidth-30, 480) - 5*(C.len-1)) / C.len)));
+    // La grille compte toujours MAX_ROWS lignes. Sur un combat avec peu de
+    // lettres, la largeur seule autoriserait des cases trop hautes pour ce
+    // qu'il reste réellement sous elles (barres, message, compétences) —
+    // le bandeau de compétences se retrouvait alors recouvert par le
+    // clavier, juste en dessous dans la mise en page.
+    var mainEl = document.querySelector("main");
+    var reserved = 210;   // panneau du monstre + barres + message + bandeau de compétences
+    var availH = ((mainEl && mainEl.clientHeight) || Math.round(window.innerHeight*0.55)) - reserved;
+    var tileH = Math.floor((availH - 5*(MAX_ROWS-1)) / MAX_ROWS);
+    if(tileH > 0) tile = Math.min(tile, tileH);
+    tile = Math.max(22, tile);
     document.documentElement.style.setProperty("--tile", tile + "px");
     var b = $("board"); b.innerHTML = "";
     for(var r=0; r<MAX_ROWS; r++){
@@ -543,6 +668,18 @@
       b.addEventListener("click", function(){ useSkill(s); });
       bar.appendChild(b);
     });
+    // les potions rejoignent le même bandeau : pas de nouvelle rangée qui
+    // pourrait, elle aussi, se retrouver coincée sous le clavier.
+    ITEMS.potions.forEach(function(p){
+      var n = P.potions[p.id] || 0; if(!n) return;
+      var b = document.createElement("button");
+      b.className = "sk-btn";
+      b.innerHTML = p.e + '<span class="c">x' + n + '</span>';
+      b.title = p.n + " — " + p.d;
+      b.disabled = C.over;
+      b.addEventListener("click", function(){ usePotion(p.id, true); });
+      bar.appendChild(b);
+    });
     if(!bar.children.length){
       bar.innerHTML = '<span style="font-size:12px;color:var(--ink-dim);font-weight:700">Compétences débloquées au niveau 1</span>';
     }
@@ -591,6 +728,7 @@
   }
   function type(ch){
     if(C.over) return;
+    if(C.banned && C.banned.indexOf(ch) >= 0){ toast("🍂 Cette lettre est interdite ici — elle ne peut pas être dans le mot"); return; }
     if(C.col >= C.len){ var e = firstEmpty(); if(e >= C.len) return; C.col = e; }
     setCell(C.row, C.col, ch);
     // on avance sur la première case libre APRÈS celle qu'on vient de remplir,
@@ -607,11 +745,80 @@
     if(c < 0){ drawCursor(); return; }
     C.col = c; setCell(C.row, C.col, ""); drawCursor();
   }
+  /* Devoir de mémoire (Château) : mêmes règles que le mode Expert du Motus
+     classique — une lettre trouvée bien placée doit le rester, une lettre
+     trouvée mal placée doit être réutilisée quelque part. */
+  function chateauViolation(guess){
+    var need = {};
+    for(var g=0; g<C.guesses.length; g++){
+      var gw = C.guesses[g], st = C.rowStates[g];
+      if(!st) continue;
+      var cnt = {};
+      for(var i=0;i<C.len;i++){
+        if(st[i] === "correct" && guess[i] !== gw[i]) return { type:"place", letter:gw[i], pos:i+1 };
+        if(st[i] === "correct" || st[i] === "present") cnt[gw[i]] = (cnt[gw[i]]||0) + 1;
+      }
+      for(var c in cnt) need[c] = Math.max(need[c]||0, cnt[c]);
+    }
+    for(var c2 in need){
+      var have = 0; for(var j=0;j<guess.length;j++) if(guess[j]===c2) have++;
+      if(have < need[c2]) return { type:"use", letter:c2, n:need[c2] };
+    }
+    return null;
+  }
+
+  /* Faute fatale (Marais) : un mot mal orthographié consomme quand même la
+     tentative — le tour se déroule comme un coup raté, sans dégâts, mais
+     avec la riposte et les effets de trait habituels. */
+  function burnAttempt(w){
+    for(var i=0;i<C.len;i++) tileAt(C.row,i).classList.remove("cur");
+    C.guesses.push(w);
+    C.rowStates.push(new Array(C.len).fill("absent"));
+    toast("🥴 « " + w + " » n'est pas dans le dictionnaire — tentative perdue !", 2600);
+    vibrate([30,50,30]);
+
+    if(C.trait === "furie") C.atk += 2;
+    if(C.trait === "regen") C.foeHp = Math.min(C.foeHpMax, C.foeHp + 4);
+    var back = C.atk;
+    if(C.garde){ back = 0; C.garde = false; toast("🛡️ Attaque bloquée !"); }
+    if(C.trait === "voleur" && P.mana > 0) P.mana = Math.max(0, P.mana - 5);
+    if(C.trait === "venin") back += 3;
+
+    C.row++;
+    var plus = 0;
+    if(C.row >= MAX_ROWS){
+      plus = Math.round(C.atk * 0.6);
+      setMsg("Le mot était « " + C.word + " ». Le monstre en profite !");
+    } else {
+      setMsg("Tentative perdue — ce mot n'existe pas.");
+    }
+    if(back + plus > 0){ P.hp -= (back + plus); floatText("-" + (back+plus), "var(--yellow)"); }
+    if(P.hp <= 0){ P.hp = 0; renderFight(); save(); return loseFight(); }
+    if(C.row >= MAX_ROWS){
+      setTimeout(function(){ if(!C.over){ newWord(); renderFight(); } }, 900);
+    } else {
+      C.col = 0; drawCursor(); applyBannedKeys();
+    }
+    save(); renderFight();
+  }
+
   function submit(){
     if(C.over) return;
     var w = C.grid[C.row].join("");
     if(w.length < C.len || C.grid[C.row].some(function(x){ return !x; })){ setMsg("Il manque des lettres"); return; }
-    if(!isValid(w)){ setMsg("« " + w + " » n'est pas dans le dictionnaire"); vibrate([12,60,12]); return; }
+    var zm = zoneMod();
+    if(zm && zm.n === "Devoir de mémoire"){
+      var v = chateauViolation(w);
+      if(v){
+        vibrate([12,60,12]);
+        setMsg(v.type === "place" ? "La " + v.pos + "ᵉ lettre doit rester un " + v.letter : "Tu dois réutiliser le " + v.letter);
+        return;
+      }
+    }
+    if(!isValid(w) && w !== C.word){
+      if(zm && zm.n === "Faute fatale"){ burnAttempt(w); return; }
+      setMsg("« " + w + " » n'est pas dans le dictionnaire"); vibrate([12,60,12]); return;
+    }
     attack(w);
   }
 
@@ -639,16 +846,35 @@
     if(C.trait === "brouillard"){
       st = st.map(function(x){ return x === "present" ? "absent" : x; });
     }
+    var zm = zoneMod();
+    var echo = zm && zm.n === "Écho";
+    var fumee = zm && zm.n === "Fumée";
+    // Fumée : à CHAQUE tentative, 1 ou 2 cases au hasard (jamais forcément
+    // les mêmes) sont noyées et ne révèlent rien de leur couleur réelle.
+    var smoked = [];
+    if(fumee){
+      var idx = []; for(var k=0;k<C.len;k++) idx.push(k);
+      idx.sort(function(){ return Math.random()-0.5; });
+      smoked = idx.slice(0, Math.min(C.len, 1 + Math.floor(Math.random()*2)));
+    }
     var red = 0, yel = 0;
     for(var i=0;i<C.len;i++){
       var t = tileAt(C.row, i);
       t.classList.remove("cur");
-      t.classList.add(st[i]);
+      var dispSt = st[i];
+      if(echo && dispSt === "correct") dispSt = "present";   // impossible à distinguer
+      if(fumee && smoked.indexOf(i) >= 0){
+        t.classList.add("smoke");
+        paintKey(w[i], "inconnu");
+      } else {
+        t.classList.add(dispSt);
+        paintKey(w[i], echo && st[i] === "correct" ? "present" : dispSt);
+      }
       if(st[i] === "correct"){ red++; }
       else if(st[i] === "present"){ yel++; t.querySelector("span").style.position = "relative"; }
-      paintKey(w[i], st[i]);
     }
     C.guesses.push(w);
+    C.rowStates.push(st);
 
     var exact = (w === C.word);
     var dmg = red*3 + yel*1 + atkBonus();
@@ -714,20 +940,63 @@
     if(exact || C.row >= MAX_ROWS){
       setTimeout(function(){ if(!C.over){ newWord(); renderFight(); } }, 900);
     } else {
-      C.col = 0; drawCursor();
+      C.col = 0; drawCursor(); applyBannedKeys();
     }
     save(); renderFight();
   }
 
   /* ---------- Fin de combat ---------- */
+  var ITEMS = DATA.items || { potions:[], equip:[] };
+  function statSum(it){ return (it.atk||0) + (it.pv||0) + (it.mp||0); }
+  function giveEquip(it){
+    var cur = P.equip[it.slot];
+    var better = statSum(it) > (cur ? statSum(cur) : -1);
+    if(better) P.equip[it.slot] = it;
+    return better;
+  }
+  /* Butin : un boss garantit tout l'équipement de sa zone (2 pièces), un
+     monstre ordinaire a une chance modeste de laisser une potion ou une
+     pièce d'équipement déjà rencontrable (jamais plus avancée que la zone
+     en cours). */
+  function rollLoot(f, zIdx){
+    var drops = [];
+    if(f.boss){
+      ITEMS.equip.filter(function(e){ return e.zmin === zIdx; }).forEach(function(e){
+        drops.push({ item:e, equipped: giveEquip(e), potion:false });
+      });
+    } else if(Math.random() < 0.35){
+      if(Math.random() < 0.6 && ITEMS.potions.length){
+        var p = ITEMS.potions[Math.floor(Math.random()*ITEMS.potions.length)];
+        P.potions[p.id] = (P.potions[p.id]||0) + 1;
+        drops.push({ item:p, potion:true });
+      } else {
+        var pool = ITEMS.equip.filter(function(e){ return e.zmin <= zIdx; });
+        if(pool.length){
+          var e2 = pool[Math.floor(Math.random()*pool.length)];
+          drops.push({ item:e2, equipped: giveEquip(e2), potion:false });
+        }
+      }
+    }
+    return drops;
+  }
+  function lootHtml(drops){
+    if(!drops.length) return "";
+    return '<div class="loot-t">Butin</div>' + drops.map(function(d){
+      var tag = d.potion ? "" : (d.equipped ? '<span class="lg">équipé</span>' : '<span class="ld">déjà mieux équipé</span>');
+      return '<div class="loot-row"><span>' + d.item.e + " " + d.item.n + '</span>' + tag + '</div>';
+    }).join("");
+  }
+
   function winFight(){
     C.over = true;
-    var f = currentFoe(), gain = f.xp;
+    var f = currentFoe(), gain = f.xp, zIdxAtFight = P.zone;
     P.xp += gain;
     var levels = 0;
     while(P.xp >= xpNeed()){ P.xp -= xpNeed(); P.lvl++; levels++; }
     if(levels){ P.hp = hpMax(); P.mana = manaMax(); }
     else { P.mana = Math.min(manaMax(), P.mana + 10); }
+
+    var drops = rollLoot(f, zIdxAtFight);
 
     // progression
     P.foe++;
@@ -741,6 +1010,7 @@
     var g = "<span>+" + gain + " XP</span>";
     if(levels) g += "<span>🎖️ Niveau " + P.lvl + "</span>";
     $("rGain").innerHTML = g;
+    $("rLoot").innerHTML = lootHtml(drops);
     if(newSkills.length){
       $("rSub").textContent += " Nouvelle compétence : " + newSkills.map(function(s){ return s.e+" "+s.n; }).join(", ") + ".";
     }
@@ -780,10 +1050,20 @@
       kb.appendChild(row);
     });
   }
-  function resetKeyColors(){ for(var k in keyEls) keyEls[k].classList.remove("correct","present","absent"); }
+  function resetKeyColors(){ for(var k in keyEls) keyEls[k].classList.remove("correct","present","absent","inconnu"); }
+  function applyBannedKeys(){
+    for(var k in keyEls) keyEls[k].classList.toggle("banned", !!(C && C.banned && C.banned.indexOf(k) >= 0));
+  }
   function paintKey(ch, st){
     var el = keyEls[ch]; if(!el) return;
     if(el.classList.contains("correct")) return;
+    if(st === "inconnu"){
+      // Fumée : ne jamais écraser une info déjà connue par ailleurs, et ne
+      // jamais s'imposer si la lettre a déjà ce statut.
+      if(!el.classList.contains("present") && !el.classList.contains("absent")) el.classList.add("inconnu");
+      return;
+    }
+    el.classList.remove("inconnu");
     if(st === "correct"){ el.classList.remove("present","absent"); el.classList.add("correct"); }
     else if(st === "present"){ if(!el.classList.contains("present")){ el.classList.remove("absent"); el.classList.add("present"); } }
     else if(!el.classList.contains("present")) el.classList.add("absent");
