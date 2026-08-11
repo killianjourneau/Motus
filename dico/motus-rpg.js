@@ -152,6 +152,131 @@ window.MOTUS_RPG = {
     ]
   },
 
+  /* =====================================================================
+     ÉVÉNEMENTS — entre deux combats, et de courtes interruptions pendant
+     un combat. Trois familles :
+       "choix"   : un texte, 2 ou 3 options, chacune avec son effet.
+       "defi"    : une courte énigme de lettres (comme un combat en
+                   miniature, mais sans monstre en face).
+       "marchand": ouvre l'échoppe (gérée à part, pas ici).
+     "effet" peut contenir : hp, mp, or, xp, potion (id d'une potion) —
+     les valeurs négatives retirent, les positives donnent. */
+  events: [
+    { id:"campement", e:"🏕️", n:"Feu de camp abandonné", type:"choix",
+      texte:"Les braises sont encore tièdes. Quelqu'un est passé par ici, il n'y a pas longtemps.",
+      options:[
+        { texte:"Te reposer un instant", effet:{hp:20}, suite:"Tu repars requinqué." },
+        { texte:"Continuer sans t'arrêter", effet:{}, suite:"Le temps presse." }
+      ] },
+    { id:"sage", e:"🧓", n:"Un vieil homme égaré", type:"choix",
+      texte:"« J'ai perdu le nom de mon village natal », murmure-t-il. « Peux-tu m'aider à le retrouver ? »",
+      options:[
+        { texte:"L'aider à chercher", effet:{xp:8}, suite:"Vous ne trouvez rien, mais il te remercie du temps passé." },
+        { texte:"Poursuivre ta route", effet:{}, suite:"Tu le laisses à ses souvenirs." }
+      ] },
+    { id:"lettre", e:"✉️", n:"Une lettre tombée au sol", type:"choix",
+      texte:"Le papier est humide mais encore lisible. Elle n'est adressée à personne en particulier.",
+      options:[
+        { texte:"La lire", effet:{or:6}, suite:"Elle décrit une cachette. Tu y trouves quelques pièces." },
+        { texte:"La laisser", effet:{}, suite:"Ce n'est pas à toi de la lire." }
+      ] },
+    { id:"reve", e:"💤", n:"Un rêve étrange", type:"choix",
+      texte:"Tu somnoles un instant contre un arbre. Dans ton rêve, un mot flotte devant toi, presque lisible.",
+      options:[
+        { texte:"Te concentrer sur le rêve", effet:{mp:15}, suite:"Tu te réveilles l'esprit clair." },
+        { texte:"Te secouer et repartir", effet:{}, suite:"Les rêves ne nourrissent pas." }
+      ] },
+    { id:"sanctuaire", e:"⛩️", n:"Un sanctuaire oublié", type:"choix",
+      texte:"Une pierre couverte de mousse, entourée d'offrandes anciennes. Elle semble encore veiller sur quelque chose.",
+      options:[
+        { texte:"Te recueillir", effet:{hp:15, mp:15}, suite:"Une chaleur discrète te traverse." },
+        { texte:"Ne pas déranger ce lieu", effet:{}, suite:"Tu poursuis, respectueux." }
+      ] },
+    { id:"ombre", e:"🌑", n:"Une ombre te suit", type:"choix",
+      texte:"Quelque chose te observe depuis les fourrés, sans s'approcher ni s'éloigner.",
+      options:[
+        { texte:"Aller voir", effet:{hp:-8, or:12}, suite:"Une créature apeurée s'enfuit, lâchant quelques pièces." },
+        { texte:"Accélérer le pas", effet:{}, suite:"Tu préfères ne pas savoir." }
+      ] },
+    { id:"fete", e:"🎉", n:"Une fête improvisée", type:"choix",
+      texte:"Des voyageurs ont dressé un feu et partagent ce qu'il leur reste. Ils t'invitent d'un geste.",
+      options:[
+        { texte:"Te joindre à eux", effet:{or:10}, suite:"On te glisse quelques pièces pour une histoire bien racontée." },
+        { texte:"Observer de loin", effet:{xp:4}, suite:"Tu apprends en regardant." }
+      ] },
+    { id:"dispute", e:"😠", n:"Une dispute entre voyageurs", type:"choix",
+      texte:"Deux marchands se disputent un chargement tombé sur le chemin. Le ton monte.",
+      options:[
+        { texte:"Les départager", effet:{xp:10}, suite:"Ta décision les calme. Ils repartent, chacun un peu déçu." },
+        { texte:"Ne pas t'en mêler", effet:{}, suite:"Ce ne sont pas tes affaires." }
+      ] },
+    { id:"compagnon", e:"🧑‍🌾", n:"Un compagnon de route", type:"choix",
+      texte:"Une voyageuse marche un moment à tes côtés. Elle connaît ces terres mieux que toi.",
+      options:[
+        { texte:"Marcher avec elle un moment", effet:{buffAtk:3}, suite:"Ses conseils t'aideront pour l'affrontement à venir." },
+        { texte:"Continuer seul", effet:{}, suite:"Tu préfères ta propre compagnie." }
+      ] },
+    { id:"meteo", e:"🌧️", n:"Un orage soudain", type:"choix",
+      texte:"Le ciel se déchire sans prévenir. Le chemin devient glissant.",
+      options:[
+        { texte:"Chercher un abri", effet:{}, suite:"Tu perds un peu de temps, mais tu restes au sec." },
+        { texte:"Avancer sous la pluie", effet:{hp:-6}, suite:"Tu arrives trempé et un peu affaibli." }
+      ] },
+    { id:"pari", e:"🎲", n:"Un inconnu propose un pari", type:"choix",
+      texte:"« Pile je gagne, face tu gagnes le double », sourit-il en sortant une pièce usée.",
+      options:[
+        { texte:"Parier 10 pièces", effet:{pari:10}, suite:"" },
+        { texte:"Décliner", effet:{}, suite:"Il hausse les épaules et s'en va." }
+      ] },
+    { id:"coffre", e:"🗝️", n:"Un coffre verrouillé", type:"defi",
+      texte:"Un vieux coffre, à moitié enterré. La serrure porte un mot gravé, presque effacé.",
+      lens:[4,5], succes:{or:18}, echec:{},
+      texteSucces:"Le mécanisme cède. Quelques pièces roulent au fond.",
+      texteEchec:"La serrure ne cède pas. Tu abandonnes, le coffre reste clos." },
+    { id:"enigme", e:"🗿", n:"Une pierre gravée d'une énigme", type:"defi",
+      texte:"« Je n'ai pas de bouche mais je parle à qui sait lire. » La réponse tient en quelques lettres.",
+      lens:[5,6], succes:{xp:14}, echec:{},
+      texteSucces:"La pierre semble presque satisfaite. Un savoir t'a été transmis.",
+      texteEchec:"La pierre garde son secret." },
+    { id:"piege", e:"⚠️", n:"Un piège caché", type:"defi",
+      texte:"Le sol semble instable. Il faut réagir vite pour ne pas déclencher le mécanisme.",
+      lens:[4,4], succes:{}, echec:{hp:-12},
+      texteSucces:"Tu désamorces le piège à temps.",
+      texteEchec:"Le mécanisme se déclenche. Tu encaisses le choc." },
+    { id:"passage", e:"🚪", n:"Un passage secret", type:"defi",
+      texte:"Un mur sonne creux. Un mot semble ouvrir ce genre de mécanisme, encore faut-il le deviner.",
+      lens:[5,7], succes:{or:10, xp:6}, echec:{},
+      texteSucces:"Le mur pivote sur un petit renfoncement oublié.",
+      texteEchec:"Le mur reste un mur. Tant pis." },
+    { id:"fouille", e:"🔍", n:"Des ruines à fouiller", type:"defi",
+      texte:"Des pierres effondrées, et peut-être quelque chose dessous — si tu es assez rapide.",
+      lens:[4,6], succes:{potion:"potion_pv"}, echec:{},
+      texteSucces:"Une fiole intacte, oubliée sous les gravats.",
+      texteEchec:"Rien d'autre que de la poussière." },
+    { id:"marchand", e:"🧺", n:"Un marchand ambulant", type:"marchand",
+      texte:"« Potions, babioles, un peu de tout ! » Il pose son sac, l'air pas pressé." }
+  ],
+
+  /* Objets vendus par le marchand ambulant, avec leur prix en pièces. */
+  /* Interruptions courtes EN PLEIN COMBAT — pas de choix, pas de défi,
+     juste un mot et un effet immédiat, pour ne pas casser le rythme du
+     tour par tour. Se déclenchent au hasard entre deux échanges. */
+  combatEvents: [
+    { e:"💨", texte:"Une bourrasque te déstabilise.", effet:{hp:-4} },
+    { e:"🪙", texte:"Tu ramasses une pièce tombée au sol.", effet:{or:3} },
+    { e:"😮", texte:"Le monstre hésite un instant.", effet:{skipRiposte:true} },
+    { e:"🌤️", texte:"Une éclaircie te redonne des forces.", effet:{mp:6} },
+    { e:"🦶", texte:"Ton pied glisse sur la pierre.", effet:{hp:-3} },
+    { e:"⚡", texte:"Un frisson parcourt le monstre, affaibli l'instant d'un souffle.", effet:{foeDmg:5} },
+    { e:"🍂", texte:"Le vent t'apporte un vieux mot presque effacé.", effet:{or:2, mp:3} },
+    { e:"🩹", texte:"Une égratignure de plus.", effet:{hp:-2} }
+  ],
+
+  shop: [
+    { item:"potion_pv", prix:12 },
+    { item:"potion_mp", prix:12 }
+  ],
+
   skills: [
     { id: "reveal", e: "🔍", n: "Révélation", lvl: 1,
       cout: 10, d: "Révèle une lettre bien placée du mot en cours." },
