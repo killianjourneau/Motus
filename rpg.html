@@ -112,6 +112,7 @@
   .loot-row .lg{ font-size:11px; font-weight:800; color:var(--hp); }
   .loot-row .ld{ font-size:11px; font-weight:700; color:var(--ink-dim); }
 
+  .or-tag{ font-size:13px; font-weight:800; background:var(--bg-2); padding:6px 11px; border-radius:10px; color:var(--yellow); }
   .eq-row{ display:flex; gap:8px; }
   .eq-slot{ flex:1; background:var(--bg-2); border-radius:12px; padding:10px; text-align:center; }
   .eq-slot .e{ font-size:26px; display:block; margin-bottom:4px; }
@@ -134,6 +135,19 @@
     background:var(--bg-2); padding:7px 10px; border-radius:10px; margin-bottom:9px; }
   .zmod .e{ font-size:16px; }
   .zmod b{ color:var(--ink); }
+
+  .ev-ic{ text-align:center; font-size:44px; margin-bottom:4px; }
+  .ev-n{ text-align:center; font-size:17px; font-weight:800; margin-bottom:8px; }
+  .ev-opt{ width:100%; text-align:left; padding:12px 14px; margin-bottom:8px; border:none; border-radius:12px;
+    background:var(--bg-2); color:var(--ink); font-size:14px; font-weight:700; cursor:pointer; }
+  .ev-opt:active{ transform:scale(.98); }
+  .ev-opt .fx{ display:block; font-size:11.5px; font-weight:700; color:var(--accent); margin-top:3px; }
+  .shop-it{ display:flex; align-items:center; gap:10px; padding:10px; margin-bottom:8px; border-radius:12px; background:var(--bg-2); }
+  .shop-it .e{ font-size:22px; }
+  .shop-it .n{ flex:1; font-size:13.5px; font-weight:800; }
+  .shop-it button{ border:none; border-radius:9px; background:var(--accent); color:#fff; font-weight:800;
+    font-size:12.5px; padding:8px 12px; cursor:pointer; }
+  .shop-it button:disabled{ opacity:.35; }
 
   /* ---------- Combat ---------- */
   .foe-panel{ text-align:center; margin-bottom:8px; }
@@ -232,6 +246,7 @@
           <div class="nm" id="hLvl">Niveau 1</div>
           <div class="sub" id="hXp">0 / 40 XP</div>
         </div>
+        <div class="or-tag" id="hOr">🪙 0</div>
       </div>
       <div class="barline"><span class="lbl">XP</span><span class="bar xp"><i id="bXp"></i></span></div>
       <div class="barline"><span class="lbl">PV</span><span class="bar hp"><i id="bHp"></i></span><span class="val" id="vHp">60/60</span></div>
@@ -313,6 +328,7 @@
     <p>Gagne de l'<b>expérience</b> à chaque victoire pour monter de niveau, gagner des points de vie et débloquer des <b>compétences</b>.</p>
     <p>Chaque monstre possède un <b>trait</b> qui change les règles : certains esquivent, d'autres encaissent, empoisonnent, volent ton mana, brouillent les lettres mal placées ou réduisent une compétence au silence. Le trait est toujours affiché avant et pendant le combat — lis-le, il décide de ta tactique.</p>
     <p>Chaque <b>zone</b> a en plus sa propre particularité, valable pour tous ses combats — toujours affichée, elle aussi. La Forêt interdit 5 lettres absentes du mot. La Grotte confond volontairement les lettres bien et mal placées, toutes deux orange. Le Marais fait perdre la tentative sur un mot mal orthographié. La Forge noie certaines cases dans la fumée. La Citadelle t'impose les mêmes règles que le mode Expert du Motus classique.</p>
+    <p>En cliquant sur <b>Combattre</b>, un <b>événement</b> peut survenir avant l'affrontement : une rencontre, un marchand contre quelques pièces d'<b>or</b> 🪙, un coffre ou une énigme à percer par un mot. De courtes <b>interruptions</b> peuvent aussi survenir en plein combat.</p>
     <p>Les monstres laissent parfois du <b>butin</b> : des potions à utiliser quand tu veux, et de l'équipement (arme, relique) qui s'équipe automatiquement s'il est meilleur que ce que tu portes. Chaque boss garantit deux pièces uniques à sa zone.</p>
     <p>Tu peux <b>toucher une case</b> de la ligne en cours pour y écrire directement, comme dans Motus.</p>
     <p>Ta progression est enregistrée sur cet appareil.</p>
@@ -331,7 +347,49 @@
   </div>
 </div>
 
+<!-- ===== Événement : choix narratif ===== -->
+<div class="overlay" id="ovEvent">
+  <div class="modal">
+    <div class="ev-ic" id="evIc">🏕️</div>
+    <div class="ev-n" id="evN">Un événement</div>
+    <p id="evTxt" style="text-align:center"></p>
+    <div id="evOpts"></div>
+    <div class="ev-suite" id="evSuite" style="display:none">
+      <p id="evSuiteTxt" style="text-align:center"></p>
+      <button class="btn" id="evContinue">Continuer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Événement : défi de lettres ===== -->
+<div class="overlay" id="ovDefi">
+  <div class="modal">
+    <div class="ev-ic" id="dfIc">🗝️</div>
+    <div class="ev-n" id="dfN">Un défi</div>
+    <p id="dfTxt" style="text-align:center"></p>
+    <div class="row" id="dfRow" style="justify-content:center;margin:10px 0"></div>
+    <p class="msg" id="dfMsg"></p>
+    <div id="dfResult" style="display:none">
+      <p id="dfResTxt" style="text-align:center"></p>
+      <button class="btn" id="dfContinue">Continuer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Événement : marchand ===== -->
+<div class="overlay" id="ovShop">
+  <div class="modal">
+    <div class="ev-ic">🧺</div>
+    <div class="ev-n">Le marchand ambulant</div>
+    <p id="shTxt" style="text-align:center"></p>
+    <div class="or-tag" id="shOr" style="margin:0 auto 12px">🪙 0</div>
+    <div id="shList"></div>
+    <button class="btn ghost" id="shLeave">Repartir</button>
+  </div>
+</div>
+
 <!-- ===== Confirmation ===== -->
+
 <div class="overlay" id="ovConf">
   <div class="modal">
     <h2 id="cfTit">Recommencer ?</h2>
@@ -343,8 +401,8 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="./dico/motus-words.js?v=1.31.1"></script>
-<script src="./dico/motus-rpg.js?v=1.31.1"></script>
+<script src="./dico/motus-words.js?v=1.32.0"></script>
+<script src="./dico/motus-rpg.js?v=1.32.0"></script>
 <script>
 (function(){
   "use strict";
@@ -398,7 +456,7 @@
   /* ---------- État du joueur ---------- */
   var P = null;
   function freshPlayer(){
-    return { lvl:1, xp:0, hp:60, zone:0, foe:0, mana:30,
+    return { lvl:1, xp:0, hp:60, zone:0, foe:0, mana:30, or:0,
              potions:{ potion_pv:0, potion_mp:0 }, equip:{ arme:null, relique:null } };
   }
   function equipBonus(stat){
@@ -420,6 +478,7 @@
     if(P.zone >= ZONES.length){ P.zone = ZONES.length-1; P.foe = ZONES[P.zone].monstres.length-1; }
     if(P.foe >= ZONES[P.zone].monstres.length) P.foe = 0;
     if(!P.potions) P.potions = { potion_pv:0, potion_mp:0 };
+    if(typeof P.or !== "number") P.or = 0;
     if(!P.equip) P.equip = { arme:null, relique:null };
     if(typeof P.mana !== "number") P.mana = manaMax();
     if(P.hp > hpMax()) P.hp = hpMax();
@@ -500,6 +559,7 @@
     $("btnHome").style.display = "none";
     $("hLvl").textContent = "Niveau " + P.lvl;
     $("hXp").textContent = P.xp + " / " + xpNeed() + " XP";
+    $("hOr").textContent = "🪙 " + P.or;
     setBar("bXp", P.xp, xpNeed());
     setBar("bHp", P.hp, hpMax()); $("vHp").textContent = P.hp + "/" + hpMax();
     setBar("bMp", P.mana, manaMax()); $("vMp").textContent = P.mana + "/" + manaMax();
@@ -547,6 +607,169 @@
   /* ---------- Combat : état ---------- */
   var C = null;   // état du combat en cours
 
+  /* ===================================================================
+     ÉVÉNEMENTS — se déclenchent en cliquant sur "Combattre", avant que le
+     combat ne commence. On garde une trace des événements déjà vus dans
+     cette AVENTURE pour ne pas retomber sans arrêt sur les mêmes.
+     =================================================================== */
+  var EVENTS = DATA.events || [];
+  var SHOP = DATA.shop || [];
+  var EV = null;     // état de l'événement en cours (choix ou défi)
+
+  function pickEvent(){
+    var seen = P.evSeen || [];
+    var pool = EVENTS.filter(function(e){ return seen.indexOf(e.id) < 0; });
+    if(!pool.length) pool = EVENTS;     // tout vu : on recommence à piocher dedans
+    return pool[Math.floor(Math.random()*pool.length)];
+  }
+  function markSeen(id){
+    if(!P.evSeen) P.evSeen = [];
+    if(P.evSeen.indexOf(id) < 0) P.evSeen.push(id);
+    if(P.evSeen.length > EVENTS.length) P.evSeen = [id];   // on relâche la mémoire une fois le tour complet fait
+  }
+
+  function onFightClick(){
+    if(finished()){ askConfirm("Nouvelle aventure ?", "Ta progression actuelle sera effacée.", resetAll); return; }
+    if(Math.random() < 0.4){
+      var ev = pickEvent();
+      if(ev){ EV = { def: ev }; markSeen(ev.id); showEvent(ev); return; }
+    }
+    startFight();
+  }
+
+  function effetLabel(fx){
+    var parts = [];
+    if(fx.hp) parts.push((fx.hp>0?"+":"") + fx.hp + " PV");
+    if(fx.mp) parts.push((fx.mp>0?"+":"") + fx.mp + " MP");
+    if(fx.or) parts.push((fx.or>0?"+":"") + fx.or + " 🪙");
+    if(fx.xp) parts.push("+" + fx.xp + " XP");
+    if(fx.potion){ var p = ITEMS.potions.find(function(x){ return x.id===fx.potion; }); if(p) parts.push("+1 " + p.e); }
+    if(fx.buffAtk) parts.push("+" + fx.buffAtk + " attaque (prochain combat)");
+    if(fx.pari) parts.push("mise de " + fx.pari + " 🪙");
+    return parts.join(" · ");
+  }
+  function applyEffet(fx){
+    if(!fx) return;
+    if(fx.hp) P.hp = Math.max(0, Math.min(hpMax(), P.hp + fx.hp));
+    if(fx.mp) P.mana = Math.max(0, Math.min(manaMax(), P.mana + fx.mp));
+    if(fx.or) P.or = Math.max(0, P.or + fx.or);
+    if(fx.xp) gainXp(fx.xp);
+    if(fx.potion) P.potions[fx.potion] = (P.potions[fx.potion]||0) + 1;
+    if(fx.buffAtk) P.nextBuffAtk = (P.nextBuffAtk||0) + fx.buffAtk;
+    save();
+  }
+  /* Gagner de l'XP en dehors d'un combat peut aussi faire monter de niveau —
+     on garde ça simple, sans butin ni récapitulatif de fin de combat. */
+  function gainXp(n){
+    P.xp += n;
+    while(P.xp >= xpNeed()){ P.xp -= xpNeed(); P.lvl++; P.hp = hpMax(); P.mana = manaMax(); }
+  }
+
+  function showEvent(ev){
+    if(ev.type === "marchand"){ showShop(ev); return; }
+    if(ev.type === "defi"){ showDefi(ev); return; }
+    $("evIc").textContent = ev.e; $("evN").textContent = ev.n; $("evTxt").textContent = ev.texte;
+    $("evSuite").style.display = "none";
+    var opts = $("evOpts"); opts.style.display = ""; opts.innerHTML = "";
+    ev.options.forEach(function(o, i){
+      var b = document.createElement("button");
+      b.className = "ev-opt";
+      var fx = effetLabel(o.effet);
+      b.innerHTML = o.texte + (fx ? '<span class="fx">' + fx + '</span>' : "");
+      b.addEventListener("click", function(){ resolveChoice(ev, o); });
+      opts.appendChild(b);
+    });
+    openOverlay("ovEvent");
+  }
+  function resolveChoice(ev, opt){
+    if(opt.effet && opt.effet.pari){
+      // petit jeu d'argent : pile ou face, mise doublée ou perdue
+      var mise = opt.effet.pari;
+      if(P.or < mise){ $("evOpts").style.display=""; toast("Tu n'as pas assez de pièces"); return; }
+      var gagne = Math.random() < 0.5;
+      P.or += gagne ? mise : -mise;
+      save();
+      $("evOpts").style.display = "none";
+      $("evSuite").style.display = "";
+      $("evSuiteTxt").textContent = gagne ? "La pièce tombe en ta faveur : tu doubles ta mise !" : "La pièce ne te sourit pas cette fois. Tant pis.";
+      return;
+    }
+    applyEffet(opt.effet);
+    $("evOpts").style.display = "none";
+    $("evSuite").style.display = "";
+    $("evSuiteTxt").textContent = opt.suite || "";
+  }
+  $("evContinue").addEventListener("click", function(){ EV=null; closeOverlays(); startFight(); });
+
+  /* ---------- Défi de lettres (hors combat, pas de monstre en face) ---------- */
+  function showDefi(ev){
+    var word = pickWord(ev.lens);
+    EV.word = word; EV.len = word.length; EV.guess = "";
+    $("dfIc").textContent = ev.e; $("dfN").textContent = ev.n; $("dfTxt").textContent = ev.texte;
+    $("dfMsg").textContent = "";
+    $("dfResult").style.display = "none";
+    var row = $("dfRow"); row.innerHTML = "";
+    row.style.gridTemplateColumns = "repeat(" + EV.len + ", var(--tile))";
+    for(var c=0;c<EV.len;c++){
+      var t = document.createElement("div"); t.className = "tile"; t.innerHTML = "<span></span>";
+      row.appendChild(t);
+    }
+    loadDico(EV.len);
+    resetKeyColors();
+    $("kb").style.display = "";
+    openOverlay("ovDefi");
+  }
+  function eventType(ch){
+    if(!EV || !EV.word || EV.guess.length >= EV.len) return;
+    EV.guess += ch;
+    $("dfRow").children[EV.guess.length-1].querySelector("span").textContent = ch;
+  }
+  function eventBackspace(){
+    if(!EV || !EV.word || !EV.guess.length) return;
+    $("dfRow").children[EV.guess.length-1].querySelector("span").textContent = "";
+    EV.guess = EV.guess.slice(0, -1);
+  }
+  function eventSubmit(){
+    if(!EV || !EV.word) return;
+    if(EV.guess.length < EV.len){ $("dfMsg").textContent = "Il manque des lettres"; return; }
+    if(!isValid(EV.guess) && EV.guess !== EV.word){ $("dfMsg").textContent = "« " + EV.guess + " » n'est pas dans le dictionnaire"; return; }
+    var win = (EV.guess === EV.word);
+    var st = win ? new Array(EV.len).fill("correct") : evaluate(EV.guess, EV.word);
+    for(var i=0;i<EV.len;i++){ $("dfRow").children[i].classList.add(st[i]); paintKey(EV.guess[i], st[i]); }
+    var ev = EV.def;
+    if(win){ applyEffet(ev.succes); } else { applyEffet(ev.echec); }
+    $("dfResTxt").innerHTML = (win ? ev.texteSucces : ev.texteEchec)
+      + (!win ? '<br><b>Le mot était ' + EV.word + '.</b>' : "")
+      + (effetLabel(win ? ev.succes : ev.echec) ? "<br>" + effetLabel(win ? ev.succes : ev.echec) : "");
+    $("dfResult").style.display = "";
+  }
+  $("dfContinue").addEventListener("click", function(){ EV=null; closeOverlays(); startFight(); });
+
+  /* ---------- Marchand ---------- */
+  function showShop(ev){
+    $("shTxt").textContent = ev.texte;
+    renderShop();
+    openOverlay("ovShop");
+  }
+  function renderShop(){
+    $("shOr").textContent = "🪙 " + P.or;
+    $("shList").innerHTML = SHOP.map(function(s, i){
+      var it = ITEMS.potions.find(function(p){ return p.id === s.item; });
+      if(!it) return "";
+      return '<div class="shop-it"><span class="e">' + it.e + '</span><span class="n">' + it.n + ' — ' + it.d + '</span>'
+        + '<button data-i="' + i + '"' + (P.or < s.prix ? " disabled" : "") + '>' + s.prix + ' 🪙</button></div>';
+    }).join("");
+    Array.prototype.forEach.call($("shList").querySelectorAll("button"), function(b){
+      b.addEventListener("click", function(){
+        var s = SHOP[+b.dataset.i];
+        if(P.or < s.prix) return;
+        P.or -= s.prix; P.potions[s.item] = (P.potions[s.item]||0) + 1;
+        save(); toast("Acheté !"); renderShop();
+      });
+    });
+  }
+  $("shLeave").addEventListener("click", function(){ EV=null; closeOverlays(); startFight(); });
+
   function startFight(){
     if(finished()){ askConfirm("Nouvelle aventure ?", "Ta progression actuelle sera effacée.", resetAll); return; }
     var f = currentFoe();
@@ -560,6 +783,8 @@
     };
     if(P.hp <= 0) P.hp = hpMax();
     buildKeyboard();
+    C.buffAtk = P.nextBuffAtk || 0;
+    P.nextBuffAtk = 0; save();
     newWord();
     $("scHome").style.display = "none"; $("scFight").style.display = ""; $("kb").style.display = "";
     $("btnHome").style.display = "";
@@ -727,6 +952,7 @@
     return -1;
   }
   function type(ch){
+    if(EV && EV.word){ eventType(ch); return; }
     if(C.over) return;
     if(C.banned && C.banned.indexOf(ch) >= 0){ toast("🍂 Cette lettre est interdite ici — elle ne peut pas être dans le mot"); return; }
     if(C.col >= C.len){ var e = firstEmpty(); if(e >= C.len) return; C.col = e; }
@@ -738,6 +964,7 @@
     drawCursor();
   }
   function backspace(){
+    if(EV && EV.word){ eventBackspace(); return; }
     if(C.over) return;
     if(C.col < C.len && C.grid[C.row][C.col]){ setCell(C.row, C.col, ""); drawCursor(); return; }
     var c = Math.min(C.col, C.len) - 1;
@@ -803,6 +1030,7 @@
   }
 
   function submit(){
+    if(EV && EV.word){ eventSubmit(); return; }
     if(C.over) return;
     var w = C.grid[C.row].join("");
     if(w.length < C.len || C.grid[C.row].some(function(x){ return !x; })){ setMsg("Il manque des lettres"); return; }
@@ -877,7 +1105,7 @@
     C.rowStates.push(st);
 
     var exact = (w === C.word);
-    var dmg = red*3 + yel*1 + atkBonus();
+    var dmg = red*3 + yel*1 + atkBonus() + (C.buffAtk||0);
     if(exact) dmg += 12;
     if(C.rage){ dmg *= 2; C.rage = false; }
 
@@ -902,6 +1130,27 @@
       } else { renderFight(); return winFight(); }
     }
 
+    // ---- une courte interruption peut survenir avant la riposte ----
+    var skipRiposte = false;
+    if(Math.random() < 0.14){
+      var ceList = DATA.combatEvents || [];
+      if(ceList.length){
+        var ceEv = ceList[Math.floor(Math.random()*ceList.length)];
+        if(ceEv.effet.hp) P.hp = Math.max(0, Math.min(hpMax(), P.hp + ceEv.effet.hp));
+        if(ceEv.effet.mp) P.mana = Math.max(0, Math.min(manaMax(), P.mana + ceEv.effet.mp));
+        if(ceEv.effet.or) P.or = Math.max(0, P.or + ceEv.effet.or);
+        if(ceEv.effet.foeDmg) C.foeHp = Math.max(0, C.foeHp - ceEv.effet.foeDmg);
+        if(ceEv.effet.skipRiposte) skipRiposte = true;
+        toast(ceEv.e + " " + ceEv.texte, 2200);
+        if(C.foeHp <= 0){
+          if(C.trait === "renaissance" && !C.revecu){
+            C.revecu = true; C.foeHp = Math.round(C.foeHpMax * 0.4);
+            toast("🔥 Il renaît de ses cendres !", 2400);
+          } else { renderFight(); return winFight(); }
+        }
+      }
+    }
+
     // ---- tour du monstre ----
     if(C.trait === "furie") C.atk += 2;          // il s'énerve à chaque tour
     if(C.trait === "regen"){
@@ -909,6 +1158,7 @@
     }
     var back = C.atk;
     if(C.garde){ back = 0; C.garde = false; toast("🛡️ Attaque bloquée !"); }
+    if(skipRiposte) back = 0;
     if(back > 0 && C.trait === "vampire"){
       C.foeHp = Math.min(C.foeHpMax, C.foeHp + Math.round(back/2));
     }
@@ -990,7 +1240,8 @@
   function winFight(){
     C.over = true;
     var f = currentFoe(), gain = f.xp, zIdxAtFight = P.zone;
-    P.xp += gain;
+    var orGain = Math.max(2, Math.round(gain/4));
+    P.xp += gain; P.or += orGain;
     var levels = 0;
     while(P.xp >= xpNeed()){ P.xp -= xpNeed(); P.lvl++; levels++; }
     if(levels){ P.hp = hpMax(); P.mana = manaMax(); }
@@ -1007,7 +1258,7 @@
     $("rIc").textContent = f.boss ? "👑" : "🎉";
     $("rTit").textContent = f.boss ? "Boss vaincu !" : "Victoire !";
     $("rSub").textContent = f.n + " est vaincu.";
-    var g = "<span>+" + gain + " XP</span>";
+    var g = "<span>+" + gain + " XP</span><span>+" + orGain + " 🪙</span>";
     if(levels) g += "<span>🎖️ Niveau " + P.lvl + "</span>";
     $("rGain").innerHTML = g;
     $("rLoot").innerHTML = lootHtml(drops);
@@ -1092,11 +1343,14 @@
     b.addEventListener("click", closeOverlays);
   });
   Array.prototype.forEach.call(document.querySelectorAll(".overlay"), function(o){
-    o.addEventListener("click", function(e){ if(e.target === o && o.id !== "ovRes" && o.id !== "ovConf") closeOverlays(); });
+    o.addEventListener("click", function(e){
+      var noClose = ["ovRes","ovConf","ovEvent","ovDefi","ovShop"];
+      if(e.target === o && noClose.indexOf(o.id) < 0) closeOverlays();
+    });
   });
 
   /* ---------- Boutons ---------- */
-  $("btnFight").addEventListener("click", startFight);
+  $("btnFight").addEventListener("click", onFightClick);
   $("btnHelp").addEventListener("click", function(){ openOverlay("ovHelp"); });
   /* Un combat en cours n'est jamais repris : quitter le perd. On prévient
      systématiquement, comme pour l'entraînement de la Course dans Motus. */
