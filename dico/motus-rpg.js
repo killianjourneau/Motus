@@ -166,31 +166,31 @@ window.MOTUS_RPG = {
       texte:"Les braises sont encore tièdes. Quelqu'un est passé par ici, il n'y a pas longtemps.",
       options:[
         { texte:"Te reposer un instant", effet:{hp:20}, suite:"Tu repars requinqué." },
-        { texte:"Continuer sans t'arrêter", effet:{}, suite:"Le temps presse." }
+        { texte:"Fouiller les environs", effet:{or:8}, suite:"Tu trouves quelques pièces oubliées sous la cendre." }
       ] },
     { id:"sage", e:"🧓", n:"Un vieil homme égaré", type:"choix",
       texte:"« J'ai perdu le nom de mon village natal », murmure-t-il. « Peux-tu m'aider à le retrouver ? »",
       options:[
         { texte:"L'aider à chercher", effet:{xp:8}, suite:"Vous ne trouvez rien, mais il te remercie du temps passé." },
-        { texte:"Poursuivre ta route", effet:{}, suite:"Tu le laisses à ses souvenirs." }
+        { texte:"Échanger des nouvelles de la route", effet:{or:7}, suite:"Il te paie en pièces pour les histoires que tu lui rapportes." }
       ] },
     { id:"lettre", e:"✉️", n:"Une lettre tombée au sol", type:"choix",
       texte:"Le papier est humide mais encore lisible. Elle n'est adressée à personne en particulier.",
       options:[
         { texte:"La lire", effet:{or:6}, suite:"Elle décrit une cachette. Tu y trouves quelques pièces." },
-        { texte:"La laisser", effet:{}, suite:"Ce n'est pas à toi de la lire." }
+        { texte:"La garder pour l'étudier plus tard", effet:{xp:6}, suite:"Certains mots t'y apprennent quelque chose." }
       ] },
     { id:"reve", e:"💤", n:"Un rêve étrange", type:"choix",
       texte:"Tu somnoles un instant contre un arbre. Dans ton rêve, un mot flotte devant toi, presque lisible.",
       options:[
         { texte:"Te concentrer sur le rêve", effet:{mp:15}, suite:"Tu te réveilles l'esprit clair." },
-        { texte:"Te secouer et repartir", effet:{}, suite:"Les rêves ne nourrissent pas." }
+        { texte:"Noter ce que tu as vu", effet:{or:7}, suite:"Un conteur croisé plus tard te l'achète sans hésiter." }
       ] },
     { id:"sanctuaire", e:"⛩️", n:"Un sanctuaire oublié", type:"choix",
       texte:"Une pierre couverte de mousse, entourée d'offrandes anciennes. Elle semble encore veiller sur quelque chose.",
       options:[
         { texte:"Te recueillir", effet:{hp:15, mp:15}, suite:"Une chaleur discrète te traverse." },
-        { texte:"Ne pas déranger ce lieu", effet:{}, suite:"Tu poursuis, respectueux." }
+        { texte:"Faire une offrande (10 🪙)", effet:{or:-10, xp:25}, cout:{or:10}, suite:"La pierre semble accepter l'offrande. Tu te sens plus aguerri." }
       ] },
     { id:"ombre", e:"🌑", n:"Une ombre te suit", type:"choix",
       texte:"Quelque chose te observe depuis les fourrés, sans s'approcher ni s'éloigner.",
@@ -208,19 +208,19 @@ window.MOTUS_RPG = {
       texte:"Deux marchands se disputent un chargement tombé sur le chemin. Le ton monte.",
       options:[
         { texte:"Les départager", effet:{xp:10}, suite:"Ta décision les calme. Ils repartent, chacun un peu déçu." },
-        { texte:"Ne pas t'en mêler", effet:{}, suite:"Ce ne sont pas tes affaires." }
+        { texte:"Prendre parti pour l'un d'eux", effet:{or:9}, suite:"Il te remercie discrètement, quelques pièces glissées dans la main." }
       ] },
     { id:"compagnon", e:"🧑‍🌾", n:"Un compagnon de route", type:"choix",
       texte:"Une voyageuse marche un moment à tes côtés. Elle connaît ces terres mieux que toi.",
       options:[
         { texte:"Marcher avec elle un moment", effet:{buffAtk:3}, suite:"Ses conseils t'aideront pour l'affrontement à venir." },
-        { texte:"Continuer seul", effet:{}, suite:"Tu préfères ta propre compagnie." }
+        { texte:"Échanger des récits de voyage", effet:{xp:8}, suite:"Ce qu'elle te raconte t'apprend plus que tu ne le pensais." }
       ] },
     { id:"meteo", e:"🌧️", n:"Un orage soudain", type:"choix",
       texte:"Le ciel se déchire sans prévenir. Le chemin devient glissant.",
       options:[
-        { texte:"Chercher un abri", effet:{}, suite:"Tu perds un peu de temps, mais tu restes au sec." },
-        { texte:"Avancer sous la pluie", effet:{hp:-6}, suite:"Tu arrives trempé et un peu affaibli." }
+        { texte:"Chercher un abri", effet:{mp:6}, suite:"L'attente te repose un peu plus que prévu." },
+        { texte:"Avancer sous la pluie", effet:{hp:-6, or:9}, suite:"Tu arrives trempé, mais tu ramasses une bourse tombée d'un voyageur pressé." }
       ] },
     { id:"pari", e:"🎲", n:"Un inconnu propose un pari", type:"choix",
       texte:"« Pile je gagne, face tu gagnes le double », sourit-il en sortant une pièce usée.",
