@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Motus Quête — un jeu de mots façon RPG : affronte des monstres, gagne des niveaux, apprends des compétences.">
+<meta name="description" content="Motus Quête — une aventure solo de mots : carte à embranchements, monstres, reliques et compétences.">
 <title>Motus Quête</title>
 
 <link rel="manifest" href="./manifest.json">
@@ -13,7 +13,6 @@
 <link rel="apple-touch-icon" href="./icons/icon-512.png">
 
 <script>
-  /* Thème et couleur partagés avec Motus, appliqués avant le rendu. */
   try{
     var t=JSON.parse(localStorage.getItem("motus.theme")); if(t) document.documentElement.dataset.theme=t;
     var a=JSON.parse(localStorage.getItem("motus.accent")); if(a) document.documentElement.dataset.accent=a;
@@ -24,10 +23,8 @@
   :root{
     --bg:#071633; --bg-2:#0b2247; --cell:#10305f; --cell-edge:#1d477f;
     --red:#e23a44; --yellow:#ffcb2e; --absent:#12294a;
-    --ink:#ffffff; --ink-dim:#8aa6cf;
-    --accent:#e23a44;
-    --hp:#3ecf6b; --mana:#3d8bff;
-    --tile:44px; --gap:5px;
+    --ink:#ffffff; --ink-dim:#8aa6cf; --accent:#e23a44;
+    --hp:#3ecf6b; --mana:#3d8bff; --tile:44px; --gap:5px;
   }
   :root[data-theme="light"]{
     --bg:#eef2f9; --bg-2:#dfe7f3; --cell:#cdd8ea; --cell-edge:#b6c5df;
@@ -50,7 +47,6 @@
     background-attachment:fixed; min-height:100dvh; display:flex; flex-direction:column;
     padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   }
-
   header{ display:flex; align-items:center; justify-content:space-between; padding:10px clamp(12px,4vw,22px) 4px; gap:8px; }
   .brand{ display:flex; align-items:baseline; gap:7px; font-weight:800; font-size:20px; letter-spacing:.5px; }
   .brand .q{ font-size:12px; color:var(--ink-dim); font-weight:800; text-transform:uppercase; letter-spacing:1px; }
@@ -58,112 +54,65 @@
   .icon-btn{ width:38px; height:38px; border:none; border-radius:11px; background:var(--cell); color:var(--ink);
     box-shadow:inset 0 0 0 1.5px var(--cell-edge); font-size:17px; cursor:pointer; }
   .icon-btn:active{ transform:scale(.93); }
-
   main{ flex:1; display:flex; flex-direction:column; align-items:center; padding:4px clamp(10px,3vw,18px) 8px; min-height:0; overflow-y:auto; }
   .wrap{ width:100%; max-width:520px; }
 
-  /* ---------- Barres ---------- */
-  .bar{ height:14px; border-radius:8px; background:var(--absent); overflow:hidden; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
+  /* barre d'état permanente */
+  .hud{ display:flex; align-items:center; gap:8px; background:var(--cell); border-radius:14px; padding:9px 11px;
+    margin-bottom:10px; box-shadow:inset 0 0 0 1.5px var(--cell-edge); flex-wrap:wrap; }
+  .hud .lv{ font-size:13px; font-weight:800; flex:none; }
+  .hud .st{ display:flex; align-items:center; gap:4px; font-size:12.5px; font-weight:800; }
+  .hud .st.hp{ color:var(--hp); } .hud .st.mp{ color:var(--mana); } .hud .st.or{ color:var(--yellow); }
+  .hud .rel{ display:flex; gap:3px; margin-left:auto; font-size:15px; }
+
+  .bar{ height:12px; border-radius:7px; background:var(--absent); overflow:hidden; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
   .bar > i{ display:block; height:100%; width:0%; transition:width .35s ease; }
-  .bar.hp > i{ background:var(--hp); }
-  .bar.mana > i{ background:var(--mana); }
-  .bar.xp > i{ background:var(--accent); }
-  .bar.foe > i{ background:var(--red); }
+  .bar.hp > i{ background:var(--hp); } .bar.mana > i{ background:var(--mana); }
+  .bar.xp > i{ background:var(--accent); } .bar.foe > i{ background:var(--red); }
   .barline{ display:flex; align-items:center; gap:8px; font-size:12px; font-weight:800; color:var(--ink-dim); margin-bottom:5px; }
-  .barline .lbl{ flex:none; width:28px; }
-  .barline .bar{ flex:1; }
+  .barline .lbl{ flex:none; width:30px; } .barline .bar{ flex:1; }
   .barline .val{ flex:none; font-variant-numeric:tabular-nums; }
 
-  /* ---------- Accueil ---------- */
-  .card{ background:var(--cell); border-radius:16px; padding:14px; margin-bottom:12px;
-    box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
-  .hero{ display:flex; align-items:center; gap:12px; margin-bottom:10px; }
-  .hero .av{ width:52px; height:52px; flex:none; border-radius:14px; background:var(--bg-2);
-    display:grid; place-items:center; font-size:26px; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
-  .hero .nm{ font-size:17px; font-weight:800; }
-  .hero .sub{ font-size:12.5px; color:var(--ink-dim); font-weight:700; }
-  .zone-t{ font-size:11px; text-transform:uppercase; letter-spacing:.6px; font-weight:800; color:var(--ink-dim); margin-bottom:5px; }
-  .zone-n{ font-size:17px; font-weight:800; margin-bottom:3px; }
-  .zone-i{ font-size:12.5px; color:var(--ink-dim); font-style:italic; margin-bottom:10px; }
-  .foe-row{ display:flex; align-items:center; gap:12px; }
-  .foe-row .ic{ font-size:38px; flex:none; }
-  .foe-row .nm{ font-size:16px; font-weight:800; }
-  .foe-row .st{ font-size:12.5px; color:var(--ink-dim); font-weight:700; }
+  .card{ background:var(--cell); border-radius:16px; padding:14px; margin-bottom:12px; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
+  .zone-t{ font-size:11px; text-transform:uppercase; letter-spacing:.6px; font-weight:800; color:var(--ink-dim); margin-bottom:6px; }
+  .zone-n{ font-size:18px; font-weight:800; margin-bottom:4px; }
+  .zone-i{ font-size:12.5px; color:var(--ink-dim); font-style:italic; line-height:1.5; margin-bottom:10px; }
   .btn{ width:100%; height:48px; border:none; border-radius:13px; background:var(--accent); color:#fff;
-    font-size:15.5px; font-weight:800; cursor:pointer; margin-top:4px; }
+    font-size:15.5px; font-weight:800; cursor:pointer; margin-top:6px; }
   .btn:active{ transform:scale(.98); }
   .btn.ghost{ background:var(--cell); color:var(--ink); box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
   .btn:disabled{ opacity:.45; }
-  .prog{ display:flex; gap:5px; margin-top:9px; }
-  .prog i{ flex:1; height:5px; border-radius:3px; background:var(--absent); }
-  .prog i.done{ background:var(--accent); }
-  .prog i.now{ background:var(--yellow); }
 
-  .sk-list{ display:flex; flex-direction:column; gap:7px; }
-  .sk{ display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:11px; background:var(--bg-2); }
-  .sk .e{ font-size:19px; flex:none; }
-  .sk .n{ font-weight:800; font-size:14px; }
-  .sk .d{ font-size:12px; color:var(--ink-dim); font-weight:600; }
-  .sk.lock{ opacity:.45; }
-  .sk .cost{ flex:none; font-size:12px; font-weight:800; color:var(--mana); }
+  /* ---- CARTE ---- */
+  .map{ display:flex; flex-direction:column-reverse; gap:0; }
+  .etage{ display:flex; gap:8px; justify-content:center; padding:5px 0; }
+  .lien{ height:16px; display:flex; justify-content:center; align-items:center; color:var(--cell-edge); font-size:13px; }
+  .node{ flex:1; max-width:150px; min-height:76px; border:none; border-radius:14px; background:var(--bg-2);
+    box-shadow:inset 0 0 0 1.5px var(--cell-edge); color:var(--ink); cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:8px 6px; }
+  .node .e{ font-size:24px; line-height:1; }
+  .node .n{ font-size:11.5px; font-weight:800; text-align:center; line-height:1.25; }
+  .node .s{ font-size:10px; color:var(--ink-dim); font-weight:700; }
+  .node.now{ box-shadow:inset 0 0 0 2.5px var(--accent); background:var(--cell); }
+  .node.done{ opacity:.35; pointer-events:none; }
+  .node.locked{ opacity:.3; pointer-events:none; }
+  .node:active{ transform:scale(.96); }
+  .node.boss{ max-width:none; }
+  .node.boss .e{ font-size:30px; }
 
-  .loot-t{ font-size:11px; text-transform:uppercase; letter-spacing:.6px; font-weight:800; color:var(--yellow); text-align:center; margin-bottom:6px; }
-  .loot-row{ display:flex; align-items:center; justify-content:center; gap:8px; font-size:13.5px; font-weight:700; margin-bottom:4px; }
-  .loot-row .lg{ font-size:11px; font-weight:800; color:var(--hp); }
-  .loot-row .ld{ font-size:11px; font-weight:700; color:var(--ink-dim); }
-
-  .or-tag{ font-size:13px; font-weight:800; background:var(--bg-2); padding:6px 11px; border-radius:10px; color:var(--yellow); }
-  .eq-row{ display:flex; gap:8px; }
-  .eq-slot{ flex:1; background:var(--bg-2); border-radius:12px; padding:10px; text-align:center; }
-  .eq-slot .e{ font-size:26px; display:block; margin-bottom:4px; }
-  .eq-slot .n{ font-size:12.5px; font-weight:800; }
-  .eq-slot .b{ font-size:11.5px; color:var(--accent); font-weight:800; }
-  .eq-slot .empty{ font-size:12px; color:var(--ink-dim); font-weight:700; font-style:italic; }
-
-  .bag-row{ display:flex; gap:8px; }
-  .bag-it{ flex:1; display:flex; flex-direction:column; align-items:center; gap:5px; background:var(--bg-2);
-    border-radius:12px; padding:10px; }
-  .bag-it .e{ font-size:24px; }
-  .bag-it .n{ font-size:11px; font-weight:800; text-align:center; }
-  .bag-it .c{ font-size:12px; font-weight:800; color:var(--ink-dim); }
-  .bag-it button{ width:100%; height:30px; border:none; border-radius:8px; background:var(--accent); color:#fff;
-    font-size:11.5px; font-weight:800; cursor:pointer; }
-  .bag-it button:disabled{ opacity:.35; }
-  .bag-empty{ font-size:12.5px; color:var(--ink-dim); font-style:italic; text-align:center; width:100%; }
-
-  .zmod{ display:flex; align-items:center; gap:7px; font-size:12px; font-weight:700; color:var(--ink-dim);
-    background:var(--bg-2); padding:7px 10px; border-radius:10px; margin-bottom:9px; }
-  .zmod .e{ font-size:16px; }
-  .zmod b{ color:var(--ink); }
-
-  .ev-ic{ text-align:center; font-size:44px; margin-bottom:4px; }
-  .ev-n{ text-align:center; font-size:17px; font-weight:800; margin-bottom:8px; }
-  .ev-opt{ width:100%; text-align:left; padding:12px 14px; margin-bottom:8px; border:none; border-radius:12px;
-    background:var(--bg-2); color:var(--ink); font-size:14px; font-weight:700; cursor:pointer; }
-  .ev-opt:active{ transform:scale(.98); }
-  .ev-opt:disabled{ opacity:.4; cursor:default; }
-  .ev-opt .fx{ display:block; font-size:11.5px; font-weight:700; color:var(--accent); margin-top:3px; }
-  .shop-it{ display:flex; align-items:center; gap:10px; padding:10px; margin-bottom:8px; border-radius:12px; background:var(--bg-2); }
-  .shop-it .e{ font-size:22px; }
-  .shop-it .n{ flex:1; font-size:13.5px; font-weight:800; }
-  .shop-it button{ border:none; border-radius:9px; background:var(--accent); color:#fff; font-weight:800;
-    font-size:12.5px; padding:8px 12px; cursor:pointer; }
-  .shop-it button:disabled{ opacity:.35; }
-
-  /* ---------- Combat ---------- */
+  /* ---- COMBAT ---- */
   .foe-panel{ text-align:center; margin-bottom:8px; }
-  .foe-panel .ic{ font-size:clamp(44px,13vw,62px); line-height:1; display:inline-block; }
+  .foe-panel .ic{ font-size:clamp(40px,12vw,58px); line-height:1; display:inline-block; }
   .foe-panel .ic.hit{ animation:shake .3s ease; }
   .foe-panel .nm{ font-size:15px; font-weight:800; margin:2px 0 4px; }
-  .trait{ display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:800;
-    color:var(--yellow); background:var(--bg-2); padding:4px 9px; border-radius:9px; margin-bottom:7px; }
-  .trait .dd{ color:var(--ink-dim); font-weight:700; }
-  .cri{ font-size:12.5px; color:var(--ink-dim); font-style:italic; line-height:1.45; margin:9px 0 7px; }
-  .lore{ font-size:13px; line-height:1.6; color:var(--ink-dim); font-style:italic; }
   @keyframes shake{ 0%,100%{transform:translateX(0)} 25%{transform:translateX(-7px)} 75%{transform:translateX(7px)} }
   .float{ position:fixed; left:50%; transform:translateX(-50%); font-size:22px; font-weight:800;
     pointer-events:none; z-index:60; animation:rise 1s ease forwards; }
   @keyframes rise{ 0%{opacity:1; transform:translate(-50%,0)} 100%{opacity:0; transform:translate(-50%,-46px)} }
+  .trait,.zmod{ display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:800;
+    background:var(--bg-2); padding:4px 9px; border-radius:9px; margin:0 2px 6px; }
+  .trait{ color:var(--yellow); } .zmod{ color:var(--ink-dim); }
+  .trait .dd,.zmod .dd{ color:var(--ink-dim); font-weight:700; }
 
   #board{ display:grid; gap:var(--gap); justify-content:center; margin:6px 0 8px; }
   .row{ display:grid; gap:var(--gap); grid-auto-flow:column; justify-content:center; }
@@ -178,7 +127,7 @@
   .tile.cur{ box-shadow:inset 0 0 0 2.5px var(--accent); }
   .tile.smoke{ background:var(--cell); box-shadow:inset 0 0 0 1.5px var(--cell-edge); position:relative; overflow:hidden; }
   .tile.smoke::after{ content:"💨"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-    font-size:calc(var(--tile) * .55); background:rgba(130,130,150,.6); backdrop-filter:blur(1.5px); }
+    font-size:calc(var(--tile) * .55); background:rgba(130,130,150,.6); }
 
   .sk-bar{ display:flex; gap:6px; justify-content:center; margin-bottom:7px; flex-wrap:wrap; }
   .sk-btn{ min-width:44px; height:38px; padding:0 9px; border:none; border-radius:11px; background:var(--cell);
@@ -197,32 +146,53 @@
   .key.correct{ background:var(--red); box-shadow:none; }
   .key.present{ background:var(--yellow); color:#14233c; box-shadow:none; }
   .key.absent{ background:var(--absent); color:var(--ink-dim); box-shadow:none; }
-  .key.inconnu{ background:repeating-linear-gradient(45deg, var(--cell) 0 4px, var(--bg-2) 4px 8px);
-    color:var(--ink-dim); box-shadow:none; }
+  .key.inconnu{ background:repeating-linear-gradient(45deg, var(--cell) 0 4px, var(--bg-2) 4px 8px); color:var(--ink-dim); box-shadow:none; }
   .key.banned{ opacity:.25; background:var(--absent); text-decoration:line-through; pointer-events:none; }
   .key:active{ transform:scale(.94); }
-
   .msg{ text-align:center; font-size:13px; font-weight:700; color:var(--ink-dim); min-height:18px; margin-bottom:4px; }
 
-  /* ---------- Overlays ---------- */
-  .overlay{ position:fixed; inset:0; background:rgba(3,10,24,.72); display:none; align-items:center;
+  /* ---- overlays ---- */
+  .overlay{ position:fixed; inset:0; background:rgba(3,10,24,.75); display:none; align-items:center;
     justify-content:center; padding:18px; z-index:80; }
   .overlay.open{ display:flex; }
-  .modal{ width:100%; max-width:400px; background:var(--bg-2); border-radius:20px; padding:20px;
+  .modal{ width:100%; max-width:420px; background:var(--bg-2); border-radius:20px; padding:20px;
     box-shadow:0 18px 50px rgba(0,0,0,.45); position:relative; max-height:86dvh; overflow:auto; }
   .modal h2{ font-size:19px; margin-bottom:10px; text-align:center; }
   .modal p{ font-size:14px; line-height:1.55; color:var(--ink-dim); margin-bottom:9px; }
   .modal p b{ color:var(--ink); }
   .close-x{ position:absolute; top:10px; right:12px; width:32px; height:32px; border:none; border-radius:9px;
     background:var(--cell); color:var(--ink); font-size:19px; cursor:pointer; }
-  .res-ic{ text-align:center; font-size:52px; margin-bottom:6px; }
+  .res-ic{ text-align:center; font-size:50px; margin-bottom:6px; }
   .res-t{ text-align:center; font-size:21px; font-weight:800; margin-bottom:6px; }
-  .res-s{ text-align:center; font-size:14px; color:var(--ink-dim); font-weight:700; margin-bottom:14px; }
-  .gain{ display:flex; justify-content:center; gap:14px; font-size:14px; font-weight:800; margin-bottom:14px; }
+  .res-s{ text-align:center; font-size:14px; color:var(--ink-dim); font-weight:700; margin-bottom:12px; }
+  .gain{ display:flex; justify-content:center; gap:14px; font-size:14px; font-weight:800; margin-bottom:12px; flex-wrap:wrap; }
+  .pick{ width:100%; text-align:left; padding:12px 14px; margin-bottom:8px; border:none; border-radius:12px;
+    background:var(--cell); color:var(--ink); font-size:14px; font-weight:800; cursor:pointer;
+    box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
+  .pick:active{ transform:scale(.98); }
+  .pick:disabled{ opacity:.4; cursor:default; }
+  .pick .fx{ display:block; font-size:11.5px; font-weight:700; color:var(--accent); margin-top:3px; }
+  .pick .dd{ display:block; font-size:12px; font-weight:700; color:var(--ink-dim); margin-top:3px; }
+  .loot-t{ font-size:11px; text-transform:uppercase; letter-spacing:.6px; font-weight:800; color:var(--yellow); text-align:center; margin-bottom:6px; }
+  .loot-row{ display:flex; align-items:center; justify-content:center; gap:8px; font-size:13.5px; font-weight:700; margin-bottom:4px; }
+  .shop-it{ display:flex; align-items:center; gap:10px; padding:10px; margin-bottom:8px; border-radius:12px; background:var(--cell); }
+  .shop-it .e{ font-size:22px; } .shop-it .n{ flex:1; font-size:13.5px; font-weight:800; }
+  .shop-it button{ border:none; border-radius:9px; background:var(--accent); color:#fff; font-weight:800;
+    font-size:12.5px; padding:8px 12px; cursor:pointer; }
+  .shop-it button:disabled{ opacity:.35; }
+  .inv{ display:flex; gap:7px; flex-wrap:wrap; }
+  .inv-it{ display:flex; flex-direction:column; align-items:center; gap:4px; background:var(--bg-2);
+    border-radius:11px; padding:9px 11px; min-width:74px; }
+  .inv-it .e{ font-size:21px; } .inv-it .n{ font-size:10.5px; font-weight:800; text-align:center; }
+  .inv-it button{ width:100%; height:26px; border:none; border-radius:7px; background:var(--accent); color:#fff;
+    font-size:10.5px; font-weight:800; cursor:pointer; }
+  .inv-it button:disabled{ opacity:.35; }
+  .empty{ font-size:12.5px; color:var(--ink-dim); font-style:italic; }
   .toast{ position:fixed; left:50%; bottom:86px; transform:translateX(-50%); background:var(--cell);
     color:var(--ink); padding:10px 16px; border-radius:12px; font-size:13.5px; font-weight:700;
     box-shadow:0 10px 26px rgba(0,0,0,.4); z-index:90; opacity:0; pointer-events:none; transition:opacity .2s; max-width:90vw; text-align:center; }
   .toast.show{ opacity:1; }
+  .lore{ font-size:13.5px; line-height:1.65; color:var(--ink-dim); font-style:italic; white-space:pre-line; }
 </style>
 </head>
 <body>
@@ -230,1199 +200,1104 @@
 <header>
   <div class="brand">Motus <span class="q">Quête</span></div>
   <div class="tools">
+    <button class="icon-btn" id="btnCodex" aria-label="Bestiaire">📖</button>
     <button class="icon-btn" id="btnHelp" aria-label="Règles">?</button>
-    <button class="icon-btn" id="btnHome" aria-label="Retour au camp">🏕️</button>
-    <button class="icon-btn" id="btnReset" aria-label="Recommencer l'aventure">↻</button>
+    <button class="icon-btn" id="btnCamp" aria-label="Retour à la carte">🗺️</button>
     <button class="icon-btn" id="btnBack" aria-label="Retour à Motus">🏠</button>
   </div>
 </header>
 
 <main>
-  <!-- ===== Accueil ===== -->
-  <div class="wrap" id="scHome">
+  <!-- ===== CARTE ===== -->
+  <div class="wrap" id="scMap">
+    <div class="hud" id="hud"></div>
     <div class="card">
-      <div class="hero">
-        <div class="av" id="hAv">🧙</div>
-        <div style="flex:1">
-          <div class="nm" id="hLvl">Niveau 1</div>
-          <div class="sub" id="hXp">0 / 40 XP</div>
-        </div>
-        <div class="or-tag" id="hOr">🪙 0</div>
-      </div>
-      <div class="barline"><span class="lbl">XP</span><span class="bar xp"><i id="bXp"></i></span></div>
-      <div class="barline"><span class="lbl">PV</span><span class="bar hp"><i id="bHp"></i></span><span class="val" id="vHp">60/60</span></div>
-      <div class="barline"><span class="lbl">MP</span><span class="bar mana"><i id="bMp"></i></span><span class="val" id="vMp">30/30</span></div>
-    </div>
-
-    <div class="card">
-      <div class="zone-t" id="zTag">Zone 1 sur 5</div>
-      <div class="zone-n" id="zNom">🌲 Forêt murmurante</div>
-      <div class="zone-i" id="zIntro">…</div>
+      <div class="zone-t" id="zTag">Acte 1 sur 5</div>
+      <div class="zone-n" id="zNom">🌲 Lisière des Sans-Noms</div>
+      <div class="zone-i" id="zIntro"></div>
       <div class="zmod" id="zMod"></div>
-      <div class="foe-row">
-        <span class="ic" id="fIc">🧌</span>
-        <div style="flex:1">
-          <div class="nm" id="fNom">Gobelin</div>
-          <div class="st" id="fSt">24 PV · 4 dégâts par tour</div>
-        </div>
-      </div>
-      <div class="cri" id="fCri"></div>
-      <div class="trait" id="fTrait"></div>
-      <div class="prog" id="zProg"></div>
-      <button class="btn" id="btnFight">Combattre</button>
     </div>
-
     <div class="card">
-      <div class="zone-t">Équipement</div>
-      <div class="eq-row" id="eqRow"></div>
+      <div class="zone-t">Choisis ta route</div>
+      <div class="map" id="mapBox"></div>
     </div>
-
     <div class="card">
       <div class="zone-t">Sac</div>
-      <div class="bag-row" id="bagRow"></div>
-      <button class="btn ghost" id="btnShopHome" style="margin-top:10px">🧺 Voir la boutique</button>
-    </div>
-
-    <div class="card">
-      <div class="zone-t">Compétences</div>
-      <div class="sk-list" id="skList"></div>
+      <div class="inv" id="invBox"></div>
     </div>
   </div>
 
-  <!-- ===== Combat ===== -->
+  <!-- ===== COMBAT ===== -->
   <div class="wrap" id="scFight" style="display:none">
     <div class="foe-panel">
       <div class="ic" id="cIc">🧌</div>
       <div class="nm" id="cNom">Gobelin</div>
-      <div class="trait" id="cTrait"></div>
-      <div class="zmod" id="cMod"></div>
-      <div class="barline"><span class="lbl">PV</span><span class="bar foe"><i id="cHp"></i></span><span class="val" id="cHpV">24/24</span></div>
+      <div><span class="trait" id="cTrait"></span><span class="zmod" id="cMod"></span></div>
+      <div class="barline"><span class="lbl">PV</span><span class="bar foe"><i id="cHp"></i></span><span class="val" id="cHpV"></span></div>
     </div>
-    <div class="barline"><span class="lbl">Toi</span><span class="bar hp"><i id="pHp"></i></span><span class="val" id="pHpV">60/60</span></div>
-    <div class="barline"><span class="lbl">MP</span><span class="bar mana"><i id="pMp"></i></span><span class="val" id="pMpV">30/30</span></div>
+    <div class="barline"><span class="lbl">Toi</span><span class="bar hp"><i id="pHp"></i></span><span class="val" id="pHpV"></span></div>
+    <div class="barline"><span class="lbl">MP</span><span class="bar mana"><i id="pMp"></i></span><span class="val" id="pMpV"></span></div>
     <div id="board"></div>
     <div class="msg" id="cMsg"></div>
     <div class="sk-bar" id="skBar"></div>
+  </div>
+
+  <!-- ===== DÉFI (hors combat) ===== -->
+  <div class="wrap" id="scDefi" style="display:none">
+    <div class="foe-panel">
+      <div class="ic" id="dfIc">🗝️</div>
+      <div class="nm" id="dfN"></div>
+    </div>
+    <p class="zone-i" id="dfTxt" style="text-align:center"></p>
+    <div id="dfBoard"></div>
+    <div class="msg" id="dfMsg"></div>
   </div>
 </main>
 
 <div id="kb" style="display:none"></div>
 
-<!-- ===== Prologue ===== -->
-<div class="overlay" id="ovLore">
-  <div class="modal">
-    <div class="res-ic">📖</div>
-    <div class="res-t">Le Lexique volé</div>
-    <p class="lore" id="loreTxt" style="text-align:center;margin-bottom:16px"></p>
-    <button class="btn" id="loreGo">Commencer l'aventure</button>
-  </div>
-</div>
+<div class="overlay" id="ovLore"><div class="modal">
+  <div class="res-ic">📖</div><div class="res-t">Le Lexique volé</div>
+  <p class="lore" id="loreTxt"></p>
+  <button class="btn" id="loreGo">Commencer l'aventure</button>
+</div></div>
 
-<!-- ===== Règles ===== -->
-<div class="overlay" id="ovHelp">
-  <div class="modal">
-    <button class="close-x" data-close>&times;</button>
-    <h2>Comment jouer</h2>
-    <p>Chaque mot proposé est une <b>attaque</b>. Les lettres trouvées blessent le monstre :</p>
-    <p>🟥 lettre <b>bien placée</b> → 3 dégâts<br>🟡 lettre <b>mal placée</b> → 1 dégât<br>🎯 mot <b>entièrement trouvé</b> → 12 dégâts bonus</p>
-    <p>Après chaque tentative, le monstre <b>riposte</b>. Si tes points de vie tombent à zéro, tu perds le combat — mais tu gardes ton niveau et ton expérience.</p>
-    <p>Si tu ne trouves pas le mot en 6 essais, un nouveau mot apparaît et le monstre en profite pour frapper plus fort.</p>
-    <p>Gagne de l'<b>expérience</b> à chaque victoire pour monter de niveau, gagner des points de vie et débloquer des <b>compétences</b>.</p>
-    <p>Chaque monstre possède un <b>trait</b> qui change les règles : certains esquivent, d'autres encaissent, empoisonnent, volent ton mana, brouillent les lettres mal placées ou réduisent une compétence au silence. Le trait est toujours affiché avant et pendant le combat — lis-le, il décide de ta tactique.</p>
-    <p>Chaque <b>zone</b> a en plus sa propre particularité, valable pour tous ses combats — toujours affichée, elle aussi. La Forêt interdit 5 lettres absentes du mot. La Grotte confond volontairement les lettres bien et mal placées, toutes deux orange. Le Marais fait perdre la tentative sur un mot mal orthographié. La Forge noie certaines cases dans la fumée. La Citadelle t'impose les mêmes règles que le mode Expert du Motus classique.</p>
-    <p>En cliquant sur <b>Combattre</b>, un <b>événement</b> peut survenir avant l'affrontement : une rencontre, un marchand contre quelques pièces d'<b>or</b> 🪙, un coffre ou une énigme à percer par un mot. De courtes <b>interruptions</b> peuvent aussi survenir en plein combat.</p>
-    <p>Les monstres laissent parfois du <b>butin</b> : des potions à utiliser quand tu veux, et de l'équipement (arme, relique) qui s'équipe automatiquement s'il est meilleur que ce que tu portes. Chaque boss garantit deux pièces uniques à sa zone.</p>
-    <p>Tu peux <b>toucher une case</b> de la ligne en cours pour y écrire directement, comme dans Motus.</p>
-    <p>Ta progression est enregistrée sur cet appareil.</p>
-  </div>
-</div>
+<div class="overlay" id="ovHelp"><div class="modal">
+  <button class="close-x" data-close>&times;</button>
+  <h2>Comment jouer</h2>
+  <p>Chaque mot proposé est une <b>attaque</b> : 🟥 lettre bien placée → 3 dégâts, 🟡 mal placée → 1 dégât, mot entier trouvé → gros bonus. Le monstre riposte après chaque tentative.</p>
+  <p>Tu progresses sur une <b>carte à embranchements</b> : à chaque étage, choisis ton chemin. Combat, élite, énigme, marchand, repos, trésor — la route la plus sûre n'est pas la plus riche.</p>
+  <p>Chaque monstre a un <b>trait</b>, chaque acte une <b>particularité</b> qui change les règles. Les deux sont toujours affichés.</p>
+  <p>À chaque niveau, tu choisis une <b>amélioration</b> parmi trois. Les <b>reliques</b> trouvées en chemin ajoutent des effets permanents.</p>
+  <p>Chaque victoire te rend <b>15 % de tes points de vie</b> : c'est ta seule récupération automatique, tout le reste se mérite (repos, potions, rencontres).</p>
+  <p>Si tu tombes, l'aventure reprend au <b>début de l'acte en cours</b>, sur une carte différente — tu gardes ton niveau, tes reliques et tes compétences, mais tu perds de l'or.</p>
+</div></div>
 
-<!-- ===== Résultat ===== -->
-<div class="overlay" id="ovRes">
-  <div class="modal">
-    <div class="res-ic" id="rIc">🎉</div>
-    <div class="res-t" id="rTit">Victoire !</div>
-    <div class="res-s" id="rSub"></div>
-    <div class="gain" id="rGain"></div>
-    <div id="rLoot"></div>
-    <button class="btn" id="rNext">Continuer</button>
-  </div>
-</div>
+<div class="overlay" id="ovRes"><div class="modal">
+  <div class="res-ic" id="rIc">🎉</div>
+  <div class="res-t" id="rTit"></div>
+  <div class="res-s" id="rSub"></div>
+  <div class="gain" id="rGain"></div>
+  <div id="rLoot"></div>
+  <button class="btn" id="rNext">Continuer</button>
+</div></div>
 
-<!-- ===== Événement : choix narratif ===== -->
-<div class="overlay" id="ovEvent">
-  <div class="modal">
-    <div class="ev-ic" id="evIc">🏕️</div>
-    <div class="ev-n" id="evN">Un événement</div>
-    <p id="evTxt" style="text-align:center"></p>
-    <div id="evOpts"></div>
-    <div class="ev-suite" id="evSuite" style="display:none">
-      <p id="evSuiteTxt" style="text-align:center"></p>
-      <button class="btn" id="evContinue">Continuer</button>
-    </div>
-  </div>
-</div>
+<div class="overlay" id="ovPick"><div class="modal">
+  <div class="res-ic" id="pkIc">🎖️</div>
+  <div class="res-t" id="pkTit"></div>
+  <div class="res-s" id="pkSub"></div>
+  <div id="pkList"></div>
+</div></div>
 
-<!-- ===== Événement : défi de lettres ===== -->
-<div class="overlay" id="ovDefi">
-  <div class="modal">
-    <div class="ev-ic" id="dfIc">🗝️</div>
-    <div class="ev-n" id="dfN">Un défi</div>
-    <p id="dfTxt" style="text-align:center"></p>
-    <div class="row" id="dfRow" style="justify-content:center;margin:10px 0"></div>
-    <p class="msg" id="dfMsg"></p>
-    <div id="dfResult" style="display:none">
-      <p id="dfResTxt" style="text-align:center"></p>
-      <button class="btn" id="dfContinue">Continuer</button>
-    </div>
+<div class="overlay" id="ovEvent"><div class="modal">
+  <div class="res-ic" id="evIc"></div>
+  <div class="res-t" id="evN"></div>
+  <p id="evTxt" style="text-align:center"></p>
+  <div id="evOpts"></div>
+  <div id="evSuite" style="display:none">
+    <p id="evSuiteTxt" style="text-align:center"></p>
+    <button class="btn" id="evContinue">Continuer</button>
   </div>
-</div>
+</div></div>
 
-<!-- ===== Événement : marchand ===== -->
-<div class="overlay" id="ovShop">
-  <div class="modal">
-    <div class="ev-ic">🧺</div>
-    <div class="ev-n">Le marchand ambulant</div>
-    <p id="shTxt" style="text-align:center"></p>
-    <div class="or-tag" id="shOr" style="margin:0 auto 12px">🪙 0</div>
-    <div id="shList"></div>
-    <button class="btn ghost" id="shLeave">Repartir</button>
-  </div>
-</div>
+<div class="overlay" id="ovShop"><div class="modal">
+  <div class="res-ic">🧺</div><div class="res-t">Marchand ambulant</div>
+  <div class="res-s" id="shOr"></div>
+  <div id="shList"></div>
+  <button class="btn ghost" id="shLeave">Repartir</button>
+</div></div>
 
-<!-- ===== Confirmation ===== -->
+<div class="overlay" id="ovCodex"><div class="modal">
+  <button class="close-x" data-close>&times;</button>
+  <h2>📖 Bestiaire</h2>
+  <div id="cxList"></div>
+</div></div>
 
-<div class="overlay" id="ovConf">
-  <div class="modal">
-    <h2 id="cfTit">Recommencer ?</h2>
-    <p id="cfMsg" style="text-align:center"></p>
-    <button class="btn" id="cfYes">Confirmer</button>
-    <button class="btn ghost" id="cfNo">Annuler</button>
-  </div>
-</div>
+<div class="overlay" id="ovConf"><div class="modal">
+  <h2 id="cfTit"></h2><p id="cfMsg" style="text-align:center"></p>
+  <button class="btn" id="cfYes">Confirmer</button>
+  <button class="btn ghost" id="cfNo">Annuler</button>
+</div></div>
 
 <div class="toast" id="toast"></div>
 
-<script src="./dico/motus-words.js?v=1.32.1"></script>
-<script src="./dico/motus-rpg.js?v=1.32.1"></script>
+<script src="./dico/motus-words.js?v=1.33.0"></script>
+<script src="./dico/motus-rpg.js?v=1.33.0"></script>
 <script>
 (function(){
   "use strict";
   var $ = function(id){ return document.getElementById(id); };
-  var DATA = window.MOTUS_RPG || { zones:[], skills:[] };
+  var DATA  = window.MOTUS_RPG || {};
   var WORDS = window.MOTUS_WORDS || { court:[], normal:[], long:[] };
-  var ZONES = DATA.zones, SKILLS = DATA.skills;
+  var ZONES = DATA.zones || [], SKILLS = DATA.skills || [], UPGRADES = DATA.upgrades || [];
+  var RELICS = DATA.relics || [], EVENTS = DATA.events || [], DEFIS = DATA.defis || [];
+  var POTIONS = (DATA.items||{}).potions || [], SHOP = DATA.shop || [];
   var MAX_ROWS = 6;
 
-  /* ---------- Stockage ---------- */
   var store = {
-    get: function(k, d){ try{ var v=localStorage.getItem(k); return v===null?d:JSON.parse(v); }catch(e){ return d; } },
-    set: function(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+    get:function(k,d){ try{ var v=localStorage.getItem(k); return v===null?d:JSON.parse(v); }catch(e){ return d; } },
+    set:function(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
   };
 
-  /* ---------- Pool de mots par longueur ---------- */
+  /* ---------- mots ---------- */
   var POOL = {};
-  (function(){
-    ["court","normal","long"].forEach(function(k){
-      (WORDS[k]||[]).forEach(function(w){ (POOL[w.length] = POOL[w.length] || []).push(w); });
-    });
-  })();
+  ["court","normal","long"].forEach(function(k){
+    (WORDS[k]||[]).forEach(function(w){ (POOL[w.length]=POOL[w.length]||[]).push(w); });
+  });
   function pickWord(lens){
-    // on ne retient que les longueurs réellement approvisionnées
-    var ok = lens.filter(function(L){ return POOL[L] && POOL[L].length; });
+    var ok = (lens||[]).filter(function(L){ return POOL[L] && POOL[L].length; });
     if(!ok.length) ok = Object.keys(POOL).map(Number);
-    var L = ok[Math.floor(Math.random()*ok.length)];
-    var p = POOL[L];
+    var L = ok[Math.floor(Math.random()*ok.length)], p = POOL[L];
     return p[Math.floor(Math.random()*p.length)];
   }
-
-  /* ---------- Dictionnaire d'acceptation ---------- */
   var dicoByLen = {};
   function loadDico(L){
     if(dicoByLen[L] !== undefined) return;
-    dicoByLen[L] = null;                      // en cours : on accepte tout en attendant
-    fetch("./dico/dico-" + String(L).padStart(2,"0") + ".txt")
+    dicoByLen[L] = null;
+    fetch("./dico/dico-"+String(L).padStart(2,"0")+".txt")
       .then(function(r){ return r.ok ? r.text() : ""; })
-      .then(function(t){
-        var s = new Set();
-        t.split("\n").forEach(function(w){ w=w.trim(); if(w) s.add(w); });
-        dicoByLen[L] = s.size ? s : null;
-      })
-      .catch(function(){ dicoByLen[L] = null; });
+      .then(function(t){ var s=new Set(); t.split("\n").forEach(function(w){ w=w.trim(); if(w) s.add(w); }); dicoByLen[L]=s.size?s:null; })
+      .catch(function(){ dicoByLen[L]=null; });
   }
-  function isValid(w){
-    var s = dicoByLen[w.length];
-    return s ? s.has(w) : true;               // dictionnaire absent : on n'empêche pas de jouer
+  function isValid(w){ var s=dicoByLen[w.length]; return s ? s.has(w) : true; }
+  function evaluate(guess, answer){
+    var n=answer.length, st=new Array(n).fill("absent"), rest={};
+    for(var i=0;i<n;i++){ if(guess[i]===answer[i]) st[i]="correct"; else rest[answer[i]]=(rest[answer[i]]||0)+1; }
+    for(var j=0;j<n;j++){ if(st[j]==="correct") continue; var c=guess[j]; if(rest[c]>0){ st[j]="present"; rest[c]--; } }
+    return st;
   }
 
-  /* ---------- État du joueur ---------- */
-  var P = null;
+  /* ---------- joueur ---------- */
+  var P=null, C=null, EV=null, DF=null;
   function freshPlayer(){
-    return { lvl:1, xp:0, hp:60, zone:0, foe:0, mana:30, or:0,
-             potions:{ potion_pv:0, potion_mp:0 }, equip:{ arme:null, relique:null } };
+    return { lvl:1, xp:0, hp:70, mana:35, or:0, zone:0, etage:0,
+             map:null, potions:{potion_pv:1,potion_mp:0}, relics:[], skills:["reveal"],
+             up:{pv:0,mp:0,atk:0,critBonus:0,regenMot:0,manaMot:0},
+             seen:[], nextBuffAtk:0, amulette:false, morts:0 };
   }
-  function equipBonus(stat){
-    var t = 0;
-    ["arme","relique"].forEach(function(slot){ var it = P.equip[slot]; if(it && it[stat]) t += it[stat]; });
-    return t;
-  }
-  function hpMax(){ return 60 + 10*(P.lvl-1) + equipBonus("pv"); }
-  function manaMax(){ return 30 + 5*(P.lvl-1) + equipBonus("mp"); }
-  function xpNeed(){ return 40 * P.lvl; }
-  function atkBonus(){ return P.lvl - 1 + equipBonus("atk"); }
-  function zoneMod(){ var z = currentZone(); return z && z.mod ? (DATA.zoneMods||{})[z.mod] : null; }
-  function save(){ store.set("motus.rpg", P); }
-  function load(){
-    var s = store.get("motus.rpg", null);
-    if(!s || typeof s.lvl !== "number"){ P = freshPlayer(); return; }
-    P = s;
-    // garde-fous : une sauvegarde d'une version antérieure ne doit pas bloquer le jeu
-    if(P.zone >= ZONES.length){ P.zone = ZONES.length-1; P.foe = ZONES[P.zone].monstres.length-1; }
-    if(P.foe >= ZONES[P.zone].monstres.length) P.foe = 0;
-    if(!P.potions) P.potions = { potion_pv:0, potion_mp:0 };
-    if(typeof P.or !== "number") P.or = 0;
-    if(!P.equip) P.equip = { arme:null, relique:null };
-    if(typeof P.mana !== "number") P.mana = manaMax();
-    if(P.hp > hpMax()) P.hp = hpMax();
-    if(P.hp <= 0) P.hp = hpMax();
-  }
-  function currentZone(){ return ZONES[P.zone]; }
-  function currentFoe(){ return currentZone().monstres[P.foe]; }
-  function unlocked(sk){ return P.lvl >= sk.lvl; }
+  function hasRelic(id){ return P.relics.indexOf(id)>=0; }
+  function hpMax(){ return 70 + P.up.pv; }
+  function manaMax(){ return 35 + P.up.mp; }
+  function atkBonus(){ return (P.lvl-1)*3 + P.up.atk; }
+  function xpNeed(){ return 35 + 15*(P.lvl-1); }
+  function zone(){ return ZONES[Math.min(P.zone, ZONES.length-1)]; }
+  function zoneMod(){ var z=zone(); return z && z.mod ? (DATA.zoneMods||{})[z.mod] : null; }
   function finished(){ return P.zone >= ZONES.length; }
-
-  /* ---------- Petits utilitaires d'affichage ---------- */
-  var toastT = null;
-  function toast(msg, ms){
-    var el = $("toast"); el.textContent = msg; el.classList.add("show");
-    clearTimeout(toastT); toastT = setTimeout(function(){ el.classList.remove("show"); }, ms||1800);
+  function save(){ store.set("motus.rpg2", P); }
+  function load(){
+    var s = store.get("motus.rpg2", null);
+    if(!s || typeof s.lvl!=="number"){ P=freshPlayer(); genMap(); return; }
+    P=s;
+    var f=freshPlayer();
+    // Une sauvegarde abîmée peut contenir un champ PRÉSENT mais invalide
+    // (null, mauvais type) : on vérifie le type, pas seulement l'absence.
+    Object.keys(f).forEach(function(k){
+      var att = f[k], val = P[k];
+      if(val===undefined || val===null){ P[k]=att; return; }
+      if(Array.isArray(att) && !Array.isArray(val)) P[k]=att;
+      else if(typeof att==="number" && typeof val!=="number") P[k]=att;
+      else if(att && typeof att==="object" && !Array.isArray(att) && (typeof val!=="object"||Array.isArray(val))) P[k]=att;
+    });
+    Object.keys(f.up).forEach(function(k){ if(typeof P.up[k]!=="number") P.up[k]=0; });
+    Object.keys(f.potions).forEach(function(k){ if(typeof P.potions[k]!=="number") P.potions[k]=0; });
+    P.skills = P.skills.filter(function(id){ return SKILLS.some(function(s){ return s.id===id; }); });
+    if(!P.skills.length) P.skills=["reveal"];
+    P.relics = P.relics.filter(function(id){ return RELICS.some(function(r){ return r.id===id; }); });
+    if(typeof P.zone!=="number" || P.zone<0) P.zone=0;
+    if(P.zone>ZONES.length) P.zone=ZONES.length;
+    if(P.hp>hpMax()) P.hp=hpMax();
+    if(P.hp<=0) P.hp=hpMax();
+    if(P.mana>manaMax()) P.mana=manaMax();
+    if(finished()) return;
+    if(!Array.isArray(P.map) || !P.map.length){ genMap(); return; }
+    if(typeof P.etage!=="number" || P.etage<0 || P.etage>=P.map.length) genMap();
   }
-  function setBar(id, cur, max){ $(id).style.width = Math.max(0, Math.min(100, 100*cur/max)) + "%"; }
+
+  /* ---------- statistiques des monstres ---------- */
+  function foeStats(kind, z){
+    var basePv = 34 + z*30, baseAtk = Math.round(4 + z*2);
+    if(kind==="elite") return { pv:Math.round(basePv*1.6), atk:Math.round(baseAtk*1.35), xp:30+z*14, or:15+z*6 };
+    if(kind==="boss")  return { pv:Math.round(basePv*2.2), atk:Math.round(baseAtk*1.6),  xp:55+z*22, or:28+z*9 };
+    return { pv:basePv, atk:baseAtk, xp:16+z*8, or:7+z*3 };
+  }
+
+  /* ---------- génération de la carte ---------- */
+  var NODE_INFO = {
+    combat:{ e:"⚔️", n:"Combat",   s:"Un monstre barre la route" },
+    elite: { e:"💀", n:"Élite",    s:"Plus fort, meilleure récompense" },
+    event: { e:"❓", n:"Rencontre", s:"Un choix à faire" },
+    defi:  { e:"🗝️", n:"Énigme",   s:"Un mot à percer" },
+    shop:  { e:"🧺", n:"Marchand", s:"Dépenser ton or" },
+    repos: { e:"🏕️", n:"Repos",    s:"Soigner ou s'entraîner" },
+    tresor:{ e:"💎", n:"Trésor",   s:"Une relique t'attend" },
+    boss:  { e:"👑", n:"Boss",     s:"Le gardien de l'acte" }
+  };
+  function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
+  function genMap(){
+    var z = zone(); if(!z) return;
+    var n = z.etages, m = [];
+    for(var e=0; e<n; e++){
+      var row = [], choix;
+      if(e === n-1){ m.push([{type:"boss"}]); break; }
+      if(e === 0) choix = ["combat","combat","event"];
+      else if(e === n-2) choix = ["repos","shop","elite"];
+      else choix = ["combat","event","defi","elite","tresor","shop","combat"];
+      var nb = 2 + (Math.random()<0.35 ? 1 : 0);
+      var pool = choix.slice();
+      for(var k=0;k<nb;k++){
+        var t = pick(pool);
+        pool = pool.filter(function(x){ return x!==t; });
+        if(!pool.length) pool = choix.slice();
+        row.push({ type:t });
+      }
+      m.push(row);
+    }
+    P.map = m; P.etage = 0; P.amulette = false;
+    save();
+  }
+
+  /* ---------- affichage général ---------- */
+  var toastT=null;
+  function toast(msg, ms){ var el=$("toast"); el.textContent=msg; el.classList.add("show");
+    clearTimeout(toastT); toastT=setTimeout(function(){ el.classList.remove("show"); }, ms||1900); }
+  function setBar(id,cur,max){ var e=$(id); if(e) e.style.width=Math.max(0,Math.min(100,100*cur/max))+"%"; }
   function vibrate(p){ try{ if(navigator.vibrate) navigator.vibrate(p); }catch(e){} }
-  function floatText(txt, color){
-    var el = document.createElement("div");
-    el.className = "float"; el.textContent = txt; el.style.color = color;
-    el.style.top = "34%";
-    document.body.appendChild(el);
-    setTimeout(function(){ el.remove(); }, 1000);
-  }
+  function floatText(t,c){ var el=document.createElement("div"); el.className="float"; el.textContent=t;
+    el.style.color=c; el.style.top="34%"; document.body.appendChild(el); setTimeout(function(){ el.remove(); },1000); }
+  function openOverlay(id){ $(id).classList.add("open"); }
+  function closeOverlays(){ Array.prototype.forEach.call(document.querySelectorAll(".overlay"), function(o){ o.classList.remove("open"); }); }
+  var confirmCb=null;
+  function askConfirm(t,m,cb){ $("cfTit").textContent=t; $("cfMsg").textContent=m; confirmCb=cb; openOverlay("ovConf"); }
 
-  /* ---------- Accueil ---------- */
-  function traitHtml(id){
-    var t = DATA.traits && DATA.traits[id];
-    if(!t) return "";
-    return '<span class="trait">' + t.e + ' ' + t.n + ' <span class="dd">· ' + t.d + '</span></span>';
+  function renderHud(){
+    var rel = P.relics.map(function(id){
+      var r = RELICS.find(function(x){ return x.id===id; });
+      return r ? '<span title="'+r.n+' — '+r.d+'">'+r.e+'</span>' : "";
+    }).join("");
+    $("hud").innerHTML =
+      '<span class="lv">Niv. '+P.lvl+'</span>'
+      + '<span class="st hp">❤️ '+P.hp+'/'+hpMax()+'</span>'
+      + '<span class="st mp">🔷 '+P.mana+'/'+manaMax()+'</span>'
+      + '<span class="st or">🪙 '+P.or+'</span>'
+      + '<span class="rel">'+rel+'</span>';
   }
+  function traitHtml(id){ var t=(DATA.traits||{})[id]; return t ? t.e+' '+t.n+' <span class="dd">· '+t.d+'</span>' : ""; }
+  function zModHtml(){ var m=zoneMod(); return m ? m.e+' <b>'+m.n+'</b> <span class="dd">· '+m.d+'</span>' : ""; }
 
-  function zModHtml(){
-    var m = zoneMod();
-    if(!m) return "";
-    return '<span class="e">' + m.e + '</span><span><b>' + m.n + '</b> — ' + m.d + '</span>';
+  /* ---------- écran carte ---------- */
+  function showMap(){
+    if(finished()){ showEnd(); return; }
+    $("scMap").style.display=""; $("scFight").style.display="none"; $("scDefi").style.display="none";
+    $("kb").style.display="none";
+    var z = zone();
+    renderHud();
+    $("zTag").textContent = "Acte "+(P.zone+1)+" sur "+ZONES.length;
+    $("zNom").textContent = z.e+" "+z.nom;
+    $("zIntro").textContent = z.intro;
+    $("zMod").innerHTML = zModHtml();
+    renderMap(); renderInv();
   }
-  function renderEquip(){
-    var row = $("eqRow"); if(!row) return;
-    row.innerHTML = ["arme","relique"].map(function(slot){
-      var it = P.equip[slot];
-      var label = slot === "arme" ? "Arme" : "Relique";
-      if(!it) return '<div class="eq-slot"><span class="e">➖</span><div class="n">' + label + '</div><div class="empty">aucune</div></div>';
-      var bonus = [];
-      if(it.atk) bonus.push("+" + it.atk + " atq");
-      if(it.pv) bonus.push("+" + it.pv + " PV");
-      if(it.mp) bonus.push("+" + it.mp + " MP");
-      return '<div class="eq-slot"><span class="e">' + it.e + '</span><div class="n">' + it.n + '</div><div class="b">' + bonus.join(" · ") + '</div></div>';
-    }).join("");
-  }
-  function renderBag(inFightCtx){
-    var row = $("bagRow"); if(!row) return;
-    var owned = ITEMS.potions.filter(function(p){ return (P.potions[p.id]||0) > 0; });
-    if(!owned.length){ row.innerHTML = '<div class="bag-empty">Ton sac est vide — les monstres laissent parfois des potions.</div>'; return; }
-    row.innerHTML = owned.map(function(p){
-      return '<div class="bag-it"><span class="e">' + p.e + '</span><span class="n">' + p.n + '</span>'
-        + '<span class="c">x' + P.potions[p.id] + '</span>'
-        + '<button data-id="' + p.id + '">Utiliser</button></div>';
-    }).join("");
-    Array.prototype.forEach.call(row.querySelectorAll("button"), function(b){
-      b.addEventListener("click", function(){ usePotion(b.dataset.id, inFightCtx); });
+  function renderMap(){
+    var box=$("mapBox"); box.innerHTML="";
+    P.map.forEach(function(row, ei){
+      var div=document.createElement("div"); div.className="etage";
+      row.forEach(function(node, ni){
+        var info = NODE_INFO[node.type];
+        var b=document.createElement("button");
+        b.className = "node" + (node.type==="boss"?" boss":"")
+          + (ei<P.etage ? " done" : "") + (ei===P.etage ? " now" : "") + (ei>P.etage ? " locked" : "");
+        b.innerHTML = '<span class="e">'+info.e+'</span><span class="n">'+info.n+'</span><span class="s">'+info.s+'</span>';
+        if(ei===P.etage) b.addEventListener("click", function(){ enterNode(node); });
+        div.appendChild(b);
+      });
+      box.appendChild(div);
+      if(ei < P.map.length-1){ var l=document.createElement("div"); l.className="lien"; l.textContent="▲"; box.appendChild(l); }
     });
   }
-  function usePotion(id, inFightCtx){
-    var p = ITEMS.potions.find(function(x){ return x.id === id; });
-    if(!p || !(P.potions[id] > 0)) return;
+  function renderInv(){
+    var box=$("invBox"); var html="";
+    POTIONS.forEach(function(p){
+      var n=P.potions[p.id]||0; if(!n) return;
+      html += '<div class="inv-it"><span class="e">'+p.e+'</span><span class="n">'+p.n+'</span>'
+        + '<button data-p="'+p.id+'">Utiliser ('+n+')</button></div>';
+    });
+    box.innerHTML = html || '<span class="empty">Ton sac est vide.</span>';
+    Array.prototype.forEach.call(box.querySelectorAll("button"), function(b){
+      b.addEventListener("click", function(){ usePotion(b.dataset.p, false); });
+    });
+  }
+  function usePotion(id, inFight){
+    var p = POTIONS.find(function(x){ return x.id===id; });
+    if(!p || !(P.potions[id]>0)) return;
     P.potions[id]--;
-    if(p.pv) P.hp = Math.min(hpMax(), P.hp + p.pv);
-    if(p.mp) P.mana = Math.min(manaMax(), P.mana + p.mp);
-    toast(p.e + " " + p.n + " utilisée !");
+    var mult = hasRelic("besace") ? 1.5 : 1;
+    if(p.pv){ P.hp = Math.min(hpMax(), P.hp + Math.round(p.pv*mult)); floatText("+"+Math.round(p.pv*mult),"var(--hp)"); }
+    if(p.mp){ P.mana = Math.min(manaMax(), P.mana + Math.round(p.mp*mult)); floatText("+"+Math.round(p.mp*mult),"var(--mana)"); }
     save();
-    if(inFightCtx){ renderFight(); } else { renderHome(); }
+    if(inFight){ renderFight(); } else { renderHud(); renderInv(); }
+    toast(p.e+" "+p.n+" utilisée");
   }
 
-  function renderHome(){
-    $("scHome").style.display = ""; $("scFight").style.display = "none"; $("kb").style.display = "none";
-    $("btnHome").style.display = "none";
-    $("hLvl").textContent = "Niveau " + P.lvl;
-    $("hXp").textContent = P.xp + " / " + xpNeed() + " XP";
-    $("hOr").textContent = "🪙 " + P.or;
-    setBar("bXp", P.xp, xpNeed());
-    setBar("bHp", P.hp, hpMax()); $("vHp").textContent = P.hp + "/" + hpMax();
-    setBar("bMp", P.mana, manaMax()); $("vMp").textContent = P.mana + "/" + manaMax();
-
-    if(finished()){
-      $("zTag").textContent = "Aventure terminée";
-      $("zNom").textContent = "👑 Tu as vaincu le Seigneur des Mots";
-      $("zIntro").textContent = "Le royaume est libre. Tu peux recommencer une nouvelle aventure quand tu veux.";
-      $("fIc").textContent = "🏆"; $("fNom").textContent = "Rien ne te résiste";
-      $("fSt").textContent = "Niveau atteint : " + P.lvl;
-      $("fCri").textContent = DATA.epilogue || "";
-      $("fTrait").innerHTML = "";
-      $("zProg").innerHTML = "";
-      $("btnFight").textContent = "Recommencer l'aventure";
-    } else {
-      var z = currentZone(), f = currentFoe();
-      $("zTag").textContent = "Zone " + (P.zone+1) + " sur " + ZONES.length;
-      $("zNom").textContent = z.e + " " + z.nom;
-      $("zIntro").textContent = z.intro;
-      $("fIc").textContent = f.e;
-      $("fNom").textContent = f.n + (f.boss ? "  ⭐ BOSS" : "");
-      $("fSt").textContent = f.pv + " PV · " + f.atk + " dégâts par tour · mots de " + z.lens.join(" ou ") + " lettres";
-      $("fCri").textContent = f.cri || "";
-      $("fTrait").innerHTML = traitHtml(f.trait);
-      $("zProg").innerHTML = z.monstres.map(function(m, i){
-        return '<i class="' + (i < P.foe ? "done" : i === P.foe ? "now" : "") + '"></i>';
-      }).join("");
-      $("btnFight").textContent = "Combattre";
+  /* ---------- entrée dans un nœud ---------- */
+  function enterNode(node){
+    if(node.type==="combat") return startFight("normal");
+    if(node.type==="elite")  return startFight("elite");
+    if(node.type==="boss")   return startFight("boss");
+    if(node.type==="event")  return showEvent(pick(EVENTS));
+    if(node.type==="defi")   return startDefi(pick(DEFIS));
+    if(node.type==="shop")   return showShop();
+    if(node.type==="repos")  return showRepos();
+    if(node.type==="tresor") return giveRelic("Tu déterres un objet oublié.");
+  }
+  function advance(){
+    P.etage++;
+    if(P.etage >= P.map.length){
+      P.zone++;
+      if(finished()){ save(); showEnd(); return; }
+      genMap();
+      toast("🌍 Nouvel acte : "+zone().nom, 2600);
     }
-    $("zMod").innerHTML = zModHtml();
-    renderEquip(); renderBag(false);
-    renderSkillList();
-  }
-  function renderSkillList(){
-    $("skList").innerHTML = SKILLS.map(function(s){
-      var ok = unlocked(s);
-      return '<div class="sk' + (ok ? "" : " lock") + '">'
-        + '<span class="e">' + s.e + '</span>'
-        + '<div style="flex:1"><div class="n">' + s.n + (ok ? "" : "  🔒 niveau " + s.lvl) + '</div>'
-        + '<div class="d">' + s.d + '</div></div>'
-        + '<span class="cost">' + s.cout + ' MP</span></div>';
-    }).join("");
+    save(); showMap();
   }
 
-  /* ---------- Combat : état ---------- */
-  var C = null;   // état du combat en cours
-
-  /* ===================================================================
-     ÉVÉNEMENTS — se déclenchent en cliquant sur "Combattre", avant que le
-     combat ne commence. On garde une trace des événements déjà vus dans
-     cette AVENTURE pour ne pas retomber sans arrêt sur les mêmes.
-     =================================================================== */
-  var EVENTS = DATA.events || [];
-  var SHOP = DATA.shop || [];
-  var EV = null;     // état de l'événement en cours (choix ou défi)
-
-  function pickEvent(){
-    var seen = P.evSeen || [];
-    var pool = EVENTS.filter(function(e){ return seen.indexOf(e.id) < 0; });
-    if(!pool.length) pool = EVENTS;     // tout vu : on recommence à piocher dedans
-    return pool[Math.floor(Math.random()*pool.length)];
-  }
-  function markSeen(id){
-    if(!P.evSeen) P.evSeen = [];
-    if(P.evSeen.indexOf(id) < 0) P.evSeen.push(id);
-    if(P.evSeen.length > EVENTS.length) P.evSeen = [id];   // on relâche la mémoire une fois le tour complet fait
-  }
-
-  function onFightClick(){
-    if(finished()){ askConfirm("Nouvelle aventure ?", "Ta progression actuelle sera effacée.", resetAll); return; }
-    // un seul événement par monstre : sans ce verrou, enchaîner "Combattre"
-    // puis "Quitter" permettrait de rejouer l'événement à volonté.
-    var slot = P.zone + "-" + P.foe;
-    if(P.evDoneFor !== slot && Math.random() < 0.4){
-      var ev = pickEvent();
-      if(ev){
-        P.evDoneFor = slot; save();
-        EV = { def: ev }; markSeen(ev.id); showEvent(ev); return;
-      }
-    }
-    startFight();
-  }
-
-  function effetLabel(fx){
-    var parts = [];
-    if(fx.hp) parts.push((fx.hp>0?"+":"") + fx.hp + " PV");
-    if(fx.mp) parts.push((fx.mp>0?"+":"") + fx.mp + " MP");
-    if(fx.or) parts.push((fx.or>0?"+":"") + fx.or + " 🪙");
-    if(fx.xp) parts.push("+" + fx.xp + " XP");
-    if(fx.potion){ var p = ITEMS.potions.find(function(x){ return x.id===fx.potion; }); if(p) parts.push("+1 " + p.e); }
-    if(fx.buffAtk) parts.push("+" + fx.buffAtk + " attaque (prochain combat)");
-    if(fx.pari) parts.push("mise de " + fx.pari + " 🪙");
-    return parts.join(" · ");
-  }
-  function applyEffet(fx){
-    if(!fx) return;
-    if(fx.hp) P.hp = Math.max(0, Math.min(hpMax(), P.hp + fx.hp));
-    if(fx.mp) P.mana = Math.max(0, Math.min(manaMax(), P.mana + fx.mp));
-    if(fx.or) P.or = Math.max(0, P.or + fx.or);
-    if(fx.xp) gainXp(fx.xp);
-    if(fx.potion) P.potions[fx.potion] = (P.potions[fx.potion]||0) + 1;
-    if(fx.buffAtk) P.nextBuffAtk = (P.nextBuffAtk||0) + fx.buffAtk;
-    save();
-  }
-  /* Gagner de l'XP en dehors d'un combat peut aussi faire monter de niveau —
-     on garde ça simple, sans butin ni récapitulatif de fin de combat. */
+  /* ---------- progression ---------- */
   function gainXp(n){
-    P.xp += n;
-    while(P.xp >= xpNeed()){ P.xp -= xpNeed(); P.lvl++; P.hp = hpMax(); P.mana = manaMax(); }
+    P.xp += n; var up=0;
+    while(P.xp >= xpNeed()){ P.xp -= xpNeed(); P.lvl++; up++; }
+    return up;
+  }
+  function offerUpgrade(after){
+    var pool = UPGRADES.slice();
+    var lockedSkills = SKILLS.filter(function(s){ return P.skills.indexOf(s.id)<0; });
+    if(lockedSkills.length) pool.push({ skill: pick(lockedSkills) });
+    pool.sort(function(){ return Math.random()-0.5; });
+    var trois = pool.slice(0,3);
+    $("pkIc").textContent="🎖️"; $("pkTit").textContent="Niveau "+P.lvl+" !";
+    $("pkSub").textContent="Choisis une amélioration.";
+    var list=$("pkList"); list.innerHTML="";
+    trois.forEach(function(o){
+      var b=document.createElement("button"); b.className="pick";
+      if(o.skill) b.innerHTML = o.skill.e+' Apprendre : '+o.skill.n+'<span class="dd">'+o.skill.d+'</span><span class="fx">Coûte '+o.skill.cout+' mana</span>';
+      else b.innerHTML = o.e+' '+o.n+'<span class="dd">'+o.d+'</span>';
+      b.addEventListener("click", function(){
+        if(o.skill){ P.skills.push(o.skill.id); toast(o.skill.e+" "+o.skill.n+" apprise !"); }
+        else {
+          ["pv","mp","atk","critBonus","regenMot","manaMot"].forEach(function(k){ if(o[k]) P.up[k]+=o[k]; });
+          if(o.pv) P.hp += o.pv;
+          if(o.mp) P.mana += o.mp;
+          toast(o.e+" "+o.n+" acquise !");
+        }
+        save(); closeOverlays(); if(after) after();
+      });
+      list.appendChild(b);
+    });
+    openOverlay("ovPick");
+  }
+  function giveRelic(msg, after){
+    var libres = RELICS.filter(function(r){ return P.relics.indexOf(r.id)<0; });
+    if(!libres.length){ P.or += 40; save(); toast("Plus aucune relique à trouver — 40 🪙 à la place"); if(after) after(); else advance(); return; }
+    var trois = libres.sort(function(){ return Math.random()-0.5; }).slice(0,3);
+    $("pkIc").textContent="💎"; $("pkTit").textContent="Une relique";
+    $("pkSub").textContent = msg || "Choisis ce que tu emportes.";
+    var list=$("pkList"); list.innerHTML="";
+    trois.forEach(function(r){
+      var b=document.createElement("button"); b.className="pick";
+      b.innerHTML = r.e+' '+r.n+'<span class="dd">'+r.d+'</span>';
+      b.addEventListener("click", function(){
+        P.relics.push(r.id);
+        if(r.id==="grimoire") P.mana = Math.min(manaMax(), P.mana);
+        save(); closeOverlays(); toast(r.e+" "+r.n+" — "+r.d, 2800);
+        if(after) after(); else advance();
+      });
+      list.appendChild(b);
+    });
+    openOverlay("ovPick");
   }
 
+  /* ---------- REPOS ---------- */
+  function showRepos(){
+    $("pkIc").textContent="🏕️"; $("pkTit").textContent="Un campement";
+    $("pkSub").textContent="Le feu tient jusqu'au matin. Que fais-tu de cette nuit ?";
+    var list=$("pkList"); list.innerHTML="";
+    var opts=[
+      { e:"💚", n:"Dormir", d:"Récupère 60 % de tes points de vie", go:function(){
+          P.hp = Math.min(hpMax(), P.hp + Math.round(hpMax()*0.6)); toast("Tu te réveilles en forme."); } },
+      { e:"🧘", n:"Méditer", d:"Récupère tout ton mana et un peu de vie", go:function(){
+          P.mana = manaMax(); P.hp = Math.min(hpMax(), P.hp + 15); toast("L'esprit clair."); } },
+      { e:"⚒️", n:"S'entraîner", d:"+4 dégâts définitivement, mais aucune récupération", go:function(){
+          P.up.atk += 4; toast("Tes coups portent plus fort."); } }
+    ];
+    opts.forEach(function(o){
+      var b=document.createElement("button"); b.className="pick";
+      b.innerHTML = o.e+' '+o.n+'<span class="dd">'+o.d+'</span>';
+      b.addEventListener("click", function(){ o.go(); save(); closeOverlays(); advance(); });
+      list.appendChild(b);
+    });
+    openOverlay("ovPick");
+  }
+
+  /* ---------- MARCHAND ---------- */
+  function showShop(){
+    renderShop(); openOverlay("ovShop");
+  }
+  function renderShop(){
+    $("shOr").textContent = "Tu as "+P.or+" 🪙";
+    var html = SHOP.map(function(s,i){
+      var it = POTIONS.find(function(p){ return p.id===s.item; }); if(!it) return "";
+      return '<div class="shop-it"><span class="e">'+it.e+'</span><span class="n">'+it.n+' — '+it.d+'</span>'
+        + '<button data-i="'+i+'"'+(P.or<s.prix?" disabled":"")+'>'+s.prix+' 🪙</button></div>';
+    }).join("");
+    // le marchand propose aussi une relique, plus chère
+    var libres = RELICS.filter(function(r){ return P.relics.indexOf(r.id)<0; });
+    if(libres.length){
+      if(!P.shopRelic || P.relics.indexOf(P.shopRelic)>=0) P.shopRelic = pick(libres).id;
+      var r = RELICS.find(function(x){ return x.id===P.shopRelic; });
+      html += '<div class="shop-it"><span class="e">'+r.e+'</span><span class="n">'+r.n+' — '+r.d+'</span>'
+        + '<button data-r="1"'+(P.or<55?" disabled":"")+'>55 🪙</button></div>';
+    }
+    $("shList").innerHTML = html;
+    Array.prototype.forEach.call($("shList").querySelectorAll("button"), function(b){
+      b.addEventListener("click", function(){
+        if(b.dataset.r){
+          if(P.or<55) return;
+          P.or-=55; P.relics.push(P.shopRelic); P.shopRelic=null;
+          save(); toast("Relique acquise !"); renderShop(); renderHud();
+          return;
+        }
+        var s=SHOP[+b.dataset.i]; if(P.or<s.prix) return;
+        P.or-=s.prix; P.potions[s.item]=(P.potions[s.item]||0)+1;
+        save(); toast("Acheté !"); renderShop(); renderHud();
+      });
+    });
+  }
+  $("shLeave").addEventListener("click", function(){ closeOverlays(); advance(); });
+
+  /* ---------- ÉVÉNEMENTS ---------- */
+  function effetLabel(fx){
+    var p=[];
+    if(fx.hp) p.push((fx.hp>0?"+":"")+fx.hp+" PV");
+    if(fx.mp) p.push((fx.mp>0?"+":"")+fx.mp+" MP");
+    if(fx.or) p.push((fx.or>0?"+":"")+fx.or+" 🪙");
+    if(fx.xp) p.push("+"+fx.xp+" XP");
+    if(fx.relique) p.push("une relique");
+    if(fx.buffAtk) p.push("+"+fx.buffAtk+" attaque au prochain combat");
+    if(fx.pari) p.push("mise de "+fx.pari+" 🪙");
+    return p.join(" · ");
+  }
+  function applyEffet(fx, after){
+    if(!fx){ if(after) after(); return; }
+    if(fx.hp) P.hp = Math.max(1, Math.min(hpMax(), P.hp+fx.hp));
+    if(fx.mp) P.mana = Math.max(0, Math.min(manaMax(), P.mana+fx.mp));
+    if(fx.or) P.or = Math.max(0, P.or + Math.round(fx.or>0 && hasRelic("bourse") ? fx.or*1.5 : fx.or));
+    if(fx.buffAtk) P.nextBuffAtk = (P.nextBuffAtk||0)+fx.buffAtk;
+    var up = fx.xp ? gainXp(fx.xp) : 0;
+    save();
+    if(fx.relique){ giveRelic("La cachette livre son contenu.", function(){ if(up) offerUpgrade(after); else if(after) after(); }); return; }
+    if(up) offerUpgrade(after); else if(after) after();
+  }
   function showEvent(ev){
-    if(ev.type === "marchand"){ showShop(ev); return; }
-    if(ev.type === "defi"){ showDefi(ev); return; }
-    $("evIc").textContent = ev.e; $("evN").textContent = ev.n; $("evTxt").textContent = ev.texte;
-    $("evSuite").style.display = "none";
-    var opts = $("evOpts"); opts.style.display = ""; opts.innerHTML = "";
-    ev.options.forEach(function(o, i){
-      var b = document.createElement("button");
-      var cout = o.cout && o.cout.or;
-      var abordable = !cout || P.or >= cout;
-      b.className = "ev-opt";
-      if(!abordable) b.disabled = true;
-      var fx = effetLabel(o.effet);
-      b.innerHTML = o.texte + (fx ? '<span class="fx">' + fx + (abordable ? "" : " — pas assez d'or") + '</span>' : "");
-      b.addEventListener("click", function(){ if(abordable) resolveChoice(ev, o); });
+    EV = ev;
+    $("evIc").textContent=ev.e; $("evN").textContent=ev.n; $("evTxt").textContent=ev.texte;
+    $("evSuite").style.display="none";
+    var opts=$("evOpts"); opts.style.display=""; opts.innerHTML="";
+    ev.options.forEach(function(o){
+      var cout = o.cout && o.cout.or, ok = !cout || P.or>=cout;
+      var b=document.createElement("button"); b.className="pick"; if(!ok) b.disabled=true;
+      var fx=effetLabel(o.effet);
+      b.innerHTML = o.texte + (fx ? '<span class="fx">'+fx+(ok?"":" — pas assez d'or")+'</span>' : "");
+      b.addEventListener("click", function(){ if(ok) resolveChoice(o); });
       opts.appendChild(b);
     });
     openOverlay("ovEvent");
   }
-  function resolveChoice(ev, opt){
+  function resolveChoice(opt){
     if(opt.effet && opt.effet.pari){
-      // petit jeu d'argent : pile ou face, mise doublée ou perdue
-      var mise = opt.effet.pari;
-      if(P.or < mise){ $("evOpts").style.display=""; toast("Tu n'as pas assez de pièces"); return; }
-      var gagne = Math.random() < 0.5;
-      P.or += gagne ? mise : -mise;
-      save();
-      $("evOpts").style.display = "none";
-      $("evSuite").style.display = "";
-      $("evSuiteTxt").textContent = gagne ? "La pièce tombe en ta faveur : tu doubles ta mise !" : "La pièce ne te sourit pas cette fois. Tant pis.";
+      var mise=opt.effet.pari;
+      if(P.or<mise){ toast("Tu n'as pas assez de pièces"); return; }
+      var gagne = Math.random()<0.5;
+      P.or += gagne ? mise : -mise; save(); renderHud();
+      $("evOpts").style.display="none"; $("evSuite").style.display="";
+      $("evSuiteTxt").textContent = gagne ? "La pièce tombe en ta faveur : tu doubles ta mise !" : "La pièce ne te sourit pas. Tant pis.";
       return;
     }
-    applyEffet(opt.effet);
-    $("evOpts").style.display = "none";
-    $("evSuite").style.display = "";
-    $("evSuiteTxt").textContent = opt.suite || "";
-  }
-  $("evContinue").addEventListener("click", function(){ EV=null; closeOverlays(); startFight(); });
-
-  /* ---------- Défi de lettres (hors combat, pas de monstre en face) ---------- */
-  function showDefi(ev){
-    var word = pickWord(ev.lens);
-    EV.word = word; EV.len = word.length; EV.guess = "";
-    $("dfIc").textContent = ev.e; $("dfN").textContent = ev.n; $("dfTxt").textContent = ev.texte;
-    $("dfMsg").textContent = "";
-    $("dfResult").style.display = "none";
-    var row = $("dfRow"); row.innerHTML = "";
-    row.style.gridTemplateColumns = "repeat(" + EV.len + ", var(--tile))";
-    for(var c=0;c<EV.len;c++){
-      var t = document.createElement("div"); t.className = "tile"; t.innerHTML = "<span></span>";
-      row.appendChild(t);
-    }
-    loadDico(EV.len);
-    buildKeyboard();   // filet de sécurité : garantit un clavier propre et bien peuplé
-    $("kb").style.display = "";
-    openOverlay("ovDefi");
-  }
-  function eventType(ch){
-    if(!EV || !EV.word || EV.guess.length >= EV.len) return;
-    EV.guess += ch;
-    $("dfRow").children[EV.guess.length-1].querySelector("span").textContent = ch;
-  }
-  function eventBackspace(){
-    if(!EV || !EV.word || !EV.guess.length) return;
-    $("dfRow").children[EV.guess.length-1].querySelector("span").textContent = "";
-    EV.guess = EV.guess.slice(0, -1);
-  }
-  function eventSubmit(){
-    if(!EV || !EV.word) return;
-    if(EV.guess.length < EV.len){ $("dfMsg").textContent = "Il manque des lettres"; return; }
-    if(!isValid(EV.guess) && EV.guess !== EV.word){ $("dfMsg").textContent = "« " + EV.guess + " » n'est pas dans le dictionnaire"; return; }
-    var win = (EV.guess === EV.word);
-    var st = win ? new Array(EV.len).fill("correct") : evaluate(EV.guess, EV.word);
-    for(var i=0;i<EV.len;i++){ $("dfRow").children[i].classList.add(st[i]); paintKey(EV.guess[i], st[i]); }
-    var ev = EV.def;
-    if(win){ applyEffet(ev.succes); } else { applyEffet(ev.echec); }
-    $("dfResTxt").innerHTML = (win ? ev.texteSucces : ev.texteEchec)
-      + (!win ? '<br><b>Le mot était ' + EV.word + '.</b>' : "")
-      + (effetLabel(win ? ev.succes : ev.echec) ? "<br>" + effetLabel(win ? ev.succes : ev.echec) : "");
-    $("dfResult").style.display = "";
-  }
-  $("dfContinue").addEventListener("click", function(){ EV=null; closeOverlays(); startFight(); });
-
-  /* ---------- Marchand ---------- */
-  function showShop(ev){
-    $("shTxt").textContent = ev.texte;
-    renderShop();
-    openOverlay("ovShop");
-  }
-  function renderShop(){
-    $("shOr").textContent = "🪙 " + P.or;
-    $("shList").innerHTML = SHOP.map(function(s, i){
-      var it = ITEMS.potions.find(function(p){ return p.id === s.item; });
-      if(!it) return "";
-      return '<div class="shop-it"><span class="e">' + it.e + '</span><span class="n">' + it.n + ' — ' + it.d + '</span>'
-        + '<button data-i="' + i + '"' + (P.or < s.prix ? " disabled" : "") + '>' + s.prix + ' 🪙</button></div>';
-    }).join("");
-    Array.prototype.forEach.call($("shList").querySelectorAll("button"), function(b){
-      b.addEventListener("click", function(){
-        var s = SHOP[+b.dataset.i];
-        if(P.or < s.prix) return;
-        P.or -= s.prix; P.potions[s.item] = (P.potions[s.item]||0) + 1;
-        save(); toast("Acheté !"); renderShop();
-      });
+    $("evOpts").style.display="none";
+    applyEffet(opt.effet, function(){
+      renderHud();
+      $("evSuite").style.display=""; $("evSuiteTxt").textContent = opt.suite||"";
+      openOverlay("ovEvent");
     });
   }
-  $("shLeave").addEventListener("click", function(){
-    var fromEvent = !!EV; EV = null; closeOverlays();
-    if(fromEvent) startFight(); else renderHome();
-  });
-  $("btnShopHome").addEventListener("click", function(){
-    $("shTxt").textContent = "« Repasse quand tu veux, je ne bouge pas d'ici. »";
-    renderShop();
-    openOverlay("ovShop");
-  });
+  $("evContinue").addEventListener("click", function(){ EV=null; closeOverlays(); advance(); });
 
-  function startFight(){
-    if(finished()){ askConfirm("Nouvelle aventure ?", "Ta progression actuelle sera effacée.", resetAll); return; }
-    var f = currentFoe();
-    C = {
-      foeHp: f.pv, foeHpMax: f.pv, atk: f.atk, atkBase: f.atk,
-      trait: f.trait || null,
-      word: "", len: 0, row: 0, col: 0, grid: [], guesses: [],
-      rage: false, garde: false, over: false,
-      revecu: false,          // pour le trait Renaissance : une seule fois
-      mute: null              // compétence bloquée par le trait Silence
-    };
-    if(P.hp <= 0) P.hp = hpMax();
-    buildKeyboard();
-    C.buffAtk = P.nextBuffAtk || 0;
-    P.nextBuffAtk = 0; save();
-    newWord();
-    $("scHome").style.display = "none"; $("scFight").style.display = ""; $("kb").style.display = "";
-    $("btnHome").style.display = "";
-    $("cIc").textContent = f.e; $("cNom").textContent = f.n + (f.boss ? "  ⭐" : "");
-    $("cTrait").innerHTML = traitHtml(f.trait);
-    $("cMod").innerHTML = zModHtml();
-    renderFight();
-    setMsg("Propose un mot de " + C.len + " lettres.");
+  /* ---------- ÉNIGME (défi de mot hors combat) ---------- */
+  function startDefi(def){
+    DF = { def:def, word:pickWord(zone().lens), row:0, col:0, grid:[], guesses:[], rowStates:[] };
+    DF.len = DF.word.length;
+    for(var r=0;r<4;r++) DF.grid.push(new Array(DF.len).fill(""));
+    loadDico(DF.len);
+    $("scMap").style.display="none"; $("scFight").style.display="none"; $("scDefi").style.display="";
+    $("kb").style.display="";
+    $("dfIc").textContent=def.e; $("dfN").textContent=def.n; $("dfTxt").textContent=def.texte;
+    $("dfMsg").textContent = "Tu as 4 tentatives. Mot de "+DF.len+" lettres.";
+    buildKeyboard(); resetKeyColors(); buildBoardFor(DF, "dfBoard");
+    drawCursorFor(DF, "dfBoard");
+  }
+  function defiSubmit(){
+    var w = DF.grid[DF.row].join("");
+    if(w.length<DF.len || DF.grid[DF.row].some(function(x){ return !x; })){ $("dfMsg").textContent="Il manque des lettres"; return; }
+    if(!isValid(w) && w!==DF.word){ $("dfMsg").textContent="« "+w+" » n'est pas dans le dictionnaire"; vibrate([12,60,12]); return; }
+    var st = evaluate(w, DF.word);
+    for(var i=0;i<DF.len;i++){ tileOf("dfBoard",DF.row,i).classList.add(st[i]); paintKey(w[i], st[i]); }
+    DF.guesses.push(w); DF.row++;
+    if(w===DF.word) return endDefi(true);
+    if(DF.row>=4) return endDefi(false);
+    DF.col=0; drawCursorFor(DF,"dfBoard");
+    $("dfMsg").textContent = (4-DF.row)+" tentative"+((4-DF.row)>1?"s":"")+" restante"+((4-DF.row)>1?"s":"");
+  }
+  function endDefi(win){
+    var d = DF.def, mot = DF.word; DF = null;
+    $("kb").style.display="none";
+    var fx = win ? d.succes : d.echec;
+    $("rIc").textContent = win ? "✨" : "🚫";
+    $("rTit").textContent = win ? "Réussi !" : "Échoué";
+    $("rSub").textContent = (win ? d.texteSucces : d.texteEchec) + (win ? "" : " Le mot était "+mot+".");
+    $("rGain").innerHTML = effetLabel(fx) ? "<span>"+effetLabel(fx)+"</span>" : "";
+    $("rLoot").innerHTML = "";
+    $("rNext").textContent = "Continuer";
+    resultAfter = function(){ applyEffet(fx, function(){ advance(); }); };
+    openOverlay("ovRes");
   }
 
-  function newWord(){
-    var z = currentZone(), zm = zoneMod();
-    C.word = pickWord(z.lens);
-    C.len = C.word.length;
-    C.row = 0; C.col = 0; C.guesses = []; C.rowStates = [];
-    C.grid = [];
-    for(var r=0; r<MAX_ROWS; r++){ C.grid.push(new Array(C.len).fill("")); }
-    if(C.trait === "muet"){
-      var dispo = SKILLS.filter(function(s){ return unlocked(s); });
-      C.mute = dispo.length ? dispo[Math.floor(Math.random()*dispo.length)].id : null;
-    }
-    // Feuilles mortes : 5 lettres absentes du mot sont interdites au clavier,
-    // recalculées à chaque nouveau mot.
-    C.banned = [];
-    if(zm && zm.n === "Feuilles mortes"){
-      var libres = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").filter(function(c){ return C.word.indexOf(c) < 0; });
-      libres.sort(function(){ return Math.random()-0.5; });
-      C.banned = libres.slice(0, 5);
-    }
-    // Fumée : quelles cases seront noyées dépend du tirage à chaque ligne,
-    // pas d'état à préparer ici — voir attack().
-    loadDico(C.len);
-    buildBoard();
-    resetKeyColors();
-    applyBannedKeys();
-  }
-
-  function buildBoard(){
-    var tile = Math.max(26, Math.min(46, Math.floor((Math.min(window.innerWidth-30, 480) - 5*(C.len-1)) / C.len)));
-    // La grille compte toujours MAX_ROWS lignes. Sur un combat avec peu de
-    // lettres, la largeur seule autoriserait des cases trop hautes pour ce
-    // qu'il reste réellement sous elles (barres, message, compétences) —
-    // le bandeau de compétences se retrouvait alors recouvert par le
-    // clavier, juste en dessous dans la mise en page.
-    var mainEl = document.querySelector("main");
-    var reserved = 210;   // panneau du monstre + barres + message + bandeau de compétences
-    var availH = ((mainEl && mainEl.clientHeight) || Math.round(window.innerHeight*0.55)) - reserved;
-    var tileH = Math.floor((availH - 5*(MAX_ROWS-1)) / MAX_ROWS);
-    if(tileH > 0) tile = Math.min(tile, tileH);
+  /* ---------- plateau générique ---------- */
+  function buildBoardFor(S, boxId){
+    var tile = Math.max(26, Math.min(46, Math.floor((Math.min(window.innerWidth-30,480) - 5*(S.len-1)) / S.len)));
+    var mainEl=document.querySelector("main");
+    var availH = ((mainEl && mainEl.clientHeight) || Math.round(window.innerHeight*0.55)) - 230;
+    var rows = S.grid.length;
+    var tileH = Math.floor((availH - 5*(rows-1)) / rows);
+    if(tileH>0) tile = Math.min(tile, tileH);
     tile = Math.max(22, tile);
-    document.documentElement.style.setProperty("--tile", tile + "px");
-    var b = $("board"); b.innerHTML = "";
-    for(var r=0; r<MAX_ROWS; r++){
-      var row = document.createElement("div"); row.className = "row";
-      row.style.gridTemplateColumns = "repeat(" + C.len + ", var(--tile))";
-      for(var c=0; c<C.len; c++){
-        var t = document.createElement("div"); t.className = "tile"; t.innerHTML = "<span></span>";
-        row.appendChild(t);
-      }
+    document.documentElement.style.setProperty("--tile", tile+"px");
+    var b=$(boxId); b.innerHTML="";
+    for(var r=0;r<rows;r++){
+      var row=document.createElement("div"); row.className="row";
+      row.style.gridTemplateColumns="repeat("+S.len+", var(--tile))";
+      for(var c=0;c<S.len;c++){ var t=document.createElement("div"); t.className="tile"; t.innerHTML="<span></span>"; row.appendChild(t); }
       b.appendChild(row);
     }
-    drawCursor();
   }
-  function tileAt(r,c){ return $("board").children[r].children[c]; }
-  /* La saisie libre ne concerne que la ligne en cours : on déplace les
-     écouteurs de clic sur la nouvelle ligne à chaque tour. */
+  function tileOf(boxId,r,c){ return $(boxId).children[r].children[c]; }
+  function setCellOf(S,boxId,r,c,ch){ S.grid[r][c]=ch; tileOf(boxId,r,c).querySelector("span").textContent=ch; }
+  function drawCursorFor(S,boxId){
+    for(var r=0;r<S.grid.length;r++) for(var c=0;c<S.len;c++) tileOf(boxId,r,c).classList.remove("cur");
+    if(S.row < S.grid.length) for(var c2=0;c2<S.len;c2++) tileOf(boxId,S.row,c2).classList.toggle("cur", c2===S.col);
+    if(boxId==="board") bindRowClicks();
+  }
   function bindRowClicks(){
-    for(var r=0; r<MAX_ROWS; r++){
-      for(var c=0; c<C.len; c++){
-        var t = tileAt(r,c);
-        t.style.cursor = (r === C.row && !C.over) ? "pointer" : "";
-        t.onclick = (r === C.row && !C.over) ? (function(col){
-          return function(){ if(!C.over){ C.col = col; drawCursor(); } };
-        })(c) : null;
+    if(!C) return;
+    for(var r=0;r<MAX_ROWS;r++){
+      for(var c=0;c<C.len;c++){
+        var t=tileOf("board",r,c);
+        t.style.cursor = (r===C.row && !C.over) ? "pointer" : "";
+        t.onclick = (r===C.row && !C.over) ? (function(col){ return function(){ if(!C.over){ C.col=col; drawCursorFor(C,"board"); } }; })(c) : null;
       }
     }
   }
-  function setCell(r,c,ch){ C.grid[r][c] = ch; tileAt(r,c).querySelector("span").textContent = ch; }
-  function drawCursor(){
-    for(var r=0;r<MAX_ROWS;r++)
-      for(var c=0;c<C.len;c++) tileAt(r,c).classList.remove("cur");
-    if(C.row < MAX_ROWS)
-      for(var c2=0;c2<C.len;c2++) tileAt(C.row,c2).classList.toggle("cur", c2===C.col);
-    bindRowClicks();
-  }
 
+  /* ---------- COMBAT ---------- */
+  function startFight(kind){
+    var z = zone(), zi = P.zone;
+    var src = kind==="boss" ? z.boss : (kind==="elite" ? pick(z.elites) : pick(z.monstres));
+    var st = foeStats(kind, zi);
+    C = { kind:kind, foe:src, foeHp:st.pv, foeHpMax:st.pv, atk:st.atk, atkBase:st.atk,
+          xp:st.xp, or:st.or, trait:src.trait,
+          word:"", len:0, row:0, col:0, grid:[], guesses:[], rowStates:[],
+          rage:false, garde:false, over:false, revecu:false, mute:null,
+          banned:[], buffAtk:P.nextBuffAtk||0, talisman:false, tour:0 };
+    P.nextBuffAtk = 0;
+    if(P.seen.indexOf(src.n)<0) P.seen.push(src.n);
+    save();
+    $("scMap").style.display="none"; $("scDefi").style.display="none"; $("scFight").style.display=""; $("kb").style.display="";
+    $("cIc").textContent=src.e;
+    $("cNom").textContent = src.n + (kind==="boss" ? "  👑" : kind==="elite" ? "  💀" : "");
+    $("cTrait").innerHTML = traitHtml(src.trait);
+    $("cMod").innerHTML = zModHtml();
+    buildKeyboard();
+    newWord();
+    renderFight();
+    setMsg(src.cri || ("Propose un mot de "+C.len+" lettres."));
+  }
+  function newWord(){
+    var z=zone(), zm=zoneMod();
+    C.word = pickWord(z.lens); C.len = C.word.length;
+    C.row=0; C.col=0; C.guesses=[]; C.rowStates=[]; C.grid=[];
+    for(var r=0;r<MAX_ROWS;r++) C.grid.push(new Array(C.len).fill(""));
+    if(C.trait==="muet"){
+      var dispo = SKILLS.filter(function(s){ return P.skills.indexOf(s.id)>=0; });
+      C.mute = dispo.length ? pick(dispo).id : null;
+    }
+    C.banned=[];
+    if(zm && zm.n==="Feuilles mortes" && !C.talisman){
+      var libres="ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").filter(function(c){ return C.word.indexOf(c)<0; });
+      libres.sort(function(){ return Math.random()-0.5; });
+      C.banned = libres.slice(0,5);
+    }
+    loadDico(C.len);
+    buildBoardFor(C,"board"); resetKeyColors(); applyBannedKeys();
+    if(hasRelic("boussole")){
+      setCellOf(C,"board",0,0,C.word[0]);
+      tileOf("board",0,0).classList.add("correct");
+      C.col = firstEmpty();
+    }
+    drawCursorFor(C,"board");
+  }
   function renderFight(){
-    setBar("cHp", C.foeHp, C.foeHpMax); $("cHpV").textContent = Math.max(0,C.foeHp) + "/" + C.foeHpMax;
-    setBar("pHp", P.hp, hpMax()); $("pHpV").textContent = Math.max(0,P.hp) + "/" + hpMax();
-    setBar("pMp", P.mana, manaMax()); $("pMpV").textContent = P.mana + "/" + manaMax();
+    setBar("cHp",C.foeHp,C.foeHpMax); $("cHpV").textContent=Math.max(0,C.foeHp)+"/"+C.foeHpMax;
+    setBar("pHp",P.hp,hpMax()); $("pHpV").textContent=Math.max(0,P.hp)+"/"+hpMax();
+    setBar("pMp",P.mana,manaMax()); $("pMpV").textContent=P.mana+"/"+manaMax();
     renderSkillBar();
   }
-  function setMsg(t){ $("cMsg").textContent = t || ""; }
-
-  /* ---------- Compétences ---------- */
+  function setMsg(t){ $("cMsg").textContent=t||""; }
+  function skillCost(s){ return Math.max(2, s.cout - (hasRelic("loupe")?3:0)); }
   function renderSkillBar(){
-    var bar = $("skBar"); bar.innerHTML = "";
+    var bar=$("skBar"); bar.innerHTML="";
     SKILLS.forEach(function(s){
-      if(!unlocked(s)) return;
-      var b = document.createElement("button");
-      b.className = "sk-btn" + ((s.id==="rage" && C.rage) || (s.id==="garde" && C.garde) ? " on" : "");
-      b.innerHTML = s.e + '<span class="c">' + s.cout + '</span>';
-      b.title = s.n + " — " + s.d;
-      b.disabled = C.over || P.mana < s.cout || C.mute === s.id;
-      if(C.mute === s.id){ b.title = s.n + " — réduite au silence par ce monstre"; b.style.opacity = ".3"; }
+      if(P.skills.indexOf(s.id)<0) return;
+      var b=document.createElement("button");
+      b.className="sk-btn" + ((s.id==="rage"&&C.rage)||(s.id==="garde"&&C.garde) ? " on" : "");
+      b.innerHTML = s.e+'<span class="c">'+skillCost(s)+'</span>';
+      b.title = s.n+" — "+s.d;
+      b.disabled = C.over || P.mana<skillCost(s) || C.mute===s.id;
+      if(C.mute===s.id) b.style.opacity=".3";
       b.addEventListener("click", function(){ useSkill(s); });
       bar.appendChild(b);
     });
-    // les potions rejoignent le même bandeau : pas de nouvelle rangée qui
-    // pourrait, elle aussi, se retrouver coincée sous le clavier.
-    ITEMS.potions.forEach(function(p){
-      var n = P.potions[p.id] || 0; if(!n) return;
-      var b = document.createElement("button");
-      b.className = "sk-btn";
-      b.innerHTML = p.e + '<span class="c">x' + n + '</span>';
-      b.title = p.n + " — " + p.d;
+    POTIONS.forEach(function(p){
+      var n=P.potions[p.id]||0; if(!n) return;
+      var b=document.createElement("button"); b.className="sk-btn";
+      b.innerHTML = p.e+'<span class="c">x'+n+'</span>'; b.title=p.n+" — "+p.d;
       b.disabled = C.over;
       b.addEventListener("click", function(){ usePotion(p.id, true); });
       bar.appendChild(b);
     });
-    if(!bar.children.length){
-      bar.innerHTML = '<span style="font-size:12px;color:var(--ink-dim);font-weight:700">Compétences débloquées au niveau 1</span>';
+    var zm=zoneMod();
+    if(hasRelic("talisman") && !C.talisman && zm){
+      var b2=document.createElement("button"); b2.className="sk-btn";
+      b2.innerHTML='🧿'; b2.title="Talisman — annule « "+zm.n+" » pour ce combat";
+      b2.disabled = C.over;
+      b2.addEventListener("click", function(){
+        C.talisman=true; toast("🧿 La particularité de l'acte est neutralisée");
+        newWord(); renderFight();
+      });
+      bar.appendChild(b2);
     }
   }
   function useSkill(s){
-    if(C.over || P.mana < s.cout) return;
-    if(C.mute === s.id){ toast("🤐 Cette compétence est réduite au silence"); return; }
-    if(s.id === "reveal"){
-      var libres = [];
-      for(var c=0;c<C.len;c++) if(!C.grid[C.row][c]) libres.push(c);
+    var cost = skillCost(s);
+    if(C.over || P.mana<cost) return;
+    if(C.mute===s.id){ toast("🤐 Cette compétence est réduite au silence"); return; }
+    if(s.id==="reveal"){
+      var libres=[]; for(var c=0;c<C.len;c++) if(!C.grid[C.row][c]) libres.push(c);
       if(!libres.length){ toast("La ligne est déjà remplie"); return; }
-      var c2 = libres[Math.floor(Math.random()*libres.length)];
-      setCell(C.row, c2, C.word[c2]);
-      tileAt(C.row, c2).classList.add("correct");
-      C.col = firstEmpty(); drawCursor();
-      toast("🔍 " + (c2+1) + "ᵉ lettre : " + C.word[c2]);
-    } else if(s.id === "soin"){
-      if(P.hp >= hpMax()){ toast("Tes points de vie sont déjà au maximum"); return; }
-      P.hp = Math.min(hpMax(), P.hp + 30);
-      floatText("+30", "var(--hp)"); toast("💚 Tu récupères des forces");
-    } else if(s.id === "rage"){
+      var c2=pick(libres);
+      setCellOf(C,"board",C.row,c2,C.word[c2]); tileOf("board",C.row,c2).classList.add("correct");
+      C.col=firstEmpty(); drawCursorFor(C,"board");
+      toast("🔍 "+(c2+1)+"ᵉ lettre : "+C.word[c2]);
+    } else if(s.id==="soin"){
+      if(P.hp>=hpMax()){ toast("Tes points de vie sont au maximum"); return; }
+      P.hp=Math.min(hpMax(),P.hp+35); floatText("+35","var(--hp)"); toast("💚 Tu récupères des forces");
+    } else if(s.id==="rage"){
       if(C.rage){ toast("La rage est déjà active"); return; }
-      C.rage = true; toast("⚡ Ta prochaine attaque fera le double de dégâts");
-    } else if(s.id === "garde"){
+      C.rage=true; toast("⚡ Prochaine attaque doublée");
+    } else if(s.id==="garde"){
       if(C.garde){ toast("La garde est déjà levée"); return; }
-      C.garde = true; toast("🛡️ Tu bloqueras la prochaine attaque");
-    } else if(s.id === "exec"){
-      C.foeHp -= 25; floatText("-25", "var(--red)");
-      $("cIc").classList.add("hit"); setTimeout(function(){ $("cIc").classList.remove("hit"); }, 300);
-      toast("☠️ Frappe directe !");
-      if(C.foeHp <= 0){ P.mana -= s.cout; save(); renderFight(); return winFight(); }
+      C.garde=true; toast("🛡️ Tu bloqueras la prochaine attaque");
+    } else if(s.id==="exec"){
+      dealDamage(30, true); toast("☠️ Frappe directe !");
+      if(C.foeHp<=0){ P.mana-=cost; save(); renderFight(); return checkFoeDown(); }
+    } else if(s.id==="purge"){
+      P.mana-=cost; save(); toast("🌬️ Un autre mot apparaît"); newWord(); renderFight(); return;
+    } else if(s.id==="drain"){
+      dealDamage(15, true); P.hp=Math.min(hpMax(),P.hp+15);
+      floatText("+15","var(--hp)"); toast("🩸 Tu absorbes sa force");
+      if(C.foeHp<=0){ P.mana-=cost; save(); renderFight(); return checkFoeDown(); }
     }
-    P.mana -= s.cout;
-    save(); renderFight();
+    P.mana-=cost; save(); renderFight();
   }
+  function dealDamage(dmg, direct){
+    if(!direct){
+      if(C.trait==="esquive" && Math.random()<0.25){ floatText("esquive !","var(--ink-dim)"); return 0; }
+      if(C.trait==="carapace") dmg=Math.max(1,dmg-4);
+    }
+    if(hasRelic("encrier") && (C.kind==="elite"||C.kind==="boss")) dmg+=5;
+    C.foeHp-=dmg;
+    floatText("-"+dmg,"var(--red)");
+    $("cIc").classList.add("hit"); setTimeout(function(){ $("cIc").classList.remove("hit"); },300);
+    if(C.trait==="epines" && dmg>0){ P.hp-=3; floatText("-3","var(--yellow)"); }
+    return dmg;
+  }
+  function checkFoeDown(){
+    if(C.trait==="renaissance" && !C.revecu){
+      C.revecu=true; C.foeHp=Math.round(C.foeHpMax*0.4);
+      toast("🔥 Il renaît de ses cendres !",2400); setMsg("Il se relève. Il faut le vaincre une seconde fois.");
+      renderFight(); return false;
+    }
+    renderFight(); winFight(); return true;
+  }
+  function firstEmpty(){ for(var c=0;c<C.len;c++) if(!C.grid[C.row][c]) return c; return C.len; }
+  function firstEmptyFrom(f){ for(var c=f;c<C.len;c++) if(!C.grid[C.row][c]) return c;
+    for(var c2=0;c2<C.len;c2++) if(!C.grid[C.row][c2]) return c2; return -1; }
 
-  /* ---------- Saisie ---------- */
-  function firstEmpty(){
-    for(var c=0;c<C.len;c++) if(!C.grid[C.row][c]) return c;
-    return C.len;
-  }
-  function firstEmptyFrom(from){
-    for(var c=from;c<C.len;c++) if(!C.grid[C.row][c]) return c;
-    for(var c2=0;c2<C.len;c2++) if(!C.grid[C.row][c2]) return c2;
-    return -1;
-  }
-  function type(ch){
-    if(EV && EV.word){ eventType(ch); return; }
-    if(C.over) return;
-    if(C.banned && C.banned.indexOf(ch) >= 0){ toast("🍂 Cette lettre est interdite ici — elle ne peut pas être dans le mot"); return; }
-    if(C.col >= C.len){ var e = firstEmpty(); if(e >= C.len) return; C.col = e; }
-    setCell(C.row, C.col, ch);
-    // on avance sur la première case libre APRÈS celle qu'on vient de remplir,
-    // pour que la saisie libre (clic sur une case) se comporte comme dans Motus
-    var n = firstEmptyFrom(C.col + 1);
-    C.col = (n < 0) ? C.len : n;
-    drawCursor();
-  }
-  function backspace(){
-    if(EV && EV.word){ eventBackspace(); return; }
-    if(C.over) return;
-    if(C.col < C.len && C.grid[C.row][C.col]){ setCell(C.row, C.col, ""); drawCursor(); return; }
-    var c = Math.min(C.col, C.len) - 1;
-    while(c >= 0 && !C.grid[C.row][c]) c--;
-    if(c < 0){ drawCursor(); return; }
-    C.col = c; setCell(C.row, C.col, ""); drawCursor();
-  }
-  /* Devoir de mémoire (Château) : mêmes règles que le mode Expert du Motus
-     classique — une lettre trouvée bien placée doit le rester, une lettre
-     trouvée mal placée doit être réutilisée quelque part. */
   function chateauViolation(guess){
-    var need = {};
+    var need={};
     for(var g=0; g<C.guesses.length; g++){
-      var gw = C.guesses[g], st = C.rowStates[g];
-      if(!st) continue;
-      var cnt = {};
+      var gw=C.guesses[g], st=C.rowStates[g]; if(!st) continue;
+      var cnt={};
       for(var i=0;i<C.len;i++){
-        if(st[i] === "correct" && guess[i] !== gw[i]) return { type:"place", letter:gw[i], pos:i+1 };
-        if(st[i] === "correct" || st[i] === "present") cnt[gw[i]] = (cnt[gw[i]]||0) + 1;
+        if(st[i]==="correct" && guess[i]!==gw[i]) return {type:"place", letter:gw[i], pos:i+1};
+        if(st[i]==="correct"||st[i]==="present") cnt[gw[i]]=(cnt[gw[i]]||0)+1;
       }
-      for(var c in cnt) need[c] = Math.max(need[c]||0, cnt[c]);
+      for(var c in cnt) need[c]=Math.max(need[c]||0,cnt[c]);
     }
     for(var c2 in need){
-      var have = 0; for(var j=0;j<guess.length;j++) if(guess[j]===c2) have++;
-      if(have < need[c2]) return { type:"use", letter:c2, n:need[c2] };
+      var have=0; for(var j=0;j<guess.length;j++) if(guess[j]===c2) have++;
+      if(have<need[c2]) return {type:"use", letter:c2};
     }
     return null;
   }
 
-  /* Faute fatale (Marais) : un mot mal orthographié consomme quand même la
-     tentative — le tour se déroule comme un coup raté, sans dégâts, mais
-     avec la riposte et les effets de trait habituels. */
-  function burnAttempt(w){
-    for(var i=0;i<C.len;i++) tileAt(C.row,i).classList.remove("cur");
-    C.guesses.push(w);
-    C.rowStates.push(new Array(C.len).fill("absent"));
-    toast("🥴 « " + w + " » n'est pas dans le dictionnaire — tentative perdue !", 2600);
-    vibrate([30,50,30]);
-
-    if(C.trait === "furie") C.atk += 2;
-    if(C.trait === "regen") C.foeHp = Math.min(C.foeHpMax, C.foeHp + 4);
-    var back = C.atk;
-    if(C.garde){ back = 0; C.garde = false; toast("🛡️ Attaque bloquée !"); }
-    if(C.trait === "voleur" && P.mana > 0) P.mana = Math.max(0, P.mana - 5);
-    if(C.trait === "venin") back += 3;
-
-    C.row++;
-    var plus = 0;
-    if(C.row >= MAX_ROWS){
-      plus = Math.round(C.atk * 0.6);
-      setMsg("Le mot était « " + C.word + " ». Le monstre en profite !");
-    } else {
-      setMsg("Tentative perdue — ce mot n'existe pas.");
-    }
-    if(back + plus > 0){ P.hp -= (back + plus); floatText("-" + (back+plus), "var(--yellow)"); }
-    if(P.hp <= 0){ P.hp = 0; renderFight(); save(); return loseFight(); }
-    if(C.row >= MAX_ROWS){
-      setTimeout(function(){ if(!C.over){ newWord(); renderFight(); } }, 900);
-    } else {
-      C.col = 0; drawCursor(); applyBannedKeys();
-    }
-    save(); renderFight();
-  }
-
-  function submit(){
-    if(EV && EV.word){ eventSubmit(); return; }
+  function submitFight(){
     if(C.over) return;
-    var w = C.grid[C.row].join("");
-    if(w.length < C.len || C.grid[C.row].some(function(x){ return !x; })){ setMsg("Il manque des lettres"); return; }
-    var zm = zoneMod();
-    if(zm && zm.n === "Devoir de mémoire"){
-      var v = chateauViolation(w);
-      if(v){
-        vibrate([12,60,12]);
-        setMsg(v.type === "place" ? "La " + v.pos + "ᵉ lettre doit rester un " + v.letter : "Tu dois réutiliser le " + v.letter);
-        return;
-      }
+    var w=C.grid[C.row].join("");
+    if(w.length<C.len || C.grid[C.row].some(function(x){ return !x; })){ setMsg("Il manque des lettres"); return; }
+    var zm = C.talisman ? null : zoneMod();
+    if(zm && zm.n==="Devoir de mémoire"){
+      var v=chateauViolation(w);
+      if(v){ vibrate([12,60,12]);
+        setMsg(v.type==="place" ? "La "+v.pos+"ᵉ lettre doit rester un "+v.letter : "Tu dois réutiliser le "+v.letter);
+        return; }
     }
-    if(!isValid(w) && w !== C.word){
-      if(zm && zm.n === "Faute fatale"){ burnAttempt(w); return; }
-      setMsg("« " + w + " » n'est pas dans le dictionnaire"); vibrate([12,60,12]); return;
+    if(!isValid(w) && w!==C.word){
+      if(zm && zm.n==="Faute fatale"){ return burnAttempt(w); }
+      setMsg("« "+w+" » n'est pas dans le dictionnaire"); vibrate([12,60,12]); return;
     }
     attack(w);
   }
 
-  /* ---------- Évaluation façon Motus (deux passes pour les doublons) ---------- */
-  function evaluate(guess, answer){
-    var n = answer.length, st = new Array(n).fill("absent");
-    var rest = {};
-    for(var i=0;i<n;i++){
-      if(guess[i] === answer[i]) st[i] = "correct";
-      else rest[answer[i]] = (rest[answer[i]]||0) + 1;
-    }
-    for(var j=0;j<n;j++){
-      if(st[j] === "correct") continue;
-      var ch = guess[j];
-      if(rest[ch] > 0){ st[j] = "present"; rest[ch]--; }
-    }
-    return st;
-  }
-
-  /* ---------- Le cœur du jeu : une proposition = une attaque ---------- */
   function attack(w){
+    var zm = C.talisman ? null : zoneMod();
     var st = evaluate(w, C.word);
-    // Brouillard : le monstre étouffe l'information, les lettres mal placées
-    // ne sont plus signalées (elles s'affichent comme absentes).
-    if(C.trait === "brouillard"){
-      st = st.map(function(x){ return x === "present" ? "absent" : x; });
-    }
-    var zm = zoneMod();
-    var echo = zm && zm.n === "Écho";
-    var fumee = zm && zm.n === "Fumée";
-    // Fumée : à CHAQUE tentative, 1 ou 2 cases au hasard (jamais forcément
-    // les mêmes) sont noyées et ne révèlent rien de leur couleur réelle.
-    var smoked = [];
+    if(C.trait==="brouillard") st = st.map(function(x){ return x==="present" ? "absent" : x; });
+    var echo = zm && zm.n==="Écho", fumee = zm && zm.n==="Fumée";
+    var smoked=[];
     if(fumee){
-      var idx = []; for(var k=0;k<C.len;k++) idx.push(k);
+      var idx=[]; for(var k=0;k<C.len;k++) idx.push(k);
       idx.sort(function(){ return Math.random()-0.5; });
-      smoked = idx.slice(0, Math.min(C.len, 1 + Math.floor(Math.random()*2)));
+      smoked = idx.slice(0, Math.min(C.len, 1+Math.floor(Math.random()*2)));
     }
-    var red = 0, yel = 0;
+    var red=0, yel=0;
     for(var i=0;i<C.len;i++){
-      var t = tileAt(C.row, i);
-      t.classList.remove("cur");
-      var dispSt = st[i];
-      if(echo && dispSt === "correct") dispSt = "present";   // impossible à distinguer
-      if(fumee && smoked.indexOf(i) >= 0){
-        t.classList.add("smoke");
-        paintKey(w[i], "inconnu");
-      } else {
-        t.classList.add(dispSt);
-        paintKey(w[i], echo && st[i] === "correct" ? "present" : dispSt);
-      }
-      if(st[i] === "correct"){ red++; }
-      else if(st[i] === "present"){ yel++; t.querySelector("span").style.position = "relative"; }
+      var t=tileOf("board",C.row,i); t.classList.remove("cur");
+      var d = st[i];
+      if(echo && d==="correct") d="present";
+      if(fumee && smoked.indexOf(i)>=0){ t.classList.add("smoke"); paintKey(w[i],"inconnu"); }
+      else { t.classList.add(d); paintKey(w[i], echo && st[i]==="correct" ? "present" : d); }
+      if(st[i]==="correct") red++; else if(st[i]==="present") yel++;
     }
-    C.guesses.push(w);
-    C.rowStates.push(st);
+    C.guesses.push(w); C.rowStates.push(st);
 
-    var exact = (w === C.word);
+    var exact = (w===C.word);
     var dmg = red*3 + yel*1 + atkBonus() + (C.buffAtk||0);
-    if(exact) dmg += 12;
-    if(C.rage){ dmg *= 2; C.rage = false; }
-
-    var esquive = (C.trait === "esquive" && Math.random() < 0.25);
-    if(esquive){ dmg = 0; }
-    else if(C.trait === "carapace"){ dmg = Math.max(1, dmg - 3); }
-
-    C.foeHp -= dmg;
-    if(esquive){ floatText("esquive !", "var(--ink-dim)"); }
-    else floatText("-" + dmg, "var(--red)");
-    $("cIc").classList.add("hit");
-    setTimeout(function(){ $("cIc").classList.remove("hit"); }, 300);
+    if(exact) dmg += 15 + P.up.critBonus;
+    if(C.rage){ dmg*=2; C.rage=false; }
+    dealDamage(dmg, false);
     vibrate([15]);
+    if(hasRelic("grimoire")) P.mana = Math.min(manaMax(), P.mana+2);
 
-    if(C.foeHp <= 0){
-      if(C.trait === "renaissance" && !C.revecu){
-        C.revecu = true;
-        C.foeHp = Math.round(C.foeHpMax * 0.4);
-        toast("🔥 Il renaît de ses cendres !", 2400);
-        setMsg("Il se relève. Il faut le vaincre une seconde fois.");
-        renderFight();
-      } else { renderFight(); return winFight(); }
-    }
+    if(C.foeHp<=0){ if(checkFoeDown()) return; }
 
-    // ---- une courte interruption peut survenir avant la riposte ----
-    var skipRiposte = false;
-    if(Math.random() < 0.14){
-      var ceList = DATA.combatEvents || [];
-      if(ceList.length){
-        var ceEv = ceList[Math.floor(Math.random()*ceList.length)];
-        if(ceEv.effet.hp) P.hp = Math.max(0, Math.min(hpMax(), P.hp + ceEv.effet.hp));
-        if(ceEv.effet.mp) P.mana = Math.max(0, Math.min(manaMax(), P.mana + ceEv.effet.mp));
-        if(ceEv.effet.or) P.or = Math.max(0, P.or + ceEv.effet.or);
-        if(ceEv.effet.foeDmg) C.foeHp = Math.max(0, C.foeHp - ceEv.effet.foeDmg);
-        if(ceEv.effet.skipRiposte) skipRiposte = true;
-        toast(ceEv.e + " " + ceEv.texte, 2200);
-        if(C.foeHp <= 0){
-          if(C.trait === "renaissance" && !C.revecu){
-            C.revecu = true; C.foeHp = Math.round(C.foeHpMax * 0.4);
-            toast("🔥 Il renaît de ses cendres !", 2400);
-          } else { renderFight(); return winFight(); }
-        }
+    // interruption courte, avant la riposte
+    var skipRip=false;
+    if(Math.random()<0.13){
+      var ce = pick(DATA.combatEvents||[]);
+      if(ce){
+        if(ce.effet.hp) P.hp=Math.max(1,Math.min(hpMax(),P.hp+ce.effet.hp));
+        if(ce.effet.mp) P.mana=Math.max(0,Math.min(manaMax(),P.mana+ce.effet.mp));
+        if(ce.effet.or) P.or=Math.max(0,P.or+ce.effet.or);
+        if(ce.effet.foeDmg) C.foeHp=Math.max(0,C.foeHp-ce.effet.foeDmg);
+        if(ce.effet.skipRiposte) skipRip=true;
+        toast(ce.e+" "+ce.texte, 2200);
+        if(C.foeHp<=0){ if(checkFoeDown()) return; }
       }
     }
 
-    // ---- tour du monstre ----
-    if(C.trait === "furie") C.atk += 2;          // il s'énerve à chaque tour
-    if(C.trait === "regen"){
-      C.foeHp = Math.min(C.foeHpMax, C.foeHp + 4);
-    }
+    C.tour++;
+    if(C.trait==="furie") C.atk += 2;
+    if(C.trait==="regen") C.foeHp = Math.min(C.foeHpMax, C.foeHp+6);
     var back = C.atk;
-    if(C.garde){ back = 0; C.garde = false; toast("🛡️ Attaque bloquée !"); }
-    if(skipRiposte) back = 0;
-    if(back > 0 && C.trait === "vampire"){
-      C.foeHp = Math.min(C.foeHpMax, C.foeHp + Math.round(back/2));
-    }
-    if(C.trait === "voleur" && P.mana > 0){
-      P.mana = Math.max(0, P.mana - 5);
-    }
-    if(C.trait === "venin") back += 3;
+    if(C.trait==="rapide" && C.tour%3===0) back = Math.round(back*2);
+    if(C.garde){ back=0; C.garde=false; toast("🛡️ Attaque bloquée !"); }
+    if(skipRip) back=0;
+    if(back>0 && C.trait==="vampire") C.foeHp=Math.min(C.foeHpMax,C.foeHp+Math.round(back/2));
+    if(C.trait==="voleur" && P.mana>0) P.mana=Math.max(0,P.mana-4);
+    if(C.trait==="venin") back+=3;
+    if(back>0 && hasRelic("miroir")){ C.foeHp-=4; }
 
     C.row++;
-    var plus = 0;
+    var plus=0;
     if(exact){
-      setMsg("🎯 Mot trouvé ! " + dmg + " dégâts. Un nouveau mot apparaît.");
-      P.mana = Math.min(manaMax(), P.mana + 6);
-    } else if(C.row >= MAX_ROWS){
-      plus = Math.round(C.atk * 0.6);
-      setMsg("Le mot était « " + C.word + " ». Le monstre en profite !");
+      setMsg("🎯 Mot trouvé ! "+dmg+" dégâts.");
+      P.mana=Math.min(manaMax(),P.mana+6+P.up.manaMot);
+      if(P.up.regenMot) P.hp=Math.min(hpMax(),P.hp+P.up.regenMot);
+    } else if(C.row>=MAX_ROWS){
+      plus = hasRelic("clepsydre") ? 0 : Math.round(C.atk*0.6);
+      setMsg("Le mot était « "+C.word+" ». Le monstre en profite !");
     } else {
-      setMsg(dmg + " dégâts infligés.");
-      P.mana = Math.min(manaMax(), P.mana + 3);
+      setMsg(dmg+" dégâts infligés.");
+      P.mana=Math.min(manaMax(),P.mana+3);
     }
+    if(back+plus>0){ P.hp-=(back+plus); floatText("-"+(back+plus),"var(--yellow)"); }
 
-    if(back + plus > 0){
-      P.hp -= (back + plus);
-      floatText("-" + (back+plus), "var(--yellow)");
-    }
+    if(C.foeHp<=0){ if(checkFoeDown()) return; }
+    if(P.hp<=0) return handleDeath();
 
-    if(P.hp <= 0){ P.hp = 0; renderFight(); save(); return loseFight(); }
-
-    if(exact || C.row >= MAX_ROWS){
-      setTimeout(function(){ if(!C.over){ newWord(); renderFight(); } }, 900);
-    } else {
-      C.col = 0; drawCursor(); applyBannedKeys();
-    }
+    if(exact || C.row>=MAX_ROWS){ setTimeout(function(){ if(C && !C.over){ newWord(); renderFight(); } }, 900); }
+    else { C.col=0; drawCursorFor(C,"board"); applyBannedKeys(); }
     save(); renderFight();
   }
 
-  /* ---------- Fin de combat ---------- */
-  var ITEMS = DATA.items || { potions:[], equip:[] };
-  function statSum(it){ return (it.atk||0) + (it.pv||0) + (it.mp||0); }
-  function giveEquip(it){
-    var cur = P.equip[it.slot];
-    var better = statSum(it) > (cur ? statSum(cur) : -1);
-    if(better) P.equip[it.slot] = it;
-    return better;
-  }
-  /* Butin : un boss garantit tout l'équipement de sa zone (2 pièces), un
-     monstre ordinaire a une chance modeste de laisser une potion ou une
-     pièce d'équipement déjà rencontrable (jamais plus avancée que la zone
-     en cours). */
-  function rollLoot(f, zIdx){
-    var drops = [];
-    if(f.boss){
-      ITEMS.equip.filter(function(e){ return e.zmin === zIdx; }).forEach(function(e){
-        drops.push({ item:e, equipped: giveEquip(e), potion:false });
-      });
-    } else if(Math.random() < 0.35){
-      if(Math.random() < 0.6 && ITEMS.potions.length){
-        var p = ITEMS.potions[Math.floor(Math.random()*ITEMS.potions.length)];
-        P.potions[p.id] = (P.potions[p.id]||0) + 1;
-        drops.push({ item:p, potion:true });
-      } else {
-        var pool = ITEMS.equip.filter(function(e){ return e.zmin <= zIdx; });
-        if(pool.length){
-          var e2 = pool[Math.floor(Math.random()*pool.length)];
-          drops.push({ item:e2, equipped: giveEquip(e2), potion:false });
-        }
-      }
-    }
-    return drops;
-  }
-  function lootHtml(drops){
-    if(!drops.length) return "";
-    return '<div class="loot-t">Butin</div>' + drops.map(function(d){
-      var tag = d.potion ? "" : (d.equipped ? '<span class="lg">équipé</span>' : '<span class="ld">déjà mieux équipé</span>');
-      return '<div class="loot-row"><span>' + d.item.e + " " + d.item.n + '</span>' + tag + '</div>';
-    }).join("");
+  function burnAttempt(w){
+    for(var i=0;i<C.len;i++) tileOf("board",C.row,i).classList.remove("cur");
+    C.guesses.push(w); C.rowStates.push(new Array(C.len).fill("absent"));
+    toast("🥴 « "+w+" » n'existe pas — tentative perdue !", 2500); vibrate([30,50,30]);
+    C.tour++;
+    if(C.trait==="furie") C.atk+=2;
+    if(C.trait==="regen") C.foeHp=Math.min(C.foeHpMax,C.foeHp+6);
+    var back=C.atk;
+    if(C.garde){ back=0; C.garde=false; }
+    if(C.trait==="venin") back+=3;
+    C.row++;
+    var plus=0;
+    if(C.row>=MAX_ROWS){ plus = hasRelic("clepsydre")?0:Math.round(C.atk*0.6); setMsg("Le mot était « "+C.word+" »."); }
+    else setMsg("Tentative perdue.");
+    if(back+plus>0){ P.hp-=(back+plus); floatText("-"+(back+plus),"var(--yellow)"); }
+    if(P.hp<=0) return handleDeath();
+    if(C.row>=MAX_ROWS){ setTimeout(function(){ if(C && !C.over){ newWord(); renderFight(); } },900); }
+    else { C.col=0; drawCursorFor(C,"board"); applyBannedKeys(); }
+    save(); renderFight();
   }
 
+  function handleDeath(){
+    if(hasRelic("amulette") && !P.amulette){
+      P.amulette=true; P.hp=1; save(); renderFight();
+      toast("📿 L'amulette te retient au bord du gouffre !", 3000);
+      setMsg("Tu tiens encore. De justesse.");
+      return;
+    }
+    P.hp=0; renderFight(); save(); loseFight();
+  }
+
+  /* ---------- fin de combat ---------- */
+  var resultAfter = null;
   function winFight(){
-    C.over = true;
-    var f = currentFoe(), gain = f.xp, zIdxAtFight = P.zone;
-    var orGain = Math.max(2, Math.round(gain/4));
-    P.xp += gain; P.or += orGain;
-    var levels = 0;
-    while(P.xp >= xpNeed()){ P.xp -= xpNeed(); P.lvl++; levels++; }
-    if(levels){ P.hp = hpMax(); P.mana = manaMax(); }
-    else { P.mana = Math.min(manaMax(), P.mana + 10); }
-
-    var drops = rollLoot(f, zIdxAtFight);
-
-    // progression
-    P.foe++;
-    if(P.foe >= currentZone().monstres.length){ P.zone++; P.foe = 0; }
+    C.over = true; $("kb").style.display="none";
+    var orGain = Math.round(C.or * (hasRelic("bourse")?1.5:1));
+    P.or += orGain;
+    // Souffle du vainqueur : sans cette récupération, la 3e bataille d'affilée
+    // est mathématiquement perdue — vérifié par simulation.
+    var soin = Math.round(hpMax()*0.15);
+    P.hp = Math.min(hpMax(), P.hp + soin);
+    var up = gainXp(C.xp);
+    var boss = (C.kind==="boss"), elite = (C.kind==="elite");
     save();
-
-    var newSkills = SKILLS.filter(function(s){ return levels && s.lvl > P.lvl - levels && s.lvl <= P.lvl; });
-    $("rIc").textContent = f.boss ? "👑" : "🎉";
-    $("rTit").textContent = f.boss ? "Boss vaincu !" : "Victoire !";
-    $("rSub").textContent = f.n + " est vaincu.";
-    var g = "<span>+" + gain + " XP</span><span>+" + orGain + " 🪙</span>";
-    if(levels) g += "<span>🎖️ Niveau " + P.lvl + "</span>";
-    $("rGain").innerHTML = g;
-    $("rLoot").innerHTML = lootHtml(drops);
-    if(newSkills.length){
-      $("rSub").textContent += " Nouvelle compétence : " + newSkills.map(function(s){ return s.e+" "+s.n; }).join(", ") + ".";
-    }
-    $("rNext").textContent = finished() ? "Voir la fin" : "Continuer";
+    $("rIc").textContent = boss ? "👑" : elite ? "💀" : "🎉";
+    $("rTit").textContent = boss ? "Gardien vaincu !" : elite ? "Élite terrassée !" : "Victoire !";
+    $("rSub").textContent = C.foe.n + " est vaincu.";
+    $("rGain").innerHTML = "<span>+"+C.xp+" XP</span><span>+"+orGain+" 🪙</span><span>+"+soin+" ❤️</span>" + (up ? "<span>🎖️ Niveau "+P.lvl+"</span>" : "");
+    $("rLoot").innerHTML = "";
+    $("rNext").textContent = "Continuer";
+    var wasBoss = boss, wasElite = elite;
+    resultAfter = function(){
+      var suite = function(){
+        if(wasBoss) giveRelic("Le gardien gardait ceci.", function(){ advance(); });
+        else if(wasElite && Math.random()<0.5) giveRelic("L'élite protégeait un objet.", function(){ advance(); });
+        else advance();
+      };
+      if(up) offerUpgrade(suite); else suite();
+    };
     openOverlay("ovRes");
   }
   function loseFight(){
-    C.over = true;
-    // La défaite ne bloque jamais, mais ne doit pas non plus devenir un
-    // moyen gratuit de se soigner à volonté : on ne repart qu'à moitié
-    // requinqué, et on perd quelques pièces au passage.
-    var orLost = Math.min(P.or, 4 + P.lvl*2);
+    C.over = true; $("kb").style.display="none";
+    P.morts = (P.morts||0)+1;
+    var orLost = Math.min(P.or, 10 + P.lvl*3);
     P.or -= orLost;
-    P.hp = Math.max(1, Math.round(hpMax() * 0.5));
-    P.mana = Math.round(manaMax() * 0.5);
+    P.hp = Math.max(1, Math.round(hpMax()*0.6));
+    P.mana = Math.round(manaMax()*0.6);
+    genMap();          // l'acte est à recommencer : nouvelle carte, nouveau chemin
     save();
-    $("rIc").textContent = "💀";
-    $("rTit").textContent = "Tu es tombé…";
-    $("rSub").textContent = "Tu gardes ton niveau et ton expérience, mais tu repars affaibli"
-      + (orLost > 0 ? " et délesté de " + orLost + " 🪙 pendant ta fuite." : ".");
-    $("rGain").innerHTML = "<span>Niveau " + P.lvl + " conservé</span>";
-    $("rNext").textContent = "Réessayer";
+    $("rIc").textContent="💀";
+    $("rTit").textContent="Tu es tombé…";
+    $("rSub").textContent = "Tu reprends l'acte depuis son entrée. Ton niveau, tes reliques et tes compétences te suivent"
+      + (orLost>0 ? ", mais tu as perdu "+orLost+" 🪙 dans ta fuite." : ".");
+    $("rGain").innerHTML = "<span>Niveau "+P.lvl+" conservé</span>";
+    $("rLoot").innerHTML = "";
+    $("rNext").textContent="Repartir";
+    resultAfter = function(){ showMap(); };
     openOverlay("ovRes");
   }
+  $("rNext").addEventListener("click", function(){
+    closeOverlays(); var f=resultAfter; resultAfter=null; if(f) f(); else showMap();
+  });
 
-  /* ---------- Clavier ---------- */
-  var keyEls = {};
-  var ROWS = ["AZERTYUIOP", "QSDFGHJKLM", "\u0000WXCVBN\u0001"];
+  /* ---------- fin de l'aventure ---------- */
+  function showEnd(){
+    $("scFight").style.display="none"; $("scDefi").style.display="none"; $("kb").style.display="none";
+    $("scMap").style.display="";
+    renderHud();
+    $("zTag").textContent="Aventure terminée";
+    $("zNom").textContent="👑 Le Lexique est retrouvé";
+    $("zIntro").textContent = DATA.epilogue || "";
+    $("zMod").innerHTML = "";
+    $("mapBox").innerHTML = '<div class="card" style="text-align:center">'
+      + '<div style="font-size:44px">🏆</div>'
+      + '<div style="font-weight:800;margin:6px 0">Niveau '+P.lvl+' · '+P.relics.length+' reliques · '+P.seen.length+' créatures rencontrées</div>'
+      + (P.morts ? '<div style="font-size:12.5px;color:var(--ink-dim)">Tombé '+P.morts+' fois en chemin.</div>' : '<div style="font-size:12.5px;color:var(--ink-dim)">Sans jamais tomber. Remarquable.</div>')
+      + '</div>';
+    var b=document.createElement("button"); b.className="btn"; b.textContent="Recommencer une aventure";
+    b.addEventListener("click", function(){
+      askConfirm("Nouvelle aventure ?","Ta progression actuelle sera effacée.", function(){
+        P=freshPlayer(); genMap(); save(); closeOverlays(); showMap(); toast("Bonne route.");
+      });
+    });
+    $("mapBox").appendChild(b);
+    renderInv();
+  }
+
+  /* ---------- bestiaire ---------- */
+  function showCodex(){
+    var html="";
+    ZONES.forEach(function(z){
+      var all = z.monstres.concat(z.elites).concat([z.boss]);
+      var vus = all.filter(function(m){ return P.seen.indexOf(m.n)>=0; });
+      html += '<div class="zone-t" style="margin-top:10px">'+z.e+' '+z.nom+' — '+vus.length+'/'+all.length+'</div>';
+      html += all.map(function(m){
+        var vu = P.seen.indexOf(m.n)>=0;
+        if(!vu) return '<div class="loot-row" style="opacity:.35">❔ <span>Jamais rencontré</span></div>';
+        var t=(DATA.traits||{})[m.trait];
+        return '<div class="shop-it"><span class="e">'+m.e+'</span><span class="n">'+m.n
+          + '<span style="display:block;font-size:11.5px;color:var(--ink-dim);font-weight:700">'+(t?t.e+" "+t.n:"")+' — '+m.cri+'</span></span></div>';
+      }).join("");
+    });
+    $("cxList").innerHTML = html;
+    openOverlay("ovCodex");
+  }
+
+  /* ---------- clavier ---------- */
+  var keyEls={};
+  var ROWS=["AZERTYUIOP","QSDFGHJKLM","\u0000WXCVBN\u0001"];
   function buildKeyboard(){
-    var kb = $("kb"); kb.innerHTML = ""; keyEls = {};
+    var kb=$("kb"); kb.innerHTML=""; keyEls={};
     ROWS.forEach(function(r){
-      var row = document.createElement("div"); row.className = "kbrow";
+      var row=document.createElement("div"); row.className="kbrow";
       r.split("").forEach(function(ch){
-        var b = document.createElement("button");
-        if(ch === "\u0000"){ b.className = "key wide"; b.textContent = "ENTRÉE"; b.addEventListener("click", submit); }
-        else if(ch === "\u0001"){ b.className = "key wide"; b.textContent = "⌫"; b.addEventListener("click", backspace); }
-        else {
-          b.className = "key"; b.textContent = ch;
-          keyEls[ch] = b;
-          b.addEventListener("click", function(){ type(ch); });
-        }
+        var b=document.createElement("button");
+        if(ch==="\u0000"){ b.className="key wide"; b.textContent="ENTRÉE"; b.addEventListener("click", onSubmit); }
+        else if(ch==="\u0001"){ b.className="key wide"; b.textContent="⌫"; b.addEventListener("click", onBack); }
+        else { b.className="key"; b.textContent=ch; keyEls[ch]=b; b.addEventListener("click", function(){ onType(ch); }); }
         row.appendChild(b);
       });
       kb.appendChild(row);
     });
   }
   function resetKeyColors(){ for(var k in keyEls) keyEls[k].classList.remove("correct","present","absent","inconnu"); }
-  function applyBannedKeys(){
-    for(var k in keyEls) keyEls[k].classList.toggle("banned", !!(C && C.banned && C.banned.indexOf(k) >= 0));
-  }
-  function paintKey(ch, st){
-    var el = keyEls[ch]; if(!el) return;
+  function applyBannedKeys(){ for(var k in keyEls) keyEls[k].classList.toggle("banned", !!(C && C.banned && C.banned.indexOf(k)>=0)); }
+  function paintKey(ch,st){
+    var el=keyEls[ch]; if(!el) return;
     if(el.classList.contains("correct")) return;
-    if(st === "inconnu"){
-      // Fumée : ne jamais écraser une info déjà connue par ailleurs, et ne
-      // jamais s'imposer si la lettre a déjà ce statut.
-      if(!el.classList.contains("present") && !el.classList.contains("absent")) el.classList.add("inconnu");
-      return;
-    }
+    if(st==="inconnu"){ if(!el.classList.contains("present") && !el.classList.contains("absent")) el.classList.add("inconnu"); return; }
     el.classList.remove("inconnu");
-    if(st === "correct"){ el.classList.remove("present","absent"); el.classList.add("correct"); }
-    else if(st === "present"){ if(!el.classList.contains("present")){ el.classList.remove("absent"); el.classList.add("present"); } }
+    if(st==="correct"){ el.classList.remove("present","absent"); el.classList.add("correct"); }
+    else if(st==="present"){ if(!el.classList.contains("present")){ el.classList.remove("absent"); el.classList.add("present"); } }
     else if(!el.classList.contains("present")) el.classList.add("absent");
   }
+  /* aiguillage : énigme hors combat, sinon combat.
+     On ignore la saisie pendant la brève transition entre deux mots
+     (la ligne courante n'existe plus tant que le plateau n'est pas refait). */
+  function active(){
+    var S = DF ? {S:DF, box:"dfBoard"} : (C && !C.over ? {S:C, box:"board"} : null);
+    if(!S) return null;
+    if(!S.S.grid || S.S.row >= S.S.grid.length) return null;
+    return S;
+  }
+  function onType(ch){
+    var a=active(); if(!a) return;
+    if(a.S===C && C.banned && C.banned.indexOf(ch)>=0){ toast("🍂 Lettre interdite ici"); return; }
+    var S=a.S;
+    if(S.col>=S.len){ var e=firstEmptyOf(S); if(e>=S.len) return; S.col=e; }
+    setCellOf(S,a.box,S.row,S.col,ch);
+    var n=firstEmptyFromOf(S,S.col+1);
+    S.col = (n<0) ? S.len : n;
+    drawCursorFor(S,a.box);
+  }
+  function onBack(){
+    var a=active(); if(!a) return;
+    var S=a.S;
+    if(S.col<S.len && S.grid[S.row][S.col]){ setCellOf(S,a.box,S.row,S.col,""); drawCursorFor(S,a.box); return; }
+    var c=Math.min(S.col,S.len)-1;
+    while(c>=0 && !S.grid[S.row][c]) c--;
+    if(c<0){ drawCursorFor(S,a.box); return; }
+    S.col=c; setCellOf(S,a.box,S.row,S.col,""); drawCursorFor(S,a.box);
+  }
+  function onSubmit(){ if(DF) return defiSubmit(); if(C && !C.over) return submitFight(); }
+  function firstEmptyOf(S){ for(var c=0;c<S.len;c++) if(!S.grid[S.row][c]) return c; return S.len; }
+  function firstEmptyFromOf(S,f){ for(var c=f;c<S.len;c++) if(!S.grid[S.row][c]) return c;
+    for(var c2=0;c2<S.len;c2++) if(!S.grid[S.row][c2]) return c2; return -1; }
   document.addEventListener("keydown", function(e){
-    if($("scFight").style.display === "none") return;
+    if(!active()) return;
     if(document.querySelector(".overlay.open")) return;
-    var k = e.key;
-    if(k === "Enter"){ e.preventDefault(); submit(); }
-    else if(k === "Backspace"){ e.preventDefault(); backspace(); }
-    else if(/^[a-zA-Z]$/.test(k)){ e.preventDefault(); type(k.toUpperCase()); }
+    var k=e.key;
+    if(k==="Enter"){ e.preventDefault(); onSubmit(); }
+    else if(k==="Backspace"){ e.preventDefault(); onBack(); }
+    else if(/^[a-zA-Z]$/.test(k)){ e.preventDefault(); onType(k.toUpperCase()); }
   });
 
-  /* ---------- Overlays ---------- */
-  function openOverlay(id){ $(id).classList.add("open"); }
-  function closeOverlays(){
-    Array.prototype.forEach.call(document.querySelectorAll(".overlay"), function(o){ o.classList.remove("open"); });
-  }
-  var confirmCb = null;
-  function askConfirm(t, m, cb){
-    $("cfTit").textContent = t; $("cfMsg").textContent = m; confirmCb = cb; openOverlay("ovConf");
-  }
+  /* ---------- boutons ---------- */
   $("cfYes").addEventListener("click", function(){ closeOverlays(); var f=confirmCb; confirmCb=null; if(f) f(); });
   $("cfNo").addEventListener("click", function(){ closeOverlays(); confirmCb=null; });
-  Array.prototype.forEach.call(document.querySelectorAll("[data-close]"), function(b){
-    b.addEventListener("click", closeOverlays);
-  });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-close]"), function(b){ b.addEventListener("click", closeOverlays); });
   Array.prototype.forEach.call(document.querySelectorAll(".overlay"), function(o){
     o.addEventListener("click", function(e){
-      var noClose = ["ovRes","ovConf","ovEvent","ovDefi","ovShop"];
-      if(e.target === o && noClose.indexOf(o.id) < 0) closeOverlays();
+      var libres=["ovHelp","ovCodex"];
+      if(e.target===o && libres.indexOf(o.id)>=0) closeOverlays();
     });
   });
-
-  /* ---------- Boutons ---------- */
-  $("btnFight").addEventListener("click", onFightClick);
+  function inAction(){ return (C && !C.over) || !!DF; }
+  function leaveAction(then){
+    if(!inAction()){ then(); return; }
+    askConfirm("Quitter ?","Ce combat sera perdu et tu reprendras l'acte depuis son entrée.", function(){
+      if(C) C.over=true; DF=null; then();
+    });
+  }
+  $("btnBack").addEventListener("click", function(){ leaveAction(function(){ location.href="./index.html"; }); });
+  $("btnCamp").addEventListener("click", function(){ leaveAction(function(){ if(C&&C.over===true&&P.hp<=0){} genMap(); save(); showMap(); }); });
   $("btnHelp").addEventListener("click", function(){ openOverlay("ovHelp"); });
-  /* Un combat en cours n'est jamais repris : quitter le perd. On prévient
-     systématiquement, comme pour l'entraînement de la Course dans Motus. */
-  function inFight(){ return C && !C.over && $("scFight").style.display !== "none"; }
-  function leaveFight(then){
-    if(!inFight()){ then(); return; }
-    askConfirm("Quitter le combat ?",
-      "Le combat en cours sera perdu. Ton niveau et ton expérience sont conservés.",
-      function(){ if(C) C.over = true; then(); });
-  }
-  $("btnBack").addEventListener("click", function(){
-    leaveFight(function(){ location.href = "./index.html"; });
-  });
-  $("btnHome").addEventListener("click", function(){
-    leaveFight(function(){ renderHome(); });
-  });
-  $("btnReset").addEventListener("click", function(){
-    leaveFight(function(){
-      askConfirm("Recommencer l'aventure ?", "Ton niveau, ton expérience et ta progression seront remis à zéro.", resetAll);
-    });
-  });
-  window.addEventListener("beforeunload", function(e){
-    if(inFight()){ e.preventDefault(); e.returnValue = ""; }
-  });
-  $("rNext").addEventListener("click", function(){
-    closeOverlays();
-    if(C && C.over && P.hp > 0 && !finished() && $("rTit").textContent === "Tu es tombé…"){ renderHome(); return; }
-    renderHome();
-  });
-  function resetAll(){
-    P = freshPlayer(); save(); closeOverlays(); renderHome();
-    toast("Nouvelle aventure ! Bonne chance.");
-  }
-
-  window.addEventListener("resize", function(){ if(C && $("scFight").style.display !== "none") buildBoard(); });
-
-  /* ---------- Démarrage ---------- */
+  $("btnCodex").addEventListener("click", showCodex);
   $("loreGo").addEventListener("click", function(){ closeOverlays(); });
+  window.addEventListener("beforeunload", function(e){ if(inAction()){ e.preventDefault(); e.returnValue=""; } });
+  window.addEventListener("resize", function(){
+    if(C && $("scFight").style.display!=="none") buildBoardFor(C,"board");
+    if(DF && $("scDefi").style.display!=="none") buildBoardFor(DF,"dfBoard");
+  });
+
+  /* ---------- démarrage ---------- */
   load();
-  buildKeyboard();   // toujours prêt : un événement peut en avoir besoin avant le premier combat
-  renderHome();
-  // le prologue n'est montré qu'une fois, au tout premier lancement
-  if(!store.get("motus.rpg.lu", false)){
+  buildKeyboard();
+  showMap();
+  if(!store.get("motus.rpg2.lu", false)){
     $("loreTxt").textContent = DATA.prologue || "";
     openOverlay("ovLore");
-    store.set("motus.rpg.lu", true);
+    store.set("motus.rpg2.lu", true);
   }
 })();
 </script>
