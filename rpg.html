@@ -141,6 +141,7 @@
   .ev-opt{ width:100%; text-align:left; padding:12px 14px; margin-bottom:8px; border:none; border-radius:12px;
     background:var(--bg-2); color:var(--ink); font-size:14px; font-weight:700; cursor:pointer; }
   .ev-opt:active{ transform:scale(.98); }
+  .ev-opt:disabled{ opacity:.4; cursor:default; }
   .ev-opt .fx{ display:block; font-size:11.5px; font-weight:700; color:var(--accent); margin-top:3px; }
   .shop-it{ display:flex; align-items:center; gap:10px; padding:10px; margin-bottom:8px; border-radius:12px; background:var(--bg-2); }
   .shop-it .e{ font-size:22px; }
@@ -279,6 +280,7 @@
     <div class="card">
       <div class="zone-t">Sac</div>
       <div class="bag-row" id="bagRow"></div>
+      <button class="btn ghost" id="btnShopHome" style="margin-top:10px">🧺 Voir la boutique</button>
     </div>
 
     <div class="card">
@@ -401,8 +403,8 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="./dico/motus-words.js?v=1.32.0"></script>
-<script src="./dico/motus-rpg.js?v=1.32.0"></script>
+<script src="./dico/motus-words.js?v=1.32.1"></script>
+<script src="./dico/motus-rpg.js?v=1.32.1"></script>
 <script>
 (function(){
   "use strict";
@@ -630,9 +632,15 @@
 
   function onFightClick(){
     if(finished()){ askConfirm("Nouvelle aventure ?", "Ta progression actuelle sera effacée.", resetAll); return; }
-    if(Math.random() < 0.4){
+    // un seul événement par monstre : sans ce verrou, enchaîner "Combattre"
+    // puis "Quitter" permettrait de rejouer l'événement à volonté.
+    var slot = P.zone + "-" + P.foe;
+    if(P.evDoneFor !== slot && Math.random() < 0.4){
       var ev = pickEvent();
-      if(ev){ EV = { def: ev }; markSeen(ev.id); showEvent(ev); return; }
+      if(ev){
+        P.evDoneFor = slot; save();
+        EV = { def: ev }; markSeen(ev.id); showEvent(ev); return;
+      }
     }
     startFight();
   }
@@ -673,10 +681,13 @@
     var opts = $("evOpts"); opts.style.display = ""; opts.innerHTML = "";
     ev.options.forEach(function(o, i){
       var b = document.createElement("button");
+      var cout = o.cout && o.cout.or;
+      var abordable = !cout || P.or >= cout;
       b.className = "ev-opt";
+      if(!abordable) b.disabled = true;
       var fx = effetLabel(o.effet);
-      b.innerHTML = o.texte + (fx ? '<span class="fx">' + fx + '</span>' : "");
-      b.addEventListener("click", function(){ resolveChoice(ev, o); });
+      b.innerHTML = o.texte + (fx ? '<span class="fx">' + fx + (abordable ? "" : " — pas assez d'or") + '</span>' : "");
+      b.addEventListener("click", function(){ if(abordable) resolveChoice(ev, o); });
       opts.appendChild(b);
     });
     openOverlay("ovEvent");
@@ -715,7 +726,7 @@
       row.appendChild(t);
     }
     loadDico(EV.len);
-    resetKeyColors();
+    buildKeyboard();   // filet de sécurité : garantit un clavier propre et bien peuplé
     $("kb").style.display = "";
     openOverlay("ovDefi");
   }
@@ -768,7 +779,15 @@
       });
     });
   }
-  $("shLeave").addEventListener("click", function(){ EV=null; closeOverlays(); startFight(); });
+  $("shLeave").addEventListener("click", function(){
+    var fromEvent = !!EV; EV = null; closeOverlays();
+    if(fromEvent) startFight(); else renderHome();
+  });
+  $("btnShopHome").addEventListener("click", function(){
+    $("shTxt").textContent = "« Repasse quand tu veux, je ne bouge pas d'ici. »";
+    renderShop();
+    openOverlay("ovShop");
+  });
 
   function startFight(){
     if(finished()){ askConfirm("Nouvelle aventure ?", "Ta progression actuelle sera effacée.", resetAll); return; }
@@ -1270,11 +1289,18 @@
   }
   function loseFight(){
     C.over = true;
-    P.hp = hpMax(); P.mana = manaMax();   // on repart soigné : l'échec ne bloque jamais
+    // La défaite ne bloque jamais, mais ne doit pas non plus devenir un
+    // moyen gratuit de se soigner à volonté : on ne repart qu'à moitié
+    // requinqué, et on perd quelques pièces au passage.
+    var orLost = Math.min(P.or, 4 + P.lvl*2);
+    P.or -= orLost;
+    P.hp = Math.max(1, Math.round(hpMax() * 0.5));
+    P.mana = Math.round(manaMax() * 0.5);
     save();
     $("rIc").textContent = "💀";
     $("rTit").textContent = "Tu es tombé…";
-    $("rSub").textContent = "Tu gardes ton niveau et ton expérience. Le monstre t'attend de pied ferme.";
+    $("rSub").textContent = "Tu gardes ton niveau et ton expérience, mais tu repars affaibli"
+      + (orLost > 0 ? " et délesté de " + orLost + " 🪙 pendant ta fuite." : ".");
     $("rGain").innerHTML = "<span>Niveau " + P.lvl + " conservé</span>";
     $("rNext").textContent = "Réessayer";
     openOverlay("ovRes");
@@ -1390,6 +1416,7 @@
   /* ---------- Démarrage ---------- */
   $("loreGo").addEventListener("click", function(){ closeOverlays(); });
   load();
+  buildKeyboard();   // toujours prêt : un événement peut en avoir besoin avant le premier combat
   renderHome();
   // le prologue n'est montré qu'une fois, au tout premier lancement
   if(!store.get("motus.rpg.lu", false)){
