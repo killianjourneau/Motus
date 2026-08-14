@@ -71,6 +71,7 @@
     box-shadow:inset 0 0 0 1.5px var(--cell-edge); font-weight:800; font-size:12.5px; cursor:pointer; }
   .lv.on{ background:var(--accent); color:#fff; box-shadow:none; }
   .score{ display:flex; align-items:center; gap:10px; font-weight:800; font-size:15px; }
+  .record{ font-size:12.5px; color:var(--ink-dim); font-weight:700; }
   .score .hearts{ letter-spacing:1px; }
   .score .hearts.hide{ display:none; }
 
@@ -170,13 +171,14 @@
 
   <div class="bar">
     <div class="levels">
-      <button class="lv on" data-lv="facile">Facile</button>
+      <button class="lv on" data-lv="facile">Petit</button>
       <button class="lv" data-lv="moyen">Moyen</button>
-      <button class="lv" data-lv="expert">Expert</button>
+      <button class="lv" data-lv="expert">Grand</button>
     </div>
     <div class="score">
       <span class="hearts" id="hearts">❤️❤️❤️</span>
       <span id="stars">⭐ 0</span>
+      <span id="record" class="record">🏆 —</span>
     </div>
   </div>
 
@@ -216,7 +218,7 @@
     </div>
   </div>
 
-<script src="./dico/motus-enfant.js?v=1.28.2"></script>
+<script src="./dico/motus-enfant.js?v=1.34.2"></script>
 <script>
 (function(){
   "use strict";
@@ -234,7 +236,8 @@
 
   var game   = store.get("motus.enfant.game","intrus");   // sans lecture par défaut : jouable dès 5 ans
   var level  = store.get("motus.enfant.level","facile");
-  var best   = store.get("motus.enfant.best",{}) || {};
+  var best   = store.get("motus.enfant.best.time",{}) || {};   // record en TEMPS (ms), remplace l'ancien système par étoiles
+  var runStart = 0;
   var lives = LIVES, stars = 0, locked = false;
   var target = null, choices = [];        // lettres / intrus
   var countN = 0;                          // comptage
@@ -266,9 +269,20 @@
     h.classList.toggle("hide", game==="memo");        // en mémoire, se tromper ne coûte rien
     h.textContent = "❤️".repeat(Math.max(0,lives)) + "🖤".repeat(Math.max(0,LIVES-lives));
     $("stars").textContent = "⭐ " + stars;
+    paintRecord();
   }
   function bestKey(){ return game + ":" + level; }
   function bestVal(){ return best[bestKey()] || 0; }
+  function isCompletionGame(){ return game==="memo"; }   // record = temps le plus COURT (fini le tableau) ; les autres = temps le plus LONG (survie)
+  function fmtTime(ms){
+    var s = Math.max(0, Math.round(ms/1000));
+    var m = Math.floor(s/60), r = s%60;
+    return m>0 ? (m+"min "+(r<10?"0":"")+r+"s") : (s+"s");
+  }
+  function paintRecord(){
+    var b = bestVal();
+    $("record").textContent = b>0 ? "🏆 "+fmtTime(b) : "🏆 —";
+  }
 
   /* =======================================================
      JEU 1 — L'INTRUS  (aucune lecture : dès 5 ans)
@@ -580,12 +594,17 @@
   }
 
   function endRun(missed, title){
+    var elapsed = Date.now() - runStart;
+    var completed = isCompletionGame();
     var b = bestVal();
-    if(stars > b){ best[bestKey()] = stars; store.set("motus.enfant.best", best); b = stars; }
+    var record = completed ? (b===0 || elapsed<b) : (elapsed>b);
+    if(record){ best[bestKey()] = elapsed; store.set("motus.enfant.best.time", best); b = elapsed; }
     $("endTitle").textContent = title || (stars>0 ? "Bien joué !" : "On réessaie ?");
-    $("endStars").textContent = "⭐ " + stars;
-    $("endSub").textContent = (stars>=b && stars>0) ? "C'est ton meilleur score !"
-      : "Ton record : " + b + (b>1 ? " étoiles" : " étoile");
+    $("endStars").textContent = fmtTime(elapsed);
+    $("endSub").textContent = record
+      ? "Nouveau record : "+fmtTime(elapsed)+" ! (⭐ "+stars+")"
+      : (completed ? "Ton record : "+fmtTime(b)+" (⭐ "+stars+")"
+                   : "Tu as tenu "+fmtTime(elapsed)+" — ton record : "+fmtTime(b)+" (⭐ "+stars+")");
     var ew = $("endWord");
     if(missed){ ew.innerHTML = 'C\'était <b>'+missed.m+'</b> '+missed.e; ew.style.display="block"; }
     else { ew.style.display="none"; }
@@ -593,7 +612,7 @@
   }
   function startRun(){
     $("endOverlay").classList.remove("open");
-    lives = LIVES; stars = 0; locked = false;
+    lives = LIVES; stars = 0; locked = false; runStart = Date.now();
     paintScore(); newRound();
   }
 
@@ -632,16 +651,16 @@
   var HELP = {
     intrus: ["Des images (ou des mots) sont affichés. Tous vont ensemble, sauf un.",
              "Touche <b>l'intrus</b> : celui qui n'est pas comme les autres.",
-             "<b>Facile</b> : 4 ou 6 images, l'intrus est très différent.",
+             "<b>Petit</b> : 4 ou 6 images, l'intrus est très différent.",
              "<b>Moyen</b> : 9 images, l'intrus vient d'une famille voisine.",
-             "<b>Expert</b> : ce sont des <b>mots</b> à lire, l'intrus vient d'une famille voisine."],
+             "<b>Grand</b> : ce sont des <b>mots</b> à lire, l'intrus vient d'une famille voisine."],
     compter:["Touche le <b>bon chiffre</b>, de 0 à 12 (0 est possible, mais rare !).",
-             "<b>Facile</b> : des images sont mélangées, il faut compter <b>une seule sorte</b>.",
+             "<b>Petit</b> : des images sont mélangées, il faut compter <b>une seule sorte</b>.",
              "<b>Moyen</b> : compte les lettres dans <b>deux mots</b>.",
-             "<b>Expert</b> : compte les lettres dans une <b>phrase</b> entière !"],
+             "<b>Grand</b> : compte les lettres dans une <b>phrase</b> entière !"],
     memo:   ["Toutes les cartes cachent une image.",
              "Touche deux cartes : si elles sont <b>identiques</b>, elles restent retournées et tu gagnes une ⭐.",
-             "<b>Facile</b> : 4 paires. <b>Moyen</b> : 8 paires. <b>Expert</b> : 12 paires !",
+             "<b>Petit</b> : 4 paires. <b>Moyen</b> : 8 paires. <b>Grand</b> : 12 paires !",
              "Se tromper ne coûte rien : prends ton temps."],
     lettre: ["Un mot est caché. Tu vois sa <b>première lettre</b> et le nombre de lettres.",
              "Touche l'image du mot qui commence par cette lettre. Exemple : <b>K</b> ➜ le 🥝 kiwi.",
