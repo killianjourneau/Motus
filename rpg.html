@@ -64,6 +64,8 @@
   .hud .st{ display:flex; align-items:center; gap:4px; font-size:12.5px; font-weight:800; }
   .hud .st.hp{ color:var(--hp); } .hud .st.mp{ color:var(--mana); } .hud .st.or{ color:var(--yellow); }
   .hud .rel{ display:flex; gap:3px; margin-left:auto; font-size:15px; }
+  .relic-ic{ cursor:pointer; padding:4px; border-radius:8px; }
+  .relic-ic:active{ background:var(--bg-2); transform:scale(.9); }
 
   .bar{ height:12px; border-radius:7px; background:var(--absent); overflow:hidden; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
   .bar > i{ display:block; height:100%; width:0%; transition:width .35s ease; }
@@ -202,7 +204,7 @@
   <div class="tools">
     <button class="icon-btn" id="btnCodex" aria-label="Bestiaire">📖</button>
     <button class="icon-btn" id="btnHelp" aria-label="Règles">?</button>
-    <button class="icon-btn" id="btnCamp" aria-label="Retour à la carte">🗺️</button>
+    <button class="icon-btn" id="btnRestart" aria-label="Recommencer l'aventure depuis le début">🔄</button>
     <button class="icon-btn" id="btnBack" aria-label="Retour à Motus">🏠</button>
   </div>
 </header>
@@ -266,7 +268,7 @@
   <button class="close-x" data-close>&times;</button>
   <h2>Comment jouer</h2>
   <p>Chaque mot proposé est une <b>attaque</b> : 🟥 lettre bien placée → 3 dégâts, 🟡 mal placée → 1 dégât, mot entier trouvé → gros bonus. Le monstre riposte après chaque tentative.</p>
-  <p>Tu progresses sur une <b>carte à embranchements</b> : à chaque étage, choisis ton chemin. Combat, élite, énigme, marchand, repos, trésor — la route la plus sûre n'est pas la plus riche.</p>
+  <p>Tu progresses sur une <b>carte à embranchements</b> : à chaque étage, plusieurs cases t'attendent — combat, élite, énigme, marchand, repos, trésor. Tu choisis l'<b>ordre</b> dans lequel les résoudre, mais il faut toutes les faire avant que l'étage suivant ne se débloque.</p>
   <p>Chaque monstre a un <b>trait</b>, chaque acte une <b>particularité</b> qui change les règles. Les deux sont toujours affichés.</p>
   <p>À chaque niveau, tu choisis une <b>amélioration</b> parmi trois. Les <b>reliques</b> trouvées en chemin ajoutent des effets permanents.</p>
   <p>Chaque victoire te rend <b>15 % de tes points de vie</b> : c'est ta seule récupération automatique, tout le reste se mérite (repos, potions, rencontres).</p>
@@ -321,8 +323,8 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="./dico/motus-words.js?v=1.33.0"></script>
-<script src="./dico/motus-rpg.js?v=1.33.0"></script>
+<script src="./dico/motus-words.js?v=1.34.1"></script>
+<script src="./dico/motus-rpg.js?v=1.34.1"></script>
 <script>
 (function(){
   "use strict";
@@ -438,7 +440,7 @@
     var n = z.etages, m = [];
     for(var e=0; e<n; e++){
       var row = [], choix;
-      if(e === n-1){ m.push([{type:"boss"}]); break; }
+      if(e === n-1){ m.push([{type:"boss", done:false}]); break; }
       if(e === 0) choix = ["combat","combat","event"];
       else if(e === n-2) choix = ["repos","shop","elite"];
       else choix = ["combat","event","defi","elite","tresor","shop","combat"];
@@ -448,7 +450,7 @@
         var t = pick(pool);
         pool = pool.filter(function(x){ return x!==t; });
         if(!pool.length) pool = choix.slice();
-        row.push({ type:t });
+        row.push({ type:t, done:false });
       }
       m.push(row);
     }
@@ -472,7 +474,7 @@
   function renderHud(){
     var rel = P.relics.map(function(id){
       var r = RELICS.find(function(x){ return x.id===id; });
-      return r ? '<span title="'+r.n+' — '+r.d+'">'+r.e+'</span>' : "";
+      return r ? '<span class="relic-ic" data-r="'+id+'">'+r.e+'</span>' : "";
     }).join("");
     $("hud").innerHTML =
       '<span class="lv">Niv. '+P.lvl+'</span>'
@@ -480,6 +482,14 @@
       + '<span class="st mp">🔷 '+P.mana+'/'+manaMax()+'</span>'
       + '<span class="st or">🪙 '+P.or+'</span>'
       + '<span class="rel">'+rel+'</span>';
+    // Le titre HTML seul (survol) ne marche jamais au toucher : une relique
+    // doit pouvoir se taper pour révéler son effet.
+    Array.prototype.forEach.call($("hud").querySelectorAll(".relic-ic"), function(el){
+      el.addEventListener("click", function(){
+        var r = RELICS.find(function(x){ return x.id===el.dataset.r; });
+        if(r) toast(r.e+" "+r.n+" — "+r.d, 3400);
+      });
+    });
   }
   function traitHtml(id){ var t=(DATA.traits||{})[id]; return t ? t.e+' '+t.n+' <span class="dd">· '+t.d+'</span>' : ""; }
   function zModHtml(){ var m=zoneMod(); return m ? m.e+' <b>'+m.n+'</b> <span class="dd">· '+m.d+'</span>' : ""; }
@@ -499,15 +509,27 @@
   }
   function renderMap(){
     var box=$("mapBox"); box.innerHTML="";
+    var floor = P.map[P.etage] || [];
+    var faits = floor.filter(function(n){ return n.done; }).length;
+    if(floor.length>1){
+      var prog=document.createElement("div"); prog.className="zone-i"; prog.style.marginBottom="10px";
+      prog.textContent = faits<floor.length
+        ? "Il faut résoudre chaque case de cet étage avant de continuer — "+faits+"/"+floor.length+" faites."
+        : "Étage terminé — la suite est débloquée.";
+      box.appendChild(prog);
+    }
     P.map.forEach(function(row, ei){
       var div=document.createElement("div"); div.className="etage";
       row.forEach(function(node, ni){
         var info = NODE_INFO[node.type];
+        var clickable = (ei===P.etage && !node.done);
         var b=document.createElement("button");
         b.className = "node" + (node.type==="boss"?" boss":"")
-          + (ei<P.etage ? " done" : "") + (ei===P.etage ? " now" : "") + (ei>P.etage ? " locked" : "");
+          + (ei<P.etage || (ei===P.etage && node.done) ? " done" : "")
+          + (clickable ? " now" : "")
+          + (ei>P.etage ? " locked" : "");
         b.innerHTML = '<span class="e">'+info.e+'</span><span class="n">'+info.n+'</span><span class="s">'+info.s+'</span>';
-        if(ei===P.etage) b.addEventListener("click", function(){ enterNode(node); });
+        if(clickable) b.addEventListener("click", function(){ enterNode(node); });
         div.appendChild(b);
       });
       box.appendChild(div);
@@ -539,7 +561,9 @@
   }
 
   /* ---------- entrée dans un nœud ---------- */
+  var currentNode = null;
   function enterNode(node){
+    currentNode = node;
     if(node.type==="combat") return startFight("normal");
     if(node.type==="elite")  return startFight("elite");
     if(node.type==="boss")   return startFight("boss");
@@ -550,12 +574,20 @@
     if(node.type==="tresor") return giveRelic("Tu déterres un objet oublié.");
   }
   function advance(){
-    P.etage++;
-    if(P.etage >= P.map.length){
-      P.zone++;
-      if(finished()){ save(); showEnd(); return; }
-      genMap();
-      toast("🌍 Nouvel acte : "+zone().nom, 2600);
+    // le nœud qu'on vient de résoudre est acquis — mais l'étage ne se
+    // débloque que lorsque TOUTES ses cases sont faites, dans l'ordre
+    // que le joueur choisit.
+    if(currentNode){ currentNode.done = true; currentNode = null; }
+    var floor = P.map[P.etage] || [];
+    if(floor.every(function(n){ return n.done; })){
+      P.etage++;
+      if(P.etage >= P.map.length){
+        P.zone++;
+        if(finished()){ save(); showEnd(); return; }
+        genMap();
+        toast("🌍 Nouvel acte : "+zone().nom, 2600);
+        save(); showMap(); return;
+      }
     }
     save(); showMap();
   }
@@ -567,11 +599,19 @@
     return up;
   }
   function offerUpgrade(after){
-    var pool = UPGRADES.slice();
     var lockedSkills = SKILLS.filter(function(s){ return P.skills.indexOf(s.id)<0; });
-    if(lockedSkills.length) pool.push({ skill: pick(lockedSkills) });
-    pool.sort(function(){ return Math.random()-0.5; });
-    var trois = pool.slice(0,3);
+    var pool = UPGRADES.slice().sort(function(){ return Math.random()-0.5; });
+    var trois;
+    if(lockedSkills.length){
+      // Une compétence est TOUJOURS parmi les choix tant qu'il en reste à
+      // débloquer — sans ça, le tirage pouvait l'exclure plusieurs niveaux
+      // d'affilée et donnait l'impression qu'apprendre un pouvoir était
+      // devenu impossible.
+      trois = pool.slice(0,2);
+      trois.push({ skill: pick(lockedSkills) });
+    } else {
+      trois = pool.slice(0,3);
+    }
     $("pkIc").textContent="🎖️"; $("pkTit").textContent="Niveau "+P.lvl+" !";
     $("pkSub").textContent="Choisis une amélioration.";
     var list=$("pkList"); list.innerHTML="";
@@ -791,15 +831,21 @@
   function drawCursorFor(S,boxId){
     for(var r=0;r<S.grid.length;r++) for(var c=0;c<S.len;c++) tileOf(boxId,r,c).classList.remove("cur");
     if(S.row < S.grid.length) for(var c2=0;c2<S.len;c2++) tileOf(boxId,S.row,c2).classList.toggle("cur", c2===S.col);
-    if(boxId==="board") bindRowClicks();
+    bindRowClicks(S,boxId);
   }
-  function bindRowClicks(){
-    if(!C) return;
-    for(var r=0;r<MAX_ROWS;r++){
-      for(var c=0;c<C.len;c++){
-        var t=tileOf("board",r,c);
-        t.style.cursor = (r===C.row && !C.over) ? "pointer" : "";
-        t.onclick = (r===C.row && !C.over) ? (function(col){ return function(){ if(!C.over){ C.col=col; drawCursorFor(C,"board"); } }; })(c) : null;
+  function bindRowClicks(S,boxId){
+    if(!S) return;
+    var over = (S===C) ? C.over : false;
+    for(var r=0;r<S.grid.length;r++){
+      for(var c=0;c<S.len;c++){
+        var t=tileOf(boxId,r,c);
+        t.style.cursor = (r===S.row && !over) ? "pointer" : "";
+        t.onclick = (r===S.row && !over) ? (function(col){
+          return function(){
+            var stillOver = (S===C) ? C.over : false;
+            if(!stillOver){ S.col=col; drawCursorFor(S,boxId); }
+          };
+        })(c) : null;
       }
     }
   }
@@ -1059,7 +1105,7 @@
     if(back+plus>0){ P.hp-=(back+plus); floatText("-"+(back+plus),"var(--yellow)"); }
 
     if(C.foeHp<=0){ if(checkFoeDown()) return; }
-    if(P.hp<=0) return handleDeath();
+    if(P.hp<=0){ if(handleDeath()) return; }
 
     if(exact || C.row>=MAX_ROWS){ setTimeout(function(){ if(C && !C.over){ newWord(); renderFight(); } }, 900); }
     else { C.col=0; drawCursorFor(C,"board"); applyBannedKeys(); }
@@ -1081,7 +1127,7 @@
     if(C.row>=MAX_ROWS){ plus = hasRelic("clepsydre")?0:Math.round(C.atk*0.6); setMsg("Le mot était « "+C.word+" »."); }
     else setMsg("Tentative perdue.");
     if(back+plus>0){ P.hp-=(back+plus); floatText("-"+(back+plus),"var(--yellow)"); }
-    if(P.hp<=0) return handleDeath();
+    if(P.hp<=0){ if(handleDeath()) return; }
     if(C.row>=MAX_ROWS){ setTimeout(function(){ if(C && !C.over){ newWord(); renderFight(); } },900); }
     else { C.col=0; drawCursorFor(C,"board"); applyBannedKeys(); }
     save(); renderFight();
@@ -1089,12 +1135,12 @@
 
   function handleDeath(){
     if(hasRelic("amulette") && !P.amulette){
-      P.amulette=true; P.hp=1; save(); renderFight();
+      P.amulette=true; P.hp=1;
       toast("📿 L'amulette te retient au bord du gouffre !", 3000);
-      setMsg("Tu tiens encore. De justesse.");
-      return;
+      return false;   // sauvé : le tour doit se terminer normalement (nouveau mot / ligne suivante)
     }
     P.hp=0; renderFight(); save(); loseFight();
+    return true;      // vraiment mort : rien de plus à faire ce tour-ci
   }
 
   /* ---------- fin de combat ---------- */
@@ -1280,7 +1326,13 @@
     });
   }
   $("btnBack").addEventListener("click", function(){ leaveAction(function(){ location.href="./index.html"; }); });
-  $("btnCamp").addEventListener("click", function(){ leaveAction(function(){ if(C&&C.over===true&&P.hp<=0){} genMap(); save(); showMap(); }); });
+  $("btnRestart").addEventListener("click", function(){
+    leaveAction(function(){
+      askConfirm("Recommencer l'aventure ?", "Niveau, reliques, or, compétences : tout sera perdu. Tu repars de zéro.", function(){
+        P=freshPlayer(); genMap(); save(); showMap(); toast("Bonne route.");
+      });
+    });
+  });
   $("btnHelp").addEventListener("click", function(){ openOverlay("ovHelp"); });
   $("btnCodex").addEventListener("click", showCodex);
   $("loreGo").addEventListener("click", function(){ closeOverlays(); });
