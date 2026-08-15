@@ -94,6 +94,11 @@
   .spy-c.present span{ position:relative; color:#1a1a1a; }
   .spy-c.absent{ background:var(--absent); color:var(--ink-dim); box-shadow:none; }
   .spy-c.wait{ background:var(--cell); opacity:.45; }
+  .spy-c.typing{ background:var(--cell); box-shadow:inset 0 0 0 2px var(--accent); }
+  .spy-row.live{ animation:spyPulse 1.4s ease-in-out infinite; }
+  @keyframes spyPulse{ 0%,100%{opacity:1} 50%{opacity:.62} }
+  .spy-time{ text-transform:none; letter-spacing:0; font-weight:700; color:var(--ink-dim); }
+  .spy-time.urgent{ color:var(--red); }
   .spy-none{ font-size:13px; color:var(--ink-dim); text-align:center; padding:6px 0; }
   .duel-word{ text-align:center; font-size:16px; font-weight:800; letter-spacing:1px; margin:2px 0 4px; color:var(--accent); }
   #hudLeft{ display:flex; align-items:center; gap:8px; }
@@ -674,18 +679,18 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.34.2"></script>
-<script src="./dico/motus-prenoms.js?v=1.34.2"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.34.2"></script>
-<script src="./dico/motus-maladies.js?v=1.34.2"></script>
-<script src="./dico/motus-maladies-info.js?v=1.34.2"></script>
-<script src="./dico/motus-villes.js?v=1.34.2"></script>
-<script src="./dico/motus-villes-info.js?v=1.34.2"></script>
-<script src="./dico/motus-race.js?v=1.34.2"></script>
-<script src="./dico/motus-expert.js?v=1.34.2"></script>
-<script src="./profiles/config.js?v=1.34.2"></script>
-<script src="./profiles/profile.js?v=1.34.2"></script>
-<script src="./duel/duel.js?v=1.34.2"></script>
+<script src="./dico/motus-words.js?v=1.36.0"></script>
+<script src="./dico/motus-prenoms.js?v=1.36.0"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.36.0"></script>
+<script src="./dico/motus-maladies.js?v=1.36.0"></script>
+<script src="./dico/motus-maladies-info.js?v=1.36.0"></script>
+<script src="./dico/motus-villes.js?v=1.36.0"></script>
+<script src="./dico/motus-villes-info.js?v=1.36.0"></script>
+<script src="./dico/motus-race.js?v=1.36.0"></script>
+<script src="./dico/motus-expert.js?v=1.36.0"></script>
+<script src="./profiles/config.js?v=1.36.0"></script>
+<script src="./profiles/profile.js?v=1.36.0"></script>
+<script src="./duel/duel.js?v=1.36.0"></script>
 <script>
 (() => {
   "use strict";
@@ -734,7 +739,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.34.2";
+  const VERSION = "1.36.0";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -930,6 +935,25 @@
   function setCell(r,c,ch){
     grid[r][c]=ch; const t=tileAt(r,c); t.querySelector("span").textContent=ch;
     t.classList.toggle("filled", !!ch);
+    duelSendLive();
+  }
+
+  /* Duel : on transmet aussi la ligne EN COURS de saisie (préfixée « ~ »),
+     pour que l'adversaire voie les lettres se poser en direct et pas
+     seulement les mots validés. Limité en débit : la frappe est rapide,
+     le réseau n'a pas à suivre chaque touche. */
+  let duelLiveT = 0, duelLiveLast = "";
+  function duelSendLive(){
+    if(mode!=="duel" || !duelCode || !window.Duel || !Duel.moves || over) return;
+    const partial = (grid[row]||[]).map(x=>x||"·").join("");
+    if(partial === duelLiveLast) return;
+    duelLiveLast = partial;
+    clearTimeout(duelLiveT);
+    duelLiveT = setTimeout(()=>{
+      if(mode!=="duel" || !duelCode) return;
+      const vide = partial.split("").every(x=>x==="·");
+      Duel.moves(duelCode, vide ? guesses : guesses.concat(["~"+partial]));
+    }, 320);
   }
 
   /* ---------- Clavier ---------- */
@@ -2007,7 +2031,26 @@
     [6,7,8].forEach(loadDicoForce);        // pour valider le mot proposé
     openOverlay("duelOverlay");
   }
-  function duelStopWatch(){ if(duelStop){ duelStop(); duelStop=null; } }
+  function duelStopWatch(){ if(duelStop){ duelStop(); duelStop=null; } duelTickStop(); }
+
+  /* Le décompte de l'adversaire doit avancer seconde par seconde, sans
+     attendre le prochain sondage réseau. */
+  let duelTick = 0;
+  function duelTickStart(){
+    duelTickStop();
+    duelTick = setInterval(()=>{
+      const box=$("duelSpy");
+      if(!box || !box.classList.contains("show") || !duelRow){ return; }
+      const t = box.querySelector(".spy-time");
+      if(t){
+        const tmp = document.createElement("div");
+        tmp.innerHTML = duelOppTimeHtml(duelRow);
+        const frais = tmp.querySelector(".spy-time");
+        if(frais){ t.className = frais.className; t.textContent = frais.textContent; }
+      }
+    }, 1000);
+  }
+  function duelTickStop(){ if(duelTick){ clearInterval(duelTick); duelTick=0; } }
 
   /* Écran d'attente. Le code reste toujours visible et partageable :
      même une partie publique ou une revanche peut être rejointe par code. */
@@ -2284,12 +2327,17 @@
   function duelDrawSpy(d){
     const box=$("duelSpy"); if(!box || !d) return;
     const word = d.myWord || "";
-    const list = (d.oppMoves || []).filter(g=>g && g.length===word.length);
+    const brut = (d.oppMoves || []);
+    // la ligne en cours de frappe est marquée « ~ » : elle ne doit pas être
+    // évaluée comme un essai validé
+    const live = (brut.find(g=>g && g[0]==="~") || "").slice(1);
+    const list = brut.filter(g=>g && g[0]!=="~" && g.length===word.length);
     if(!word){ box.classList.remove("show"); return; }
     const opp = ((d.opp && d.opp.pseudo) || "Ton adversaire").replace(/[<>]/g,"");
     const fini = d.his && d.his.done;
-    let html = '<div class="spy-t">' + (fini ? "Sa partie" : "Il joue en ce moment") + " · " + opp + "</div>";
-    if(!list.length){
+    let html = '<div class="spy-t">' + (fini ? "Sa partie" : "Il joue en ce moment") + " · " + opp
+      + duelOppTimeHtml(d) + "</div>";
+    if(!list.length && !live){
       html += '<div class="spy-none">' + (fini ? "Il n\'a proposé aucun mot." : "Il n\'a pas encore proposé de mot…") + "</div>";
     } else {
       list.forEach(g=>{
@@ -2297,15 +2345,35 @@
         html += '<div class="spy-row">' + g.split("").map((ch,i)=>
           '<div class="spy-c '+st[i]+'"><span>'+ch+"</span></div>").join("") + "</div>";
       });
-      // lignes restantes, pour voir combien d'essais il lui reste
+      // ligne qu'il est en train de taper, sans aucune évaluation
+      if(!fini && live){
+        html += '<div class="spy-row live">' + live.split("").map(ch=>
+          '<div class="spy-c typing"><span>'+(ch==="·"?"":ch)+"</span></div>").join("") + "</div>";
+      }
       if(!fini){
-        for(let r=list.length; r<MAX_ROWS; r++){
+        const dejaAffichees = list.length + ((live && !fini) ? 1 : 0);
+        for(let r=dejaAffichees; r<MAX_ROWS; r++){
           html += '<div class="spy-row">' + Array(word.length).fill('<div class="spy-c wait"></div>').join("") + "</div>";
         }
       }
     }
     box.innerHTML = html;
     box.classList.add("show");
+    duelTickStart();
+  }
+
+  /* Temps restant de l'adversaire : une fois mon mot trouvé, savoir combien
+     de temps il lui reste change tout l'intérêt de l'attente. */
+  function duelOppTimeHtml(d){
+    if(d.his && d.his.done){
+      const s = Math.round((d.his.ms||0)/1000);
+      return ' <span class="spy-time">· terminé en ' + Math.floor(s/60) + "min " + String(s%60).padStart(2,"0") + "s</span>";
+    }
+    if(!d.deadline) return "";
+    const reste = Math.max(0, d.deadline - Date.now());
+    const s = Math.round(reste/1000);
+    return ' <span class="spy-time' + (reste<60000 ? " urgent" : "") + '">· il lui reste '
+      + Math.floor(s/60) + "min " + String(s%60).padStart(2,"0") + "s</span>";
   }
 
   /* Après un duel : on continue d'écouter pour détecter une proposition de
