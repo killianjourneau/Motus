@@ -250,6 +250,39 @@ window.MOTUS_RPG = {
       options:[
         { texte:"Offrir un peu de ton sang", effet:{hp:-15, relique:true}, suite:"La pierre s'ouvre sur un objet ancien." },
         { texte:"Refuser l'échange", effet:{mp:12}, suite:"Tu t'éloignes, l'esprit plus léger." }
+      ] },
+
+    /* ---- Dilemmes : ici, AUCUNE option n'est bonne. On choisit ce qu'on
+       accepte de perdre. Marqués `amer:true` pour être tirés plus rarement. ---- */
+    { id:"peage", e:"⛓️", n:"Un péage sur le pont", amer:true,
+      texte:"Deux silhouettes barrent le seul pont. « On passe pas gratuitement. »",
+      options:[
+        { texte:"Payer ce qu'ils demandent", effet:{or:-30}, suite:"Ils s'écartent en comptant tes pièces." },
+        { texte:"Forcer le passage", effet:{hp:-22}, suite:"Tu passes, mais tu y laisses des plumes." }
+      ] },
+    { id:"fievre", e:"🤒", n:"Une eau douteuse", amer:true,
+      texte:"Ta gourde est vide depuis ce matin. La mare devant toi ne dit rien qui vaille.",
+      options:[
+        { texte:"Boire quand même", effet:{hp:-18}, suite:"Ça passe mal. Très mal." },
+        { texte:"Continuer assoiffé", effet:{mp:-20}, suite:"La tête te tourne, tu peines à te concentrer." }
+      ] },
+    { id:"sangsues", e:"🪤", n:"Un marécage infesté", amer:true,
+      texte:"Le raccourci traverse une eau noire. Le détour prendrait des heures.",
+      options:[
+        { texte:"Traverser", effet:{hp:-16}, suite:"Tu en ressors couvert de morsures." },
+        { texte:"Faire le détour", effet:{or:-18, mp:-10}, suite:"La nuit tombe, tu dois payer un abri." }
+      ] },
+    { id:"pillards", e:"🗡️", n:"Un campement de pillards", amer:true,
+      texte:"Ils dorment. Ton chemin passe juste à côté de leurs sacs.",
+      options:[
+        { texte:"Passer sans rien toucher", effet:{mp:-14}, suite:"Tu retiens ton souffle pendant une heure." },
+        { texte:"Tenter de leur voler quelque chose", effet:{hp:-20, or:25}, suite:"L'un d'eux se réveille. Tu fuis avec une bourse et une entaille." }
+      ] },
+    { id:"serment", e:"📜", n:"Un serment ancien", amer:true,
+      texte:"Une stèle réclame un tribut à qui veut passer : « le sang ou la mémoire ».",
+      options:[
+        { texte:"Donner de ton sang", effet:{hp:-24}, suite:"La stèle se fend et te laisse passer." },
+        { texte:"Donner un mot de ta mémoire", effet:{xp:-30, mp:-12}, suite:"Tu oublies quelque chose. Tu ne sais plus quoi." }
       ] }
   ],
 
