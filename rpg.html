@@ -63,6 +63,7 @@
   .hud .lv{ font-size:13px; font-weight:800; flex:none; }
   .hud .st{ display:flex; align-items:center; gap:4px; font-size:12.5px; font-weight:800; }
   .hud .st.hp{ color:var(--hp); } .hud .st.mp{ color:var(--mana); } .hud .st.or{ color:var(--yellow); }
+  .hud .st.xp{ color:var(--accent); } .hud .st.atk{ color:var(--ink); }
   .hud .rel{ display:flex; gap:3px; margin-left:auto; font-size:15px; }
   .relic-ic{ cursor:pointer; padding:4px; border-radius:8px; }
   .relic-ic:active{ background:var(--bg-2); transform:scale(.9); }
@@ -127,6 +128,8 @@
   .tile.present span{ position:relative; color:#14233c; }
   .tile.absent{ background:var(--absent); box-shadow:none; color:var(--ink-dim); }
   .tile.cur{ box-shadow:inset 0 0 0 2.5px var(--accent); }
+  .tile.burned{ background:var(--absent); box-shadow:none; color:var(--ink-dim); position:relative; opacity:.75; }
+  .tile.burned span{ text-decoration:line-through; text-decoration-thickness:2px; }
   .tile.smoke{ background:var(--cell); box-shadow:inset 0 0 0 1.5px var(--cell-edge); position:relative; overflow:hidden; }
   .tile.smoke::after{ content:"💨"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
     font-size:calc(var(--tile) * .55); background:rgba(130,130,150,.6); }
@@ -270,6 +273,7 @@
   <p>Chaque mot proposé est une <b>attaque</b> : 🟥 lettre bien placée → 3 dégâts, 🟡 mal placée → 1 dégât, mot entier trouvé → gros bonus. Le monstre riposte après chaque tentative.</p>
   <p>Tu progresses sur une <b>carte à embranchements</b> : à chaque étage, plusieurs cases t'attendent — combat, élite, énigme, marchand, repos, trésor. Tu choisis l'<b>ordre</b> dans lequel les résoudre, mais il faut toutes les faire avant que l'étage suivant ne se débloque.</p>
   <p>Chaque monstre a un <b>trait</b>, chaque acte une <b>particularité</b> qui change les règles. Les deux sont toujours affichés.</p>
+  <p>🔍 <b>Révélation</b> ne peut servir qu'une fois par tentative, jamais deux fois de suite sans proposer un mot entre les deux — et elle est <b>inutilisable</b> à la Grotte des Échos morts, dont toute la particularité est de brouiller ce genre d'indice.</p>
   <p>À chaque niveau, tu choisis une <b>amélioration</b> parmi trois. Les <b>reliques</b> trouvées en chemin ajoutent des effets permanents.</p>
   <p>Chaque victoire te rend <b>15 % de tes points de vie</b> : c'est ta seule récupération automatique, tout le reste se mérite (repos, potions, rencontres).</p>
   <p>Si tu tombes, l'aventure reprend au <b>début de l'acte en cours</b>, sur une carte différente — tu gardes ton niveau, tes reliques et tes compétences, mais tu perds de l'or.</p>
@@ -371,11 +375,19 @@
 
   /* ---------- joueur ---------- */
   var P=null, C=null, EV=null, DF=null;
+  /* Le bestiaire survit aux parties : c'est une collection, pas un état de
+     partie. Stocké à part de motus.rpg2 pour ne jamais être effacé par un
+     recommencement ni par freshPlayer(). */
+  var seen = store.get("motus.rpg2.seen", []) || [];
+  if(!Array.isArray(seen)) seen = [];
+  function markSeen(nom){
+    if(seen.indexOf(nom)<0){ seen.push(nom); store.set("motus.rpg2.seen", seen); }
+  }
   function freshPlayer(){
     return { lvl:1, xp:0, hp:70, mana:35, or:0, zone:0, etage:0,
              map:null, potions:{potion_pv:1,potion_mp:0}, relics:[], skills:["reveal"],
              up:{pv:0,mp:0,atk:0,critBonus:0,regenMot:0,manaMot:0},
-             seen:[], nextBuffAtk:0, amulette:false, morts:0 };
+             nextBuffAtk:0, amulette:false, morts:0 };
   }
   function hasRelic(id){ return P.relics.indexOf(id)>=0; }
   function hpMax(){ return 70 + P.up.pv; }
@@ -402,6 +414,10 @@
     });
     Object.keys(f.up).forEach(function(k){ if(typeof P.up[k]!=="number") P.up[k]=0; });
     Object.keys(f.potions).forEach(function(k){ if(typeof P.potions[k]!=="number") P.potions[k]=0; });
+    // Ancienne sauvegarde : le bestiaire y était stocké, on le récupère
+    // avant de l'oublier, puis on le retire de l'état de partie.
+    if(Array.isArray(P.seen)){ P.seen.forEach(markSeen); }
+    delete P.seen;
     P.skills = P.skills.filter(function(id){ return SKILLS.some(function(s){ return s.id===id; }); });
     if(!P.skills.length) P.skills=["reveal"];
     P.relics = P.relics.filter(function(id){ return RELICS.some(function(r){ return r.id===id; }); });
@@ -418,9 +434,9 @@
   /* ---------- statistiques des monstres ---------- */
   function foeStats(kind, z){
     var basePv = 34 + z*30, baseAtk = Math.round(4 + z*2);
-    if(kind==="elite") return { pv:Math.round(basePv*1.6), atk:Math.round(baseAtk*1.35), xp:30+z*14, or:15+z*6 };
-    if(kind==="boss")  return { pv:Math.round(basePv*2.2), atk:Math.round(baseAtk*1.6),  xp:55+z*22, or:28+z*9 };
-    return { pv:basePv, atk:baseAtk, xp:16+z*8, or:7+z*3 };
+    if(kind==="elite") return { pv:Math.round(basePv*1.6), atk:Math.round(baseAtk*1.35), xp:36+z*16, or:6+z*2 };
+    if(kind==="boss")  return { pv:Math.round(basePv*2.2), atk:Math.round(baseAtk*1.6),  xp:60+z*24, or:22+z*7 };
+    return { pv:basePv, atk:baseAtk, xp:19+z*9, or:2+z };
   }
 
   /* ---------- génération de la carte ---------- */
@@ -480,6 +496,8 @@
       '<span class="lv">Niv. '+P.lvl+'</span>'
       + '<span class="st hp">❤️ '+P.hp+'/'+hpMax()+'</span>'
       + '<span class="st mp">🔷 '+P.mana+'/'+manaMax()+'</span>'
+      + '<span class="st xp">✨ '+P.xp+'/'+xpNeed()+'</span>'
+      + '<span class="st atk">⚔️ '+atkBonus()+'</span>'
       + '<span class="st or">🪙 '+P.or+'</span>'
       + '<span class="rel">'+rel+'</span>';
     // Le titre HTML seul (survol) ne marche jamais au toucher : une relique
@@ -567,7 +585,13 @@
     if(node.type==="combat") return startFight("normal");
     if(node.type==="elite")  return startFight("elite");
     if(node.type==="boss")   return startFight("boss");
-    if(node.type==="event")  return showEvent(pick(EVENTS));
+    if(node.type==="event"){
+      // les dilemmes (aucune bonne option) restent rares : ~1 rencontre sur 5
+      var amers = EVENTS.filter(function(e){ return e.amer; });
+      var doux  = EVENTS.filter(function(e){ return !e.amer; });
+      var lot = (amers.length && Math.random()<0.2) ? amers : (doux.length ? doux : EVENTS);
+      return showEvent(pick(lot));
+    }
     if(node.type==="defi")   return startDefi(pick(DEFIS));
     if(node.type==="shop")   return showShop();
     if(node.type==="repos")  return showRepos();
@@ -595,6 +619,7 @@
   /* ---------- progression ---------- */
   function gainXp(n){
     P.xp += n; var up=0;
+    if(P.xp < 0) P.xp = 0;      // un malus d'XP ne fait jamais redescendre de niveau
     while(P.xp >= xpNeed()){ P.xp -= xpNeed(); P.lvl++; up++; }
     return up;
   }
@@ -718,7 +743,7 @@
     if(fx.hp) p.push((fx.hp>0?"+":"")+fx.hp+" PV");
     if(fx.mp) p.push((fx.mp>0?"+":"")+fx.mp+" MP");
     if(fx.or) p.push((fx.or>0?"+":"")+fx.or+" 🪙");
-    if(fx.xp) p.push("+"+fx.xp+" XP");
+    if(fx.xp) p.push((fx.xp>0?"+":"")+fx.xp+" XP");
     if(fx.relique) p.push("une relique");
     if(fx.buffAtk) p.push("+"+fx.buffAtk+" attaque au prochain combat");
     if(fx.pari) p.push("mise de "+fx.pari+" 🪙");
@@ -861,7 +886,7 @@
           rage:false, garde:false, over:false, revecu:false, mute:null,
           banned:[], buffAtk:P.nextBuffAtk||0, talisman:false, tour:0 };
     P.nextBuffAtk = 0;
-    if(P.seen.indexOf(src.n)<0) P.seen.push(src.n);
+    markSeen(src.n);
     save();
     $("scMap").style.display="none"; $("scDefi").style.display="none"; $("scFight").style.display=""; $("kb").style.display="";
     $("cIc").textContent=src.e;
@@ -883,6 +908,7 @@
       C.mute = dispo.length ? pick(dispo).id : null;
     }
     C.banned=[];
+    C.revealedThisRow=false;   // un seul indice par tentative — il faut proposer un mot entre deux
     if(zm && zm.n==="Feuilles mortes" && !C.talisman){
       var libres="ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").filter(function(c){ return C.word.indexOf(c)<0; });
       libres.sort(function(){ return Math.random()-0.5; });
@@ -907,14 +933,18 @@
   function skillCost(s){ return Math.max(2, s.cout - (hasRelic("loupe")?3:0)); }
   function renderSkillBar(){
     var bar=$("skBar"); bar.innerHTML="";
+    var zmBar = C.talisman ? null : zoneMod();
     SKILLS.forEach(function(s){
       if(P.skills.indexOf(s.id)<0) return;
       var b=document.createElement("button");
       b.className="sk-btn" + ((s.id==="rage"&&C.rage)||(s.id==="garde"&&C.garde) ? " on" : "");
       b.innerHTML = s.e+'<span class="c">'+skillCost(s)+'</span>';
       b.title = s.n+" — "+s.d;
-      b.disabled = C.over || P.mana<skillCost(s) || C.mute===s.id;
-      if(C.mute===s.id) b.style.opacity=".3";
+      var revealLocked = s.id==="reveal" && ((zmBar && zmBar.n==="Écho") || C.revealedThisRow);
+      b.disabled = C.over || P.mana<skillCost(s) || C.mute===s.id || revealLocked;
+      if(C.mute===s.id || revealLocked) b.style.opacity=".3";
+      if(s.id==="reveal" && zmBar && zmBar.n==="Écho") b.title = s.n+" — indisponible ici (la Grotte brouille déjà les indices)";
+      else if(s.id==="reveal" && C.revealedThisRow) b.title = s.n+" — déjà utilisé pour cette tentative";
       b.addEventListener("click", function(){ useSkill(s); });
       bar.appendChild(b);
     });
@@ -943,11 +973,25 @@
     if(C.over || P.mana<cost) return;
     if(C.mute===s.id){ toast("🤐 Cette compétence est réduite au silence"); return; }
     if(s.id==="reveal"){
-      var libres=[]; for(var c=0;c<C.len;c++) if(!C.grid[C.row][c]) libres.push(c);
-      if(!libres.length){ toast("La ligne est déjà remplie"); return; }
-      var c2=pick(libres);
+      var zmR = C.talisman ? null : zoneMod();
+      if(zmR && zmR.n==="Écho"){ toast("🔔 Impossible ici : la Grotte brouille déjà les indices, un de plus ne changerait rien."); return; }
+      if(C.revealedThisRow){ toast("Un seul indice par tentative — propose d'abord un mot."); return; }
+      // Une lettre déjà confirmée bien placée par une tentative précédente ne
+      // doit plus jamais être proposée — ce serait un indice pour rien.
+      var known=new Array(C.len).fill(false);
+      for(var gi=0; gi<C.rowStates.length; gi++){
+        var st=C.rowStates[gi];
+        for(var ci=0;ci<C.len;ci++) if(st[ci]==="correct") known[ci]=true;
+      }
+      // La case choisie ne dépend JAMAIS de ce que le joueur a déjà tapé
+      // dans la ligne en cours — sinon il suffit de ne laisser qu'une case
+      // libre pour forcer l'indice à tomber dessus.
+      var candidats=[]; for(var c=0;c<C.len;c++) if(!known[c]) candidats.push(c);
+      if(!candidats.length){ toast("Tu connais déjà toutes les lettres de ce mot !"); return; }
+      var c2=pick(candidats);
       setCellOf(C,"board",C.row,c2,C.word[c2]); tileOf("board",C.row,c2).classList.add("correct");
       C.col=firstEmpty(); drawCursorFor(C,"board");
+      C.revealedThisRow=true;
       toast("🔍 "+(c2+1)+"ᵉ lettre : "+C.word[c2]);
     } else if(s.id==="soin"){
       if(P.hp>=hpMax()){ toast("Tes points de vie sont au maximum"); return; }
@@ -1035,20 +1079,41 @@
     var st = evaluate(w, C.word);
     if(C.trait==="brouillard") st = st.map(function(x){ return x==="present" ? "absent" : x; });
     var echo = zm && zm.n==="Écho", fumee = zm && zm.n==="Fumée";
+    // Positions et lettres DÉJÀ acquises lors des tentatives précédentes :
+    // les re-proposer ne rapporte plus rien, sinon marteler un mot presque
+    // trouvé tuait le monstre plus vite que de le chercher.
+    var dejaPlace = new Array(C.len).fill(false);
+    var dejaPresent = {};
+    for(var gi=0; gi<C.rowStates.length; gi++){
+      var pst=C.rowStates[gi], pw=C.guesses[gi];
+      var cnt={};
+      for(var ci=0;ci<C.len;ci++){
+        if(pst[ci]==="correct") dejaPlace[ci]=true;
+        else if(pst[ci]==="present") cnt[pw[ci]]=(cnt[pw[ci]]||0)+1;
+      }
+      for(var lt in cnt) dejaPresent[lt]=Math.max(dejaPresent[lt]||0, cnt[lt]);
+    }
     var smoked=[];
     if(fumee){
-      var idx=[]; for(var k=0;k<C.len;k++) idx.push(k);
+      // Une case déjà confirmée rouge n'a plus rien à cacher : l'enfumer
+      // ne retirerait aucune information au joueur.
+      var idx=[]; for(var k=0;k<C.len;k++) if(!dejaPlace[k]) idx.push(k);
       idx.sort(function(){ return Math.random()-0.5; });
-      smoked = idx.slice(0, Math.min(C.len, 1+Math.floor(Math.random()*2)));
+      smoked = idx.slice(0, Math.min(idx.length, 1+Math.floor(Math.random()*2)));
     }
     var red=0, yel=0;
+    var yelVus={};
     for(var i=0;i<C.len;i++){
       var t=tileOf("board",C.row,i); t.classList.remove("cur");
       var d = st[i];
       if(echo && d==="correct") d="present";
       if(fumee && smoked.indexOf(i)>=0){ t.classList.add("smoke"); paintKey(w[i],"inconnu"); }
       else { t.classList.add(d); paintKey(w[i], echo && st[i]==="correct" ? "present" : d); }
-      if(st[i]==="correct") red++; else if(st[i]==="present") yel++;
+      if(st[i]==="correct"){ if(!dejaPlace[i]) red++; }
+      else if(st[i]==="present"){
+        yelVus[w[i]]=(yelVus[w[i]]||0)+1;
+        if(yelVus[w[i]] > (dejaPresent[w[i]]||0)) yel++;
+      }
     }
     C.guesses.push(w); C.rowStates.push(st);
 
@@ -1089,7 +1154,7 @@
     if(C.trait==="venin") back+=3;
     if(back>0 && hasRelic("miroir")){ C.foeHp-=4; }
 
-    C.row++;
+    C.row++; C.revealedThisRow=false;
     var plus=0;
     if(exact){
       setMsg("🎯 Mot trouvé ! "+dmg+" dégâts.");
@@ -1113,7 +1178,11 @@
   }
 
   function burnAttempt(w){
-    for(var i=0;i<C.len;i++) tileOf("board",C.row,i).classList.remove("cur");
+    for(var i=0;i<C.len;i++){
+      var t=tileOf("board",C.row,i);
+      t.classList.remove("cur");
+      t.classList.add("burned");   // mot mal orthographié : barré, bien visible
+    }
     C.guesses.push(w); C.rowStates.push(new Array(C.len).fill("absent"));
     toast("🥴 « "+w+" » n'existe pas — tentative perdue !", 2500); vibrate([30,50,30]);
     C.tour++;
@@ -1122,7 +1191,7 @@
     var back=C.atk;
     if(C.garde){ back=0; C.garde=false; }
     if(C.trait==="venin") back+=3;
-    C.row++;
+    C.row++; C.revealedThisRow=false;
     var plus=0;
     if(C.row>=MAX_ROWS){ plus = hasRelic("clepsydre")?0:Math.round(C.atk*0.6); setMsg("Le mot était « "+C.word+" »."); }
     else setMsg("Tentative perdue.");
@@ -1166,7 +1235,7 @@
     resultAfter = function(){
       var suite = function(){
         if(wasBoss) giveRelic("Le gardien gardait ceci.", function(){ advance(); });
-        else if(wasElite && Math.random()<0.5) giveRelic("L'élite protégeait un objet.", function(){ advance(); });
+        else if(wasElite && Math.random()<0.2) giveRelic("L'élite protégeait un objet.", function(){ advance(); });
         else advance();
       };
       if(up) offerUpgrade(suite); else suite();
@@ -1207,7 +1276,7 @@
     $("zMod").innerHTML = "";
     $("mapBox").innerHTML = '<div class="card" style="text-align:center">'
       + '<div style="font-size:44px">🏆</div>'
-      + '<div style="font-weight:800;margin:6px 0">Niveau '+P.lvl+' · '+P.relics.length+' reliques · '+P.seen.length+' créatures rencontrées</div>'
+      + '<div style="font-weight:800;margin:6px 0">Niveau '+P.lvl+' · '+P.relics.length+' reliques · '+seen.length+' créatures rencontrées</div>'
       + (P.morts ? '<div style="font-size:12.5px;color:var(--ink-dim)">Tombé '+P.morts+' fois en chemin.</div>' : '<div style="font-size:12.5px;color:var(--ink-dim)">Sans jamais tomber. Remarquable.</div>')
       + '</div>';
     var b=document.createElement("button"); b.className="btn"; b.textContent="Recommencer une aventure";
@@ -1225,10 +1294,10 @@
     var html="";
     ZONES.forEach(function(z){
       var all = z.monstres.concat(z.elites).concat([z.boss]);
-      var vus = all.filter(function(m){ return P.seen.indexOf(m.n)>=0; });
+      var vus = all.filter(function(m){ return seen.indexOf(m.n)>=0; });
       html += '<div class="zone-t" style="margin-top:10px">'+z.e+' '+z.nom+' — '+vus.length+'/'+all.length+'</div>';
       html += all.map(function(m){
-        var vu = P.seen.indexOf(m.n)>=0;
+        var vu = seen.indexOf(m.n)>=0;
         if(!vu) return '<div class="loot-row" style="opacity:.35">❔ <span>Jamais rencontré</span></div>';
         var t=(DATA.traits||{})[m.trait];
         return '<div class="shop-it"><span class="e">'+m.e+'</span><span class="n">'+m.n
