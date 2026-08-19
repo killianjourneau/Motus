@@ -149,6 +149,12 @@
   .def-feed.show{ display:block; }
   .def-feed .t{ font-size:11px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.5px; font-weight:800; margin-bottom:6px; }
   .def-ev{ display:flex; align-items:center; gap:8px; font-size:13px; padding:7px 10px; background:var(--cell); border-radius:9px; margin-bottom:5px; }
+  .def-ev .ago{ margin-left:auto; font-size:11px; color:var(--ink-dim); font-weight:700; flex:none; }
+  .def-ev.atk{ box-shadow:inset 3px 0 0 var(--accent); }
+  .def-ev.def{ box-shadow:inset 3px 0 0 var(--ink-dim); }
+  .def-journal{ max-height:52vh; overflow-y:auto; margin-bottom:10px; }
+  .def-bilan{ display:flex; gap:10px; justify-content:center; font-size:13px; font-weight:800;
+    padding:9px; background:var(--cell); border-radius:11px; margin-bottom:10px; }
   .def-ev .ic{ flex:none; font-size:15px; }
   .def-ev .tx{ flex:1; overflow:hidden; text-overflow:ellipsis; }
   .def-ev.new{ box-shadow:inset 0 0 0 1.5px var(--accent); }
@@ -568,6 +574,17 @@
   </div>
 
   <!-- Défense -->
+  <!-- Alerte : on vient de subir des attaques -->
+  <div class="overlay" id="defAlertOverlay">
+    <div class="modal">
+      <div class="res-big" id="defAlertIc" style="text-align:center;font-size:48px">💥</div>
+      <h2 id="defAlertTitle" style="text-align:center">Ta défense a été attaquée</h2>
+      <div class="def-feed show" id="defAlertList"></div>
+      <button class="btn" id="defAlertRiposte">⚔️ Contre-attaquer</button>
+      <button class="btn ghost" id="defAlertClose">Plus tard</button>
+    </div>
+  </div>
+
   <div class="overlay" id="defOverlay">
     <div class="modal">
       <button class="close-x" data-close>&times;</button>
@@ -579,7 +596,15 @@
         <div class="def-feed" id="defFeed"></div>
         <p class="race-lbl" id="defTargetsLbl">Défenses à percer</p>
         <div class="def-targets" id="defTargets"></div>
+        <button class="btn ghost" id="defJournalBtn">📜 Journal de guerre</button>
         <p class="duel-msg" id="defMsg"></p>
+      </div>
+
+      <!-- Journal de guerre : mes attaques ET mes défenses -->
+      <div id="defStep4" style="display:none">
+        <p class="sub">Tout ce que tu as mené et subi.</p>
+        <div class="def-journal" id="defJournal"></div>
+        <button class="btn ghost" id="defJournalBack">Retour</button>
       </div>
 
       <!-- Choisir / remplacer son mot -->
@@ -679,18 +704,18 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.36.0"></script>
-<script src="./dico/motus-prenoms.js?v=1.36.0"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.36.0"></script>
-<script src="./dico/motus-maladies.js?v=1.36.0"></script>
-<script src="./dico/motus-maladies-info.js?v=1.36.0"></script>
-<script src="./dico/motus-villes.js?v=1.36.0"></script>
-<script src="./dico/motus-villes-info.js?v=1.36.0"></script>
-<script src="./dico/motus-race.js?v=1.36.0"></script>
-<script src="./dico/motus-expert.js?v=1.36.0"></script>
-<script src="./profiles/config.js?v=1.36.0"></script>
-<script src="./profiles/profile.js?v=1.36.0"></script>
-<script src="./duel/duel.js?v=1.36.0"></script>
+<script src="./dico/motus-words.js?v=1.37.0"></script>
+<script src="./dico/motus-prenoms.js?v=1.37.0"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.37.0"></script>
+<script src="./dico/motus-maladies.js?v=1.37.0"></script>
+<script src="./dico/motus-maladies-info.js?v=1.37.0"></script>
+<script src="./dico/motus-villes.js?v=1.37.0"></script>
+<script src="./dico/motus-villes-info.js?v=1.37.0"></script>
+<script src="./dico/motus-race.js?v=1.37.0"></script>
+<script src="./dico/motus-expert.js?v=1.37.0"></script>
+<script src="./profiles/config.js?v=1.37.0"></script>
+<script src="./profiles/profile.js?v=1.37.0"></script>
+<script src="./duel/duel.js?v=1.37.0"></script>
 <script>
 (() => {
   "use strict";
@@ -739,7 +764,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.36.0";
+  const VERSION = "1.37.0";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -1188,7 +1213,7 @@
 
   function defAvailable(){ return !!(window.Defense && Defense.configured); }
   function defSetMsg(t, err){ const e=$("defMsg"); if(!e) return; e.innerHTML=t||""; e.classList.toggle("err", !!err); }
-  function defShowStep(n){ [1,2,3].forEach(i=>{ const e=$("defStep"+i); if(e) e.style.display=(i===n)?"":"none"; }); }
+  function defShowStep(n){ [1,2,3,4].forEach(i=>{ const e=$("defStep"+i); if(e) e.style.display=(i===n)?"":"none"; }); }
 
   function defOpen(){
     if(!defAvailable()){ toast("Le mode Défense nécessite la connexion au serveur"); return; }
@@ -1227,32 +1252,99 @@
 
   function defDrawFeed(){
     const box=$("defFeed");
-    Defense.feed(10).then(rows=>{
-      if(!rows || !rows.length){ box.classList.remove("show"); box.innerHTML=""; return; }
-      const unseen = rows.filter(r=>!r.seen).length;
-      box.innerHTML = '<div class="t">Attaques subies'+(unseen?' · '+unseen+' nouvelle'+(unseen>1?'s':''):'')+'</div>'
-        + rows.map(r=>{
+    Defense.feed(15).then(rows=>{
+      rows = rows || [];
+      // les attaques subies rejoignent le journal local, pour qu'il garde
+      // les deux camps même hors ligne
+      const unseen = rows.filter(r=>!r.seen);
+      if(!rows.length && !defLogGet().length){ box.classList.remove("show"); box.innerHTML=""; return; }
+      box.innerHTML = '<div class="t">Attaques subies'+(unseen.length?' · '+unseen.length+' nouvelle'+(unseen.length>1?'s':''):'')+'</div>'
+        + (rows.length ? rows.slice(0,10).map(r=>{
             const who=(r.attacker_pseudo||"Anonyme").replace(/[<>]/g,"");
             const txt = r.won
               ? who+" a percé ta défense en "+r.tries+" essai"+(r.tries>1?"s":"")
               : who+" a tenté et a échoué";
             return '<div class="def-ev'+(r.seen?"":" new")+'"><span class="ic">'+(r.won?"💥":"🛡️")+'</span><span class="tx">'+txt+'</span></div>';
-          }).join("");
+          }).join("") : '<div class="def-none">Personne ne t\'a encore attaqué.</div>');
       box.classList.add("show");
-      if(unseen){
-        // les plus récentes sont en tête ; on les rejoue de la plus ancienne
-        // à la plus récente pour que la série de badges se calcule juste
-        const fresh = rows.slice(0, unseen).reverse();
+      if(unseen.length){
+        const fresh = unseen.slice().reverse();
+        fresh.forEach(r=>defLogAdd({ dir:"def", who:(r.attacker_pseudo||"Anonyme"),
+                                     won:!!r.won, tries:r.tries||0, at: Date.now() }));
         if(window.Profile && Profile.defenseFeedNew) Profile.defenseFeedNew(fresh);
         Defense.markSeen();
+        defShowAlert(unseen);
       }
     });
+  }
+
+  /* Alerte : on ne découvre plus ses attaques en fouillant la liste, elles
+     s'annoncent — avec la possibilité de riposter dans la foulée. */
+  function defShowAlert(list){
+    if(!list || !list.length) return;
+    const perces = list.filter(r=>r.won).length;
+    const repousses = list.length - perces;
+    $("defAlertIc").textContent = perces ? "💥" : "🛡️";
+    $("defAlertTitle").textContent = perces
+      ? (perces>1 ? "Ta défense est tombée "+perces+" fois !" : "Ta défense est tombée !")
+      : (repousses>1 ? repousses+" assauts repoussés !" : "Assaut repoussé !");
+    $("defAlertList").innerHTML = list.map(r=>{
+      const who=(r.attacker_pseudo||"Anonyme").replace(/[<>]/g,"");
+      return '<div class="def-ev"><span class="ic">'+(r.won?"💥":"🛡️")+'</span><span class="tx">'
+        + (r.won ? who+" a percé en "+r.tries+" essai"+(r.tries>1?"s":"") : who+" a échoué")
+        + '</span></div>';
+    }).join("");
+    openOverlay("defAlertOverlay");
+  }
+
+  /* Journal de guerre : mes offensives (locales) et mes défenses (serveur,
+     recopiées localement à mesure) réunies sur une seule frise. */
+  function defDrawJournal(){
+    const box=$("defJournal");
+    const l = defLogGet();
+    if(!l.length){
+      box.innerHTML = '<div class="def-none">Rien à raconter pour l\'instant. Attaque quelqu\'un ou attends d\'être attaqué.</div>';
+      return;
+    }
+    const atk = l.filter(e=>e.dir==="atk"), def = l.filter(e=>e.dir==="def");
+    const atkWin = atk.filter(e=>e.won).length, defWin = def.filter(e=>!e.won).length;
+    box.innerHTML =
+      '<div class="def-bilan">'
+      + '<span>⚔️ '+atkWin+'/'+atk.length+' percée'+(atkWin>1?'s':'')+'</span>'
+      + '<span>🛡️ '+defWin+'/'+def.length+' repoussée'+(defWin>1?'s':'')+'</span>'
+      + '</div>'
+      + l.map(e=>{
+          const who=(e.who||"Anonyme").replace(/[<>]/g,"");
+          const quand = defAgo(e.at);
+          let ic, tx;
+          if(e.dir==="atk"){
+            ic = e.won ? "⚔️" : "❌";
+            tx = e.won ? "Tu as percé la défense de "+who+" en "+e.tries+" essai"+(e.tries>1?"s":"")
+                       : "Tu as échoué contre "+who;
+          } else {
+            ic = e.won ? "💥" : "🛡️";
+            tx = e.won ? who+" a percé ta défense en "+e.tries+" essai"+(e.tries>1?"s":"")
+                       : who+" a attaqué et a échoué";
+          }
+          return '<div class="def-ev '+e.dir+'"><span class="ic">'+ic+'</span><span class="tx">'+tx
+               + '</span><span class="ago">'+quand+'</span></div>';
+        }).join("");
+  }
+  function defAgo(ts){
+    if(!ts) return "";
+    const s = Math.round((Date.now()-ts)/1000);
+    if(s<60) return "à l'instant";
+    if(s<3600) return Math.floor(s/60)+" min";
+    if(s<86400) return Math.floor(s/3600)+" h";
+    return Math.floor(s/86400)+" j";
   }
 
   function defDrawTargets(list){
     const box=$("defTargets");
     if(!list || !list.length){
-      box.innerHTML = '<div class="def-none">Aucune défense à attaquer pour le moment — reviens plus tard !</div>';
+      box.innerHTML = '<div class="def-none">Aucune défense à attaquer pour le moment.<br>'
+        + 'Tu as déjà tenté toutes celles en jeu : elles ne redeviendront attaquables que '
+        + 'lorsque leur propriétaire changera de mot.</div>';
       return;
     }
     box.innerHTML = list.map((t,i)=>{
@@ -1260,7 +1352,11 @@
       return '<button class="def-tg" data-i="'+i+'">'
            + '<span class="nm">'+who+'<span class="meta"> · '+t.wins+' repoussée'+(t.wins>1?'s':'')+'</span></span>'
            + '<span class="ln">'+t.wlen+' lettres</span></button>';
-    }).join("");
+    }).join("")
+    + (list.length<3
+        ? '<div class="def-none">Une seule chance par défense : les autres joueurs réapparaîtront ici '
+          + 'quand ils changeront de mot.</div>'
+        : "");
     Array.prototype.forEach.call(box.querySelectorAll(".def-tg"), b=>{
       b.addEventListener("click", ()=>defConfirmAttack(list[+b.dataset.i]));
     });
@@ -1334,8 +1430,19 @@
     if(defReported || !defTarget) return;
     defReported = true;
     if(window.Profile && Profile.defenseAttackResult) Profile.defenseAttackResult({ won: win });
+    defLogAdd({ dir:"atk", who: defTarget.pseudo || "Anonyme",
+                won: !!win, tries: win ? guesses.length : 0, at: Date.now() });
     Defense.report(defTarget.player_id, defTarget.version, { tries: win ? guesses.length : 0, won: win })
       .then(()=>{ defMineCache=null; });
+  }
+
+  /* Journal de guerre : la base ne conserve que les attaques SUBIES
+     (defense_feed). Mes propres offensives sont donc tenues ici, en local,
+     puis fusionnées à l'affichage. */
+  function defLogGet(){ const l = store.get("motus.defLog", []); return Array.isArray(l) ? l : []; }
+  function defLogAdd(e){
+    const l = defLogGet(); l.unshift(e);
+    store.set("motus.defLog", l.slice(0, 60));
   }
 
   /* ===================================================================
@@ -2524,8 +2631,13 @@
       return;
     }
     if(hintCols.length>=HINT_MAX_PER_WORD){ toast("Indices déjà utilisés au maximum pour ce mot"); return; }
-    const candidates=[]; for(let c=1;c<len;c++) if(hintCols.indexOf(c)<0) candidates.push(c);
-    if(!candidates.length) return;
+    // Une colonne déjà trouvée par une simple tentative (case rouge) ne doit
+    // plus jamais être proposée par un indice — sinon le jeton se gaspille
+    // sur une lettre déjà connue.
+    const known = new Set(hintCols);
+    for(const st of rowStates){ for(let c=0;c<len;c++) if(st[c]==="correct") known.add(c); }
+    const candidates=[]; for(let c=1;c<len;c++) if(!known.has(c)) candidates.push(c);
+    if(!candidates.length){ toast("Tu connais déjà toutes les lettres de ce mot !"); return; }
     const c = candidates[Math.floor(Math.random()*candidates.length)];
     hintCols.push(c); hintsThisGame++;
     hintTokens--; store.set("motus.hintTokens", hintTokens);
@@ -2969,6 +3081,15 @@
   /* ---------- Mode Défense ---------- */
   $("defSetGo").addEventListener("click", defSubmitWord);
   $("defSetBack").addEventListener("click", ()=>{ defShowStep(1); defSetMsg(""); });
+  $("defJournalBtn").addEventListener("click", ()=>{ defDrawJournal(); defShowStep(4); });
+  $("defJournalBack").addEventListener("click", ()=>defShowStep(1));
+  $("defAlertClose").addEventListener("click", ()=>$("defAlertOverlay").classList.remove("open"));
+  $("defAlertRiposte").addEventListener("click", ()=>{
+    $("defAlertOverlay").classList.remove("open");
+    // on rouvre la Défense sur la liste des cibles, prêt à riposter
+    if(!$("defOverlay").classList.contains("open")) defOpen();
+    else { defShowStep(1); Defense.targets(20).then(defDrawTargets); }
+  });
   $("defWord").addEventListener("keydown", e=>{ if(e.key==="Enter") defSubmitWord(); });
   $("defAtkGo").addEventListener("click", defStartAttack);
   $("defAtkBack").addEventListener("click", ()=>{ defTarget=null; defShowStep(1); });
