@@ -557,6 +557,13 @@ create table if not exists defenses (
 );
 create index if not exists defenses_active_idx on defenses (broken, updated_at);
 
+-- Ajouts v1.38 : phrase d'accroche + note moyenne du mot posé.
+-- « add column if not exists » garde le script rejouable sur une base déjà en service.
+alter table defenses add column if not exists taunt      int default 0;   -- index 0-5 dans la liste côté client
+alter table defenses add column if not exists rate_sum   int default 0;   -- somme des étoiles reçues
+alter table defenses add column if not exists rate_count int default 0;   -- nombre de votes
+alter table defense_attacks add column if not exists stars int default 0; -- note donnée par l'attaquant (0 = pas encore noté)
+
 -- Une ligne par tentative. Créée AU DÉMARRAGE de l'attaque : abandonner
 -- en cours de route compte donc comme un échec, on ne peut pas réessayer.
 create table if not exists defense_attacks (
@@ -580,20 +587,28 @@ alter table defense_attacks enable row level security;
 -- Aucune écriture directe : tout passe par les fonctions ci-dessous.
 
 -- ---------- Poser (ou remplacer) son mot de défense ----------
+-- L'ancienne signature à 6 arguments doit disparaître : la conserver à côté
+-- de la nouvelle rendrait l'appel ambigu pour PostgreSQL.
+drop function if exists defense_set(uuid, text, int, text, text, int);
 create or replace function defense_set(
-  p_id uuid, p_pseudo text, p_level int, p_badge text, p_word text, p_len int
+  p_id uuid, p_pseudo text, p_level int, p_badge text, p_word text, p_len int,
+  p_taunt int default 0
 ) returns defenses language plpgsql security definer as $$
 declare v_row defenses;
 begin
   if p_len < 4 or p_len > 15 then raise exception 'longueur-invalide'; end if;
 
-  insert into defenses (player_id, pseudo, level, badge, word, wlen, version, broken, updated_at)
-  values (p_id, p_pseudo, p_level, p_badge, p_word, p_len, 1, false, now())
+  insert into defenses (player_id, pseudo, level, badge, word, wlen, version, broken,
+                        taunt, rate_sum, rate_count, updated_at)
+  values (p_id, p_pseudo, p_level, p_badge, p_word, p_len, 1, false,
+          greatest(0, least(coalesce(p_taunt,0), 5)), 0, 0, now())
   on conflict (player_id) do update
     set pseudo = excluded.pseudo, level = excluded.level, badge = excluded.badge,
         word = excluded.word, wlen = excluded.wlen,
         version = defenses.version + 1,     -- remet tous les attaquants à zéro
-        broken = false, updated_at = now()
+        broken = false, taunt = excluded.taunt,
+        rate_sum = 0, rate_count = 0,       -- la note porte sur LE mot, pas sur le joueur
+        updated_at = now()
   returning * into v_row;
   return v_row;
 end $$;
@@ -605,14 +620,18 @@ returns defenses language sql security definer stable as $$
 $$;
 
 -- ---------- Cibles attaquables ----------
+-- Le type de retour change (accroche + note) : PostgreSQL impose un drop.
+drop function if exists defense_targets(uuid, int);
 -- On exclut sa propre défense, celles déjà tombées et non reposées, et
 -- toutes celles qu'on a déjà tentées dans leur version courante.
 create or replace function defense_targets(p_id uuid, p_limit int default 20)
 returns table (
   player_id uuid, pseudo text, level int, badge text,
-  wlen int, version int, wins int, losses int
+  wlen int, version int, wins int, losses int,
+  taunt int, rate_sum int, rate_count int
 ) language sql security definer stable as $$
-  select d.player_id, d.pseudo, d.level, d.badge, d.wlen, d.version, d.wins, d.losses
+  select d.player_id, d.pseudo, d.level, d.badge, d.wlen, d.version, d.wins, d.losses,
+         d.taunt, d.rate_sum, d.rate_count
     from defenses d
    where d.player_id <> p_id
      and not d.broken
@@ -672,12 +691,34 @@ begin
   end if;
 end $$;
 
+-- ---------- Noter le mot que l'on vient d'attaquer ----------
+-- Une seule note par attaquant et par version du mot : on ne peut pas
+-- gonfler ni saboter une note en votant plusieurs fois. La note porte sur
+-- LE MOT (elle repart à zéro quand le défenseur en change).
+create or replace function defense_rate(p_id uuid, p_target uuid, p_version int, p_stars int)
+returns void language plpgsql security definer as $$
+declare v_old int; v_new int;
+begin
+  v_new := greatest(1, least(coalesce(p_stars,0), 5));
+  select stars into v_old from defense_attacks
+   where defender_id = p_target and attacker_id = p_id and version = p_version and done;
+  if v_old is null then return; end if;          -- il faut avoir réellement attaqué
+  update defense_attacks set stars = v_new
+   where defender_id = p_target and attacker_id = p_id and version = p_version;
+  update defenses
+     set rate_sum   = rate_sum   + v_new - coalesce(v_old,0),
+         rate_count = rate_count + (case when coalesce(v_old,0) = 0 then 1 else 0 end)
+   where player_id = p_target and version = p_version;
+end $$;
+
 -- ---------- Journal des attaques subies ----------
+-- Le type de retour change (note donnée) : drop nécessaire.
+drop function if exists defense_feed(uuid, int);
 create or replace function defense_feed(p_id uuid, p_limit int default 15)
 returns table (
-  attacker_pseudo text, tries int, won boolean, seen boolean, created_at timestamptz
+  attacker_pseudo text, tries int, won boolean, seen boolean, stars int, created_at timestamptz
 ) language sql security definer stable as $$
-  select a.attacker_pseudo, a.tries, a.won, a.seen, a.created_at
+  select a.attacker_pseudo, a.tries, a.won, a.seen, a.stars, a.created_at
     from defense_attacks a
    where a.defender_id = p_id and a.done
    order by a.created_at desc
@@ -691,10 +732,11 @@ returns void language sql security definer as $$
    where defender_id = p_id and done and not seen;
 $$;
 
-grant execute on function defense_set(uuid,text,int,text,text,int)  to anon, authenticated;
 grant execute on function defense_mine(uuid)                        to anon, authenticated;
+grant execute on function defense_set(uuid,text,int,text,text,int,int) to anon, authenticated;
 grant execute on function defense_targets(uuid,int)                 to anon, authenticated;
 grant execute on function defense_attack(uuid,text,uuid)            to anon, authenticated;
 grant execute on function defense_report(uuid,uuid,int,int,boolean) to anon, authenticated;
 grant execute on function defense_feed(uuid,int)                    to anon, authenticated;
+grant execute on function defense_rate(uuid,uuid,int,int)           to anon, authenticated;
 grant execute on function defense_seen(uuid)                        to anon, authenticated;

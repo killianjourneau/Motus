@@ -405,12 +405,21 @@
     configured: configured,
 
     /* Poser ou remplacer son mot de défense. */
-    set: function (word) {
+    set: function (word, taunt) {
       var m = me(), w = String(word || "").toUpperCase();
       return rpc("defense_set", {
         p_id: m.id, p_pseudo: m.pseudo, p_level: m.level, p_badge: m.badge,
-        p_word: hide(w), p_len: w.length
+        p_word: hide(w), p_len: w.length, p_taunt: taunt || 0
       }).then(function (row) { return F.parse(row); });
+    },
+
+    /* Noter le mot que l'on vient d'attaquer (1 à 5 étoiles).
+       Une seule note par attaquant et par version : la base s'en assure. */
+    rate: function (targetId, version, stars) {
+      var m = me();
+      return rpc("defense_rate", {
+        p_id: m.id, p_target: targetId, p_version: version, p_stars: stars
+      }).catch(function () { return null; });
     },
 
     /* Ma défense actuelle, ou null si je n'en ai pas encore posé. */
@@ -475,6 +484,8 @@
         len: d.wlen, version: d.version,
         wins: d.wins || 0, losses: d.losses || 0,
         broken: !!d.broken,
+        taunt: d.taunt || 0,
+        rateSum: d.rate_sum || 0, rateCount: d.rate_count || 0,
         word: show(d.word)            // mon propre mot : je peux le relire
       };
     },
