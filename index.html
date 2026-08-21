@@ -167,6 +167,19 @@
   .def-tg .meta{ font-size:11.5px; color:var(--ink-dim); font-weight:700; }
   .def-tg .ln{ flex:none; font-weight:800; font-size:13px; color:var(--accent); }
   .def-none{ font-size:13px; color:var(--ink-dim); text-align:center; padding:10px 0; font-style:italic; }
+  .def-taunt{ font-size:13px; font-style:italic; color:var(--accent); margin:4px 0 6px; font-weight:700; }
+  .def-mine .s.rate{ color:var(--yellow); font-weight:700; }
+  .def-tg .tt{ display:block; font-size:11.5px; font-style:italic; color:var(--ink-dim); font-weight:600; margin-top:2px; }
+  .def-taunts{ display:flex; flex-direction:column; gap:6px; margin-bottom:10px; }
+  .def-tt{ width:100%; padding:9px 11px; border:none; border-radius:10px; background:var(--cell);
+    color:var(--ink); font-size:13px; font-weight:700; cursor:pointer; text-align:left;
+    box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
+  .def-tt.on{ box-shadow:inset 0 0 0 2.5px var(--accent); }
+  .def-rate{ display:flex; flex-direction:column; gap:6px; margin:12px 0; }
+  .def-st{ width:100%; padding:11px; border:none; border-radius:11px; background:var(--cell);
+    color:var(--yellow); font-size:19px; letter-spacing:3px; cursor:pointer;
+    box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
+  .def-st:active{ transform:scale(.97); }
   .def-who{ text-align:center; font-size:20px; font-weight:800; color:var(--accent); margin-bottom:10px; }
   .race-themes{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
   .race-th{ border:none; border-radius:11px; background:var(--cell); box-shadow:inset 0 0 0 1.5px var(--cell-edge); color:var(--ink); height:44px; font-weight:700; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px; }
@@ -574,6 +587,16 @@
   </div>
 
   <!-- Défense -->
+  <!-- Noter le mot que l'on vient d'affronter -->
+  <div class="overlay" id="defRateOverlay">
+    <div class="modal">
+      <h2 style="text-align:center">Ce mot valait quoi ?</h2>
+      <p class="sub" id="defRateSub" style="text-align:center"></p>
+      <div class="def-rate" id="defRateStars"></div>
+      <button class="btn ghost" id="defRateSkip">Passer</button>
+    </div>
+  </div>
+
   <!-- Alerte : on vient de subir des attaques -->
   <div class="overlay" id="defAlertOverlay">
     <div class="modal">
@@ -612,6 +635,8 @@
         <p class="sub" id="defSetSub">Choisis le mot que les autres devront deviner.</p>
         <input id="defWord" class="duel-in" maxlength="15" autocomplete="off"
                autocapitalize="characters" spellcheck="false" placeholder="4 à 15 lettres">
+        <p class="race-lbl">Ta phrase d'accroche</p>
+        <div class="def-taunts" id="defTaunts"></div>
         <p class="duel-msg" id="defSetMsg"></p>
         <button class="btn" id="defSetGo">Poser ce mot</button>
         <button class="btn ghost" id="defSetBack">Retour</button>
@@ -704,18 +729,18 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.37.0"></script>
-<script src="./dico/motus-prenoms.js?v=1.37.0"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.37.0"></script>
-<script src="./dico/motus-maladies.js?v=1.37.0"></script>
-<script src="./dico/motus-maladies-info.js?v=1.37.0"></script>
-<script src="./dico/motus-villes.js?v=1.37.0"></script>
-<script src="./dico/motus-villes-info.js?v=1.37.0"></script>
-<script src="./dico/motus-race.js?v=1.37.0"></script>
-<script src="./dico/motus-expert.js?v=1.37.0"></script>
-<script src="./profiles/config.js?v=1.37.0"></script>
-<script src="./profiles/profile.js?v=1.37.0"></script>
-<script src="./duel/duel.js?v=1.37.0"></script>
+<script src="./dico/motus-words.js?v=1.38.0"></script>
+<script src="./dico/motus-prenoms.js?v=1.38.0"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.38.0"></script>
+<script src="./dico/motus-maladies.js?v=1.38.0"></script>
+<script src="./dico/motus-maladies-info.js?v=1.38.0"></script>
+<script src="./dico/motus-villes.js?v=1.38.0"></script>
+<script src="./dico/motus-villes-info.js?v=1.38.0"></script>
+<script src="./dico/motus-race.js?v=1.38.0"></script>
+<script src="./dico/motus-expert.js?v=1.38.0"></script>
+<script src="./profiles/config.js?v=1.38.0"></script>
+<script src="./profiles/profile.js?v=1.38.0"></script>
+<script src="./duel/duel.js?v=1.38.0"></script>
 <script>
 (() => {
   "use strict";
@@ -764,7 +789,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.37.0";
+  const VERSION = "1.38.0";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -1241,13 +1266,19 @@
         + '<div class="s">'+d.wins+' attaque'+(d.wins>1?'s':'')+' repoussée'+(d.wins>1?'s':'')+' · '+d.losses+' fois percé'+(d.losses>1?'e':'')+'</div>'
         + '<button id="defSetBtn">Choisir un nouveau mot</button>';
     } else {
+      const acc = defTauntTxt(d.taunt);
       box.innerHTML = '<div class="t">Ma défense</div>'
         + '<div class="w">'+(d.word||"").replace(/[<>]/g,"")+'</div>'
+        + (acc ? '<div class="def-taunt">« '+acc+' »</div>' : '')
         + '<div class="s">'+d.wins+' attaque'+(d.wins>1?'s':'')+' repoussée'+(d.wins>1?'s':'')+' · '+d.losses+' fois percé'+(d.losses>1?'e':'')+'</div>'
+        + '<div class="s rate">Ton mot : '+defRateTxt(d.rateSum, d.rateCount)+'</div>'
+        + '<button id="defShareBtn">📣 Défier mes amis</button>'
         + '<button class="ghost" id="defSetBtn">Changer de mot</button>';
     }
     const b=$("defSetBtn");
     if(b) b.addEventListener("click", ()=>defOpenSet(!!d));
+    const sh=$("defShareBtn");
+    if(sh) sh.addEventListener("click", ()=>defShare(d));
   }
 
   function defDrawFeed(){
@@ -1349,8 +1380,12 @@
     }
     box.innerHTML = list.map((t,i)=>{
       const who=(t.pseudo||"Anonyme").replace(/[<>]/g,"");
+      const acc = defTauntTxt(t.taunt);
+      const note = t.rate_count ? ' · '+defStars(t.rate_sum/t.rate_count) : '';
       return '<button class="def-tg" data-i="'+i+'">'
-           + '<span class="nm">'+who+'<span class="meta"> · '+t.wins+' repoussée'+(t.wins>1?'s':'')+'</span></span>'
+           + '<span class="nm">'+who+'<span class="meta"> · '+t.wins+' repoussée'+(t.wins>1?'s':'')+note+'</span>'
+           + (acc ? '<span class="tt">« '+acc+' »</span>' : '')
+           + '</span>'
            + '<span class="ln">'+t.wlen+' lettres</span></button>';
     }).join("")
     + (list.length<3
@@ -1363,11 +1398,23 @@
   }
 
   /* ---------- Poser son mot ---------- */
+  let defTauntPick = 0;
+  function defDrawTaunts(){
+    const box=$("defTaunts"); if(!box) return;
+    box.innerHTML = DEF_TAUNTS.map((t,i)=>
+      '<button class="def-tt'+(i===defTauntPick?" on":"")+'" data-i="'+i+'">'
+      + (t ? '« '+t+' »' : 'Aucune') + '</button>').join("");
+    Array.prototype.forEach.call(box.querySelectorAll(".def-tt"), b=>{
+      b.addEventListener("click", ()=>{ defTauntPick = +b.dataset.i; defDrawTaunts(); });
+    });
+  }
   function defOpenSet(hasOne){
     $("defSetSub").textContent = hasOne
       ? "Choisis un nouveau mot. Tous ceux qui ont déjà tenté pourront réessayer."
       : "Choisis le mot que les autres devront deviner.";
     $("defWord").value=""; $("defSetMsg").textContent="";
+    defTauntPick = (defMineCache && defMineCache.taunt) || 0;
+    defDrawTaunts();
     defShowStep(2);
     for(let l=4;l<=15;l++) loadDicoForce(l);
   }
@@ -1387,7 +1434,7 @@
       return;
     }
     $("defSetGo").disabled=true; $("defSetMsg").textContent="Enregistrement…";
-    Defense.set(chk.word).then(d=>{
+    Defense.set(chk.word, defTauntPick).then(d=>{
       $("defSetGo").disabled=false; defMineCache=d;
       if(window.Profile && Profile.defenseWordSet) Profile.defenseWordSet({ len: chk.word.length });
       defShowStep(1); defDrawMine(d); defDrawFeed();
@@ -1432,13 +1479,66 @@
     if(window.Profile && Profile.defenseAttackResult) Profile.defenseAttackResult({ won: win });
     defLogAdd({ dir:"atk", who: defTarget.pseudo || "Anonyme",
                 won: !!win, tries: win ? guesses.length : 0, at: Date.now() });
-    Defense.report(defTarget.player_id, defTarget.version, { tries: win ? guesses.length : 0, won: win })
-      .then(()=>{ defMineCache=null; });
+    const cible = defTarget;
+    Defense.report(cible.player_id, cible.version, { tries: win ? guesses.length : 0, won: win })
+      .then(()=>{ defMineCache=null; defAskRate(cible); });
   }
 
   /* Journal de guerre : la base ne conserve que les attaques SUBIES
      (defense_feed). Mes propres offensives sont donc tenues ici, en local,
      puis fusionnées à l'affichage. */
+  /* Six phrases d'accroche : de quoi donner un ton à sa défense sans
+     laisser passer de texte libre (donc rien à modérer). */
+  const DEF_TAUNTS = [
+    "",                                       // 0 = aucune
+    "Personne ne passera.",
+    "Trop facile ? Prouve-le.",
+    "J'attends de pied ferme.",
+    "Six essais. Bonne chance.",
+    "Ce mot ne tombera jamais."
+  ];
+  function defTauntTxt(i){ return DEF_TAUNTS[i] || ""; }
+  function defStars(n, max){
+    n = Math.round(n||0); max = max||5;
+    return "★".repeat(Math.min(n,max)) + "☆".repeat(Math.max(0,max-n));
+  }
+  function defRateTxt(sum, count){
+    if(!count) return "pas encore noté";
+    const moy = sum/count;
+    return defStars(moy) + " " + moy.toFixed(1) + " (" + count + " avis)";
+  }
+
+  /* Noter le mot affronté : on ne juge pas le joueur mais SON mot —
+     trouvé trop facile, ou franchement retors. */
+  function defAskRate(cible){
+    if(!cible || !Defense.rate) return;
+    $("defRateSub").textContent = "Le mot de " + (cible.pseudo||"Anonyme").replace(/[<>]/g,"")
+      + " — trop facile, ou bien trouvé ?";
+    const box=$("defRateStars");
+    box.innerHTML = [1,2,3,4,5].map(n=>'<button class="def-st" data-n="'+n+'">'+defStars(n)+'</button>').join("");
+    Array.prototype.forEach.call(box.querySelectorAll(".def-st"), b=>{
+      b.addEventListener("click", ()=>{
+        Defense.rate(cible.player_id, cible.version, +b.dataset.n);
+        $("defRateOverlay").classList.remove("open");
+        toast("Merci pour ta note !");
+      });
+    });
+    setTimeout(()=>openOverlay("defRateOverlay"), 900);
+  }
+
+  /* Partage : on n'envoie JAMAIS le mot, seulement l'invitation à venir
+     l'attaquer — c'est tout l'intérêt du mode. */
+  function defShare(d){
+    if(!d) return;
+    const acc = defTauntTxt(d.taunt);
+    const txt = "🛡️ J'ai posé une défense sur Motus !\n"
+      + "Un mot de " + d.len + " lettres, " + d.wins + " attaque" + (d.wins>1?"s":"")
+      + " déjà repoussée" + (d.wins>1?"s":"") + "."
+      + (acc ? "\n« " + acc + " »" : "")
+      + "\nSauras-tu le percer ? " + SHARE_URL + "?defense=1";
+    if(navigator.share) navigator.share({text:txt}).catch(()=>copy(txt)); else copy(txt);
+  }
+
   function defLogGet(){ const l = store.get("motus.defLog", []); return Array.isArray(l) ? l : []; }
   function defLogAdd(e){
     const l = defLogGet(); l.unshift(e);
@@ -3082,6 +3182,7 @@
   $("defSetGo").addEventListener("click", defSubmitWord);
   $("defSetBack").addEventListener("click", ()=>{ defShowStep(1); defSetMsg(""); });
   $("defJournalBtn").addEventListener("click", ()=>{ defDrawJournal(); defShowStep(4); });
+  $("defRateSkip").addEventListener("click", ()=>$("defRateOverlay").classList.remove("open"));
   $("defJournalBack").addEventListener("click", ()=>defShowStep(1));
   $("defAlertClose").addEventListener("click", ()=>$("defAlertOverlay").classList.remove("open"));
   $("defAlertRiposte").addEventListener("click", ()=>{
@@ -3216,9 +3317,11 @@
     try{ q = new URLSearchParams(location.search); }catch(e){ return; }
     const dc = (q.get("duel")||"").trim().toUpperCase();
     const rc = (q.get("race")||"").trim().toUpperCase();
-    if(!dc && !rc) return;
+    const df = (q.get("defense")||"").trim();
+    if(!dc && !rc && !df) return;
     try{ history.replaceState(null,"",location.pathname); }catch(e){}   // pas de re-déclenchement au rechargement
     setTimeout(()=>{
+      if(df){ defOpen(); return; }     // lien « viens attaquer ma défense »
       if(dc){
         duelFresh();
         duelMode="join";
