@@ -563,6 +563,11 @@ alter table defenses add column if not exists taunt      int default 0;   -- ind
 alter table defenses add column if not exists rate_sum   int default 0;   -- somme des étoiles reçues
 alter table defenses add column if not exists rate_count int default 0;   -- nombre de votes
 alter table defense_attacks add column if not exists stars int default 0; -- note donnée par l'attaquant (0 = pas encore noté)
+-- Ajouts v1.39 : compteurs propres au MOT EN COURS. wins/losses restent
+-- cumulés sur toute la carrière du joueur ; ceux-ci repartent à zéro à
+-- chaque nouveau mot posé.
+alter table defenses add column if not exists cur_wins   int default 0;
+alter table defenses add column if not exists cur_losses int default 0;
 
 -- Une ligne par tentative. Créée AU DÉMARRAGE de l'attaque : abandonner
 -- en cours de route compte donc comme un échec, on ne peut pas réessayer.
@@ -601,13 +606,14 @@ begin
   insert into defenses (player_id, pseudo, level, badge, word, wlen, version, broken,
                         taunt, rate_sum, rate_count, updated_at)
   values (p_id, p_pseudo, p_level, p_badge, p_word, p_len, 1, false,
-          greatest(0, least(coalesce(p_taunt,0), 5)), 0, 0, now())
+          greatest(0, least(coalesce(p_taunt,0), 6)), 0, 0, now())
   on conflict (player_id) do update
     set pseudo = excluded.pseudo, level = excluded.level, badge = excluded.badge,
         word = excluded.word, wlen = excluded.wlen,
         version = defenses.version + 1,     -- remet tous les attaquants à zéro
         broken = false, taunt = excluded.taunt,
         rate_sum = 0, rate_count = 0,       -- la note porte sur LE mot, pas sur le joueur
+        cur_wins = 0, cur_losses = 0,       -- idem pour le palmarès du mot
         updated_at = now()
   returning * into v_row;
   return v_row;
@@ -628,10 +634,10 @@ create or replace function defense_targets(p_id uuid, p_limit int default 20)
 returns table (
   player_id uuid, pseudo text, level int, badge text,
   wlen int, version int, wins int, losses int,
-  taunt int, rate_sum int, rate_count int
+  taunt int, rate_sum int, rate_count int, cur_wins int, cur_losses int
 ) language sql security definer stable as $$
   select d.player_id, d.pseudo, d.level, d.badge, d.wlen, d.version, d.wins, d.losses,
-         d.taunt, d.rate_sum, d.rate_count
+         d.taunt, d.rate_sum, d.rate_count, d.cur_wins, d.cur_losses
     from defenses d
    where d.player_id <> p_id
      and not d.broken
@@ -683,10 +689,11 @@ begin
    where defender_id = p_target and attacker_id = p_id and version = p_version;
 
   if p_won then
-    update defenses set losses = losses + 1, broken = true, updated_at = now()
+    update defenses set losses = losses + 1, cur_losses = cur_losses + 1,
+                        broken = true, updated_at = now()
      where player_id = p_target and version = p_version;
   else
-    update defenses set wins = wins + 1
+    update defenses set wins = wins + 1, cur_wins = cur_wins + 1
      where player_id = p_target and version = p_version;
   end if;
 end $$;

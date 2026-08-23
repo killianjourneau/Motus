@@ -486,6 +486,7 @@
         broken: !!d.broken,
         taunt: d.taunt || 0,
         rateSum: d.rate_sum || 0, rateCount: d.rate_count || 0,
+        curWins: d.cur_wins || 0, curLosses: d.cur_losses || 0,
         word: show(d.word)            // mon propre mot : je peux le relire
       };
     },
