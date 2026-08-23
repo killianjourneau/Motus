@@ -169,6 +169,8 @@
   .def-none{ font-size:13px; color:var(--ink-dim); text-align:center; padding:10px 0; font-style:italic; }
   .def-taunt{ font-size:13px; font-style:italic; color:var(--accent); margin:4px 0 6px; font-weight:700; }
   .def-mine .s.rate{ color:var(--yellow); font-weight:700; }
+  .def-mine .s.tot{ color:var(--ink-dim); font-size:12px; }
+  .def-mine .w.broken{ opacity:.55; text-decoration:line-through; }
   .def-tg .tt{ display:block; font-size:11.5px; font-style:italic; color:var(--ink-dim); font-weight:600; margin-top:2px; }
   .def-taunts{ display:flex; flex-direction:column; gap:6px; margin-bottom:10px; }
   .def-tt{ width:100%; padding:9px 11px; border:none; border-radius:10px; background:var(--cell);
@@ -729,18 +731,18 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.38.0"></script>
-<script src="./dico/motus-prenoms.js?v=1.38.0"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.38.0"></script>
-<script src="./dico/motus-maladies.js?v=1.38.0"></script>
-<script src="./dico/motus-maladies-info.js?v=1.38.0"></script>
-<script src="./dico/motus-villes.js?v=1.38.0"></script>
-<script src="./dico/motus-villes-info.js?v=1.38.0"></script>
-<script src="./dico/motus-race.js?v=1.38.0"></script>
-<script src="./dico/motus-expert.js?v=1.38.0"></script>
-<script src="./profiles/config.js?v=1.38.0"></script>
-<script src="./profiles/profile.js?v=1.38.0"></script>
-<script src="./duel/duel.js?v=1.38.0"></script>
+<script src="./dico/motus-words.js?v=1.39.0"></script>
+<script src="./dico/motus-prenoms.js?v=1.39.0"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.39.0"></script>
+<script src="./dico/motus-maladies.js?v=1.39.0"></script>
+<script src="./dico/motus-maladies-info.js?v=1.39.0"></script>
+<script src="./dico/motus-villes.js?v=1.39.0"></script>
+<script src="./dico/motus-villes-info.js?v=1.39.0"></script>
+<script src="./dico/motus-race.js?v=1.39.0"></script>
+<script src="./dico/motus-expert.js?v=1.39.0"></script>
+<script src="./profiles/config.js?v=1.39.0"></script>
+<script src="./profiles/profile.js?v=1.39.0"></script>
+<script src="./duel/duel.js?v=1.39.0"></script>
 <script>
 (() => {
   "use strict";
@@ -789,7 +791,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.38.0";
+  const VERSION = "1.39.0";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -1262,16 +1264,16 @@
         + '<button id="defSetBtn">Poser un mot</button>';
     } else if(d.broken){
       box.innerHTML = '<div class="t">Ma défense</div>'
+        + '<div class="w broken">'+(d.word||"").replace(/[<>]/g,"")+'</div>'
         + '<div class="s warn">🛡️ Ton mot est tombé ! Choisis-en un nouveau pour te remettre en jeu.</div>'
-        + '<div class="s">'+d.wins+' attaque'+(d.wins>1?'s':'')+' repoussée'+(d.wins>1?'s':'')+' · '+d.losses+' fois percé'+(d.losses>1?'e':'')+'</div>'
+        + defBilanHtml(d)
         + '<button id="defSetBtn">Choisir un nouveau mot</button>';
     } else {
       const acc = defTauntTxt(d.taunt);
       box.innerHTML = '<div class="t">Ma défense</div>'
         + '<div class="w">'+(d.word||"").replace(/[<>]/g,"")+'</div>'
         + (acc ? '<div class="def-taunt">« '+acc+' »</div>' : '')
-        + '<div class="s">'+d.wins+' attaque'+(d.wins>1?'s':'')+' repoussée'+(d.wins>1?'s':'')+' · '+d.losses+' fois percé'+(d.losses>1?'e':'')+'</div>'
-        + '<div class="s rate">Ton mot : '+defRateTxt(d.rateSum, d.rateCount)+'</div>'
+        + defBilanHtml(d)
         + '<button id="defShareBtn">📣 Défier mes amis</button>'
         + '<button class="ghost" id="defSetBtn">Changer de mot</button>';
     }
@@ -1382,8 +1384,10 @@
       const who=(t.pseudo||"Anonyme").replace(/[<>]/g,"");
       const acc = defTauntTxt(t.taunt);
       const note = t.rate_count ? ' · '+defStars(t.rate_sum/t.rate_count) : '';
+      const cw = t.cur_wins||0, cl = t.cur_losses||0;
       return '<button class="def-tg" data-i="'+i+'">'
-           + '<span class="nm">'+who+'<span class="meta"> · '+t.wins+' repoussée'+(t.wins>1?'s':'')+note+'</span>'
+           + '<span class="nm">'+who
+           + '<span class="meta"> · 🛡️ '+cw+' · 💥 '+cl+note+'</span>'
            + (acc ? '<span class="tt">« '+acc+' »</span>' : '')
            + '</span>'
            + '<span class="ln">'+t.wlen+' lettres</span></button>';
@@ -1491,13 +1495,22 @@
      laisser passer de texte libre (donc rien à modérer). */
   const DEF_TAUNTS = [
     "",                                       // 0 = aucune
-    "Personne ne passera.",
-    "Trop facile ? Prouve-le.",
-    "J'attends de pied ferme.",
-    "Six essais. Bonne chance.",
-    "Ce mot ne tombera jamais."
+    "J'aime les mots rares",
+    "Je collectionne les voyelles",
+    "Tu vas t'y casser les dents",
+    "Impossible du premier coup",
+    "Quel mot faire avec un X, W, Z et Q ?",
+    "Le mot est impossible"
   ];
   function defTauntTxt(i){ return DEF_TAUNTS[i] || ""; }
+  /* Deux lignes distinctes : ce que vaut LE MOT actuel, et le cumul de
+     toute la carrière — les confondre rendait les chiffres illisibles. */
+  function defBilanHtml(d){
+    const cw = d.curWins||0, cl = d.curLosses||0;
+    return '<div class="s">Ce mot : '+cw+' repoussée'+(cw>1?'s':'')+' · percé '+cl+' fois</div>'
+      + '<div class="s rate">Note du mot : '+defRateTxt(d.rateSum, d.rateCount)+'</div>'
+      + '<div class="s tot">En tout : '+d.wins+' repoussée'+(d.wins>1?'s':'')+' · percé '+d.losses+' fois</div>';
+  }
   function defStars(n, max){
     n = Math.round(n||0); max = max||5;
     return "★".repeat(Math.min(n,max)) + "☆".repeat(Math.max(0,max-n));
@@ -1506,6 +1519,26 @@
     if(!count) return "pas encore noté";
     const moy = sum/count;
     return defStars(moy) + " " + moy.toFixed(1) + " (" + count + " avis)";
+  }
+
+  /* Au lancement, on va voir si on s'est fait attaquer pendant l'absence :
+     l'alerte n'apparaissait qu'en ouvrant l'écran Défense, donc on pouvait
+     rester des jours sans savoir que son mot était tombé. */
+  function defCheckOnLaunch(){
+    if(!defAvailable()) return;
+    setTimeout(()=>{
+      Defense.feed(15).then(rows=>{
+        const unseen = (rows||[]).filter(r=>!r.seen);
+        if(!unseen.length) return;
+        unseen.slice().reverse().forEach(r=>defLogAdd({
+          dir:"def", who:(r.attacker_pseudo||"Anonyme"),
+          won:!!r.won, tries:r.tries||0, at: Date.now()
+        }));
+        if(window.Profile && Profile.defenseFeedNew) Profile.defenseFeedNew(unseen.slice().reverse());
+        Defense.markSeen();
+        defShowAlert(unseen);
+      }).catch(()=>{});
+    }, 1200);   // on laisse l'écran de jeu s'installer avant d'interrompre
   }
 
   /* Noter le mot affronté : on ne juge pas le joueur mais SON mot —
@@ -3343,6 +3376,7 @@
   openInvite();
   buildKeyboard();
   refreshStats();
+  defCheckOnLaunch();
   const last = store.get("motus.last","free");
   if(last==="duel"){ const a=duelActive(); if(a) duelResume(a); else startFree("normal"); }
   else if(last==="race"){ const a=raceActive(); if(a) raceResume(a); else startFree("normal"); }
