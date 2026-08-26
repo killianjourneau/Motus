@@ -252,7 +252,11 @@
       headers: headers({ "Prefer": "resolution=merge-duplicates,return=minimal" }),
       body: JSON.stringify({ id: state.id, pseudo: state.pseudo, xp: state.xp, games: state.games,
                              wins: state.wins, level: state.level, badge: emblemEmoji(),
-                             data: { b: state.b, badges: state.badges, emblem: state.emblem },
+                             data: { b: state.b, badges: state.badges, emblem: state.emblem,
+                                     emblemAt: state.emblemAt || 0,
+                                     hintEarned: state.hintEarned || 0,
+                                     hintSpent: state.hintSpent || 0,
+                                     hintGrants: state.hintGrants || {} },
                              updated_at: state.updated_at })
     }).catch(function () {});
   }
@@ -302,7 +306,22 @@
     lb.dayBest = Math.max(lb.dayBest || 0, dayStreak(lb.days));
     // badges : union
     (d.badges || []).forEach(function (id) { if (state.badges.indexOf(id) < 0) state.badges.push(id); });
-    if (!state.emblem && d.emblem) state.emblem = d.emblem;
+    // Emblème : le plus RÉCEMMENT choisi gagne. L'ancienne règle ne le
+    // reprenait que si le local était vide, donc un changement fait sur un
+    // appareil ne remontait jamais sur l'autre.
+    var remAt = d.emblemAt || 0, locAt = state.emblemAt || 0;
+    if (d.emblem && remAt > locAt) { state.emblem = d.emblem; state.emblemAt = remAt; }
+    else if (!state.emblem && d.emblem) state.emblem = d.emblem;
+
+    // Jetons d'indice : deux cumuls monotones, fusionnés par max — le solde
+    // en découle, il n'est jamais fusionné directement.
+    state.hintEarned = Math.max(state.hintEarned || 0, d.hintEarned || 0);
+    state.hintSpent  = Math.max(state.hintSpent  || 0, d.hintSpent  || 0);
+    var rg = d.hintGrants || {}, lg = state.hintGrants || (state.hintGrants = {});
+    Object.keys(rg).forEach(function (k) { if (!lg[k]) lg[k] = rg[k]; });
+    if (window.motusHintsRefresh) {
+      try { window.motusHintsRefresh(state.hintEarned, state.hintSpent, lg); } catch (e) {}
+    }
 
     state.level = levelFromXp(state.xp);
     checkBadges(true);
@@ -678,6 +697,7 @@
         act.innerHTML = '<button class="btn" id="bdEmblem">' + (isE ? "Retirer l'emblème" : "Définir comme emblème") + "</button>";
         el("bdEmblem").addEventListener("click", function () {
           state.emblem = isE ? "" : id;
+          state.emblemAt = Date.now();   // horodaté : c'est le choix le plus récent qui gagne entre appareils
           saveLocal(); pushDebounced();
           fillBadges(); fillProfil(); closeBadgeDetail();
         });
@@ -1048,6 +1068,18 @@
         if (o.ms > 0 && o.ms < 300000) b.defiFast++;
       }
       saveLocal(); checkBadges(); pushDebounced(); refreshOpen();
+    },
+
+    /* Le jeu tient les jetons ; il nous les confie pour qu'ils suivent le
+       compte d'un appareil à l'autre. */
+    setHints: function (earned, spent, grants) {
+      state.hintEarned = Math.max(state.hintEarned || 0, earned || 0);
+      state.hintSpent  = Math.max(state.hintSpent  || 0, spent  || 0);
+      if (grants) {
+        var lg = state.hintGrants || (state.hintGrants = {});
+        Object.keys(grants).forEach(function (k) { if (!lg[k]) lg[k] = grants[k]; });
+      }
+      saveLocal(); pushDebounced();
     },
 
     submitDaily: function (o) {
