@@ -731,18 +731,18 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.40.0"></script>
-<script src="./dico/motus-prenoms.js?v=1.40.0"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.40.0"></script>
-<script src="./dico/motus-maladies.js?v=1.40.0"></script>
-<script src="./dico/motus-maladies-info.js?v=1.40.0"></script>
-<script src="./dico/motus-villes.js?v=1.40.0"></script>
-<script src="./dico/motus-villes-info.js?v=1.40.0"></script>
-<script src="./dico/motus-race.js?v=1.40.0"></script>
-<script src="./dico/motus-expert.js?v=1.40.0"></script>
-<script src="./profiles/config.js?v=1.40.0"></script>
-<script src="./profiles/profile.js?v=1.40.0"></script>
-<script src="./duel/duel.js?v=1.40.0"></script>
+<script src="./dico/motus-words.js?v=1.40.1"></script>
+<script src="./dico/motus-prenoms.js?v=1.40.1"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.40.1"></script>
+<script src="./dico/motus-maladies.js?v=1.40.1"></script>
+<script src="./dico/motus-maladies-info.js?v=1.40.1"></script>
+<script src="./dico/motus-villes.js?v=1.40.1"></script>
+<script src="./dico/motus-villes-info.js?v=1.40.1"></script>
+<script src="./dico/motus-race.js?v=1.40.1"></script>
+<script src="./dico/motus-expert.js?v=1.40.1"></script>
+<script src="./profiles/config.js?v=1.40.1"></script>
+<script src="./profiles/profile.js?v=1.40.1"></script>
+<script src="./duel/duel.js?v=1.40.1"></script>
 <script>
 (() => {
   "use strict";
@@ -791,7 +791,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.40.0";
+  const VERSION = "1.40.1";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -822,7 +822,34 @@
   // défi du jour : 3 mots enchaînés
   let defiStep=0, defiKey="", defiNum=0, defiTimes=[], defiTries=[], defiFailed=false;
   // système d'indice : jetons locaux, gagnés par le mot du jour et le défi réussis
-  let hintTokens = store.get("motus.hintTokens", 0);
+  /* Jetons d'indice : on ne synchronise JAMAIS le solde directement — deux
+     appareils fusionnés par un max() permettraient de dupliquer des jetons.
+     On tient deux cumuls monotones (gagnés / dépensés) et le solde en
+     découle : la fusion par max() sur chacun est alors sans risque. */
+  let hintEarned = store.get("motus.hintEarned", null);
+  let hintSpent  = store.get("motus.hintSpent",  null);
+  if(hintEarned === null){            // migration depuis l'ancien solde seul
+    hintEarned = store.get("motus.hintTokens", 0); hintSpent = 0;
+    store.set("motus.hintEarned", hintEarned); store.set("motus.hintSpent", hintSpent);
+  }
+  function hintBalance(){ return Math.max(0, hintEarned - hintSpent); }
+  function hintSpendOne(){ hintSpent++; store.set("motus.hintSpent", hintSpent); hintSyncPush(); }
+  function hintEarnOne(){ hintEarned++; store.set("motus.hintEarned", hintEarned); hintSyncPush(); }
+  function hintSyncPush(){
+    if(window.Profile && Profile.setHints) Profile.setHints(hintEarned, hintSpent, store.get("motus.hintGrants", {}));
+  }
+  /* Appelé après une synchro : la fusion peut avoir fait remonter des
+     jetons gagnés sur l'autre appareil. */
+  window.motusHintsRefresh = function(e, sp, grants){
+    if(typeof e === "number") { hintEarned = Math.max(hintEarned, e); store.set("motus.hintEarned", hintEarned); }
+    if(typeof sp === "number"){ hintSpent  = Math.max(hintSpent,  sp); store.set("motus.hintSpent",  hintSpent); }
+    if(grants){
+      const loc = store.get("motus.hintGrants", {});
+      Object.keys(grants).forEach(k=>{ if(!loc[k]) loc[k]=grants[k]; });
+      store.set("motus.hintGrants", loc);
+    }
+    refreshHintUI();
+  };
   let gaveUp = false;   // vrai uniquement en cas d'abandon volontaire, jamais après 6 essais épuisés
   let hintCols = [], hintsThisGame = 0;
   const HINT_MODES = ["court","normal","long","prenoms","maladies","villes","daily","defi","pendu"];
@@ -1987,6 +2014,10 @@
   function raceRender(){
     const target = raceList[raceIdx] || "";
     len = target.length;
+    // Le mode Pendu masque le plateau au profit de sa potence : en venant
+    // du Pendu, la Course remplissait un #board resté invisible, l'écran
+    // restait donc bloqué sur le pendu.
+    board.style.display=""; $("penduBox").style.display="none";
     computeSizing();
     board.style.gridTemplateRows = "var(--tile) var(--tile)";
     board.innerHTML = "";
@@ -2746,17 +2777,17 @@
     const on = hintEligible() && !over && !ended;
     b.classList.toggle("show", on);
     if(!on) return;
-    $("hintCount").textContent = hintTokens;
-    b.disabled = hintTokens<=0 || hintCols.length>=HINT_MAX_PER_WORD;
+    $("hintCount").textContent = hintBalance();
+    b.disabled = hintBalance()<=0 || hintCols.length>=HINT_MAX_PER_WORD;
   }
   function useHint(){
     if(!hintEligible() || over || ended) return;
-    if(hintTokens<=0){ toast("Aucun jeton d'indice — réussis le mot du jour ou le défi pour en gagner"); return; }
+    if(hintBalance()<=0){ toast("Aucun jeton d'indice — réussis le mot du jour ou le défi pour en gagner"); return; }
     if(mode==="pendu"){
       const missing = penduAnswer.split("").filter((c,i,arr)=>arr.indexOf(c)===i && penduGuessed.indexOf(c)<0);
       if(!missing.length) return;
       const letter = missing[Math.floor(Math.random()*missing.length)];
-      hintsThisGame++; hintTokens--; store.set("motus.hintTokens", hintTokens);
+      hintsThisGame++; hintSpendOne();
       penduGuessed.push(letter); paintKey(letter,"correct"); penduRender();
       refreshHintUI(); vibrate([15]);
       toast("💡 Lettre révélée : " + letter);
@@ -2773,7 +2804,7 @@
     if(!candidates.length){ toast("Tu connais déjà toutes les lettres de ce mot !"); return; }
     const c = candidates[Math.floor(Math.random()*candidates.length)];
     hintCols.push(c); hintsThisGame++;
-    hintTokens--; store.set("motus.hintTokens", hintTokens);
+    hintSpendOne();
     setCell(row,c,answer[c]); tileAt(row,c).classList.add("correct");
     if(col===c || (col>=1 && col<len && grid[row][col])) col = firstEmpty(1);
     drawCursor(); refreshHintUI(); vibrate([15]);
@@ -2785,7 +2816,7 @@
     const seen = store.get("motus.hintGrants", {});
     if(seen[kind] === key) return;
     seen[kind] = key; store.set("motus.hintGrants", seen);
-    hintTokens++; store.set("motus.hintTokens", hintTokens);
+    hintEarnOne();
     refreshHintUI();
     toast("💡 Jeton d'indice gagné !", 2200);
   }
@@ -3376,6 +3407,7 @@
   openInvite();
   buildKeyboard();
   refreshStats();
+  hintSyncPush();        // un appareil déjà pourvu envoie son état dès le départ
   defCheckOnLaunch();
   const last = store.get("motus.last","free");
   if(last==="duel"){ const a=duelActive(); if(a) duelResume(a); else startFree("normal"); }
