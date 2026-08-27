@@ -1,0 +1,4 @@
+/* Séparation visuelle prénom / nom : position où commence la seconde
+   partie. Purement visuel — le mot ne contient AUCUN espace et se tape
+   d'un seul tenant. Un nom absent d'ici s'affiche sans séparation. */
+window.MOTUS_PERSOS_SPLIT = {"AMYWINEHOUSE": 3, "ARSENELUPIN": 6, "BLANCHENEIGE": 7, "BRIANMAY": 5, "BRUNOMARS": 5, "CELINEDION": 6, "DARKVADOR": 4, "DARTAGNAN": 1, "DEFUNES": 2, "DEGAULLE": 2, "DONQUICHOTTE": 3, "EDSHEERAN": 2, "ENJOYPHOENIX": 5, "IRONMAN": 4, "JEANNEDARC": 6, "LAFONTAINE": 2, "LENASITUATIONS": 4, "LOUISXIV": 5, "LOUISXVI": 5, "LUCKYLUKE": 5, "LUTHERKING": 6, "MADAMEBOVARY": 6, "MARCOPOLO": 5, "MARIEANTOINETTE": 5, "MICHELANGE": 6, "MONTECRISTO": 5, "MRBEAST": 2, "OBIWAN": 3, "OMARSY": 4, "PETERPAN": 5, "PEWDIEPIE": 6, "RINGOSTARR": 5, "ROBINDESBOIS": 5, "ROSAPARKS": 4, "SPIDERMAN": 6, "TIBOINSHAPE": 4, "WONDERWOMAN": 6};
