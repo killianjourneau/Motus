@@ -170,6 +170,17 @@
   .perso-note{ min-height:70px; resize:vertical; font-family:inherit; line-height:1.4; padding:10px 12px; }
   .perso-sg{ background:var(--cell); border-radius:12px; padding:11px; margin-bottom:9px; }
   .perso-sg .nm{ font-size:15px; font-weight:800; letter-spacing:.5px; }
+  .perso-themes{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+  .perso-th{ flex:1 1 auto; min-width:calc(50% - 6px); padding:9px 8px; border:none; border-radius:10px;
+    background:var(--cell); color:var(--ink); font-size:13px; font-weight:800; cursor:pointer;
+    box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
+  .perso-th.on{ box-shadow:inset 0 0 0 2.5px var(--accent); }
+  .perso-sg .ed-th, .perso-sg .ed-nm, .perso-sg .ed-nt{
+    width:100%; margin-bottom:7px; padding:9px 11px; border:none; border-radius:9px;
+    background:var(--bg-2); color:var(--ink); font-size:13.5px; font-family:inherit;
+    box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
+  .perso-sg .ed-nm{ font-weight:800; letter-spacing:.5px; text-transform:uppercase; }
+  .perso-sg .ed-nt{ line-height:1.45; resize:vertical; }
   .perso-sg .nt{ font-size:13px; color:var(--ink-dim); line-height:1.45; margin:4px 0 5px; }
   .perso-sg .by{ font-size:11px; color:var(--ink-dim); font-style:italic; margin-bottom:8px; }
   .perso-sg .ac{ display:flex; gap:7px; }
@@ -425,7 +436,7 @@
         <button class="mode-item" data-mode="maladies"><span class="mi">🩺</span><b>Maladies</b><i>Pathologies connues</i></button>
         <button class="mode-item" data-mode="villes"><span class="mi">🏙️</span><b>Villes</b><i>France et monde</i></button>
         <button class="mode-item" data-mode="persos"><span class="mi">🎭</span><b>Personnages</b><i>Réels, fictifs, mythologiques</i></button>
-        <button class="mode-item" id="persoSuggestItem"><span class="mi">➕</span><b>Proposer un personnage</b><i>Soumettre à validation</i></button>
+        <button class="mode-item" id="persoSuggestItem"><span class="mi">➕</span><b>Proposer un mot</b><i>Personnage, prénom, ville, maladie</i></button>
       </div>
     </div>
   </div>
@@ -627,10 +638,12 @@
   <div class="overlay" id="persoOverlay">
     <div class="modal">
       <button class="close-x" data-close>&times;</button>
-      <h2>🎭 Proposer un personnage</h2>
+      <h2>➕ Proposer un mot</h2>
 
       <div id="persoStep1">
-        <p class="sub">Un personnage qui manque ? Propose-le. Il n'apparaîtra dans le jeu qu'une fois validé.</p>
+        <p class="sub">Quelque chose manque ? Propose-le. Rien n'apparaît dans le jeu avant validation.</p>
+        <p class="race-lbl">Dans quel thème ?</p>
+        <div class="perso-themes" id="persoThemes"></div>
         <input id="persoName" class="duel-in" maxlength="15" autocomplete="off"
                autocapitalize="characters" spellcheck="false" placeholder="Nom (4 à 15 lettres)">
         <textarea id="persoNote" class="duel-in perso-note" maxlength="300" rows="3"
@@ -769,21 +782,21 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.43.1"></script>
-<script src="./dico/motus-prenoms.js?v=1.43.1"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.43.1"></script>
-<script src="./dico/motus-maladies.js?v=1.43.1"></script>
-<script src="./dico/motus-maladies-info.js?v=1.43.1"></script>
-<script src="./dico/motus-villes.js?v=1.43.1"></script>
-<script src="./dico/motus-villes-info.js?v=1.43.1"></script>
-<script src="./dico/motus-persos.js?v=1.43.1"></script>
-<script src="./dico/motus-persos-info.js?v=1.43.1"></script>
-<script src="./dico/motus-persos-split.js?v=1.43.1"></script>
-<script src="./dico/motus-race.js?v=1.43.1"></script>
-<script src="./dico/motus-expert.js?v=1.43.1"></script>
-<script src="./profiles/config.js?v=1.43.1"></script>
-<script src="./profiles/profile.js?v=1.43.1"></script>
-<script src="./duel/duel.js?v=1.43.1"></script>
+<script src="./dico/motus-words.js?v=1.44.0"></script>
+<script src="./dico/motus-prenoms.js?v=1.44.0"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.44.0"></script>
+<script src="./dico/motus-maladies.js?v=1.44.0"></script>
+<script src="./dico/motus-maladies-info.js?v=1.44.0"></script>
+<script src="./dico/motus-villes.js?v=1.44.0"></script>
+<script src="./dico/motus-villes-info.js?v=1.44.0"></script>
+<script src="./dico/motus-persos.js?v=1.44.0"></script>
+<script src="./dico/motus-persos-info.js?v=1.44.0"></script>
+<script src="./dico/motus-persos-split.js?v=1.44.0"></script>
+<script src="./dico/motus-race.js?v=1.44.0"></script>
+<script src="./dico/motus-expert.js?v=1.44.0"></script>
+<script src="./profiles/config.js?v=1.44.0"></script>
+<script src="./profiles/profile.js?v=1.44.0"></script>
+<script src="./duel/duel.js?v=1.44.0"></script>
 <script>
 (() => {
   "use strict";
@@ -835,7 +848,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.43.1";
+  const VERSION = "1.44.0";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -1623,29 +1636,60 @@
     return (t||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"")
                   .replace(/[^A-Za-z]/g,"").toUpperCase();
   }
+  /* Les quatre thèmes ouverts aux propositions, et où ranger la notice. */
+  const PERSO_THEMES = [
+    { id:"persos",   e:"🎭", n:"Personnage", note:"Qui est-ce ? (dates, métier, œuvre connue…)",  info:()=>window.MOTUS_PERSOS_INFO },
+    { id:"prenoms",  e:"👶", n:"Prénom",     note:"Origine et sens du prénom",                     info:()=>window.MOTUS_PRENOMS_INFO },
+    { id:"villes",   e:"🏙️", n:"Ville",      note:"Pays, région, ce qui la rend connue",           info:()=>window.MOTUS_VILLES_INFO },
+    { id:"maladies", e:"🩺", n:"Maladie",    note:"Description (facultative)",                     info:()=>null }
+  ];
+  let persoTheme = "persos";
+
   function persoLoadApproved(){
     if(!window.Persos || !Persos.configured()) return;
     Persos.approved().then(rows=>{
       if(!rows || !rows.length) return;
-      let n=0;
+      const touches = {};
       rows.forEach(r=>{
+        const th = PERSO_THEMES.find(t=>t.id===(r.theme||"persos"));
+        if(!th) return;
         const nom = persoNorm(r.name);
         if(!nom || nom.length<4 || nom.length>15) return;
-        if(!window.MOTUS_PERSOS_INFO[nom]){
-          window.MOTUS_PERSOS_INFO[nom] = r.note;
-          if(THEME_SETS.persos) THEME_SETS.persos.add(nom);
-          if(!THEME_SOL.persos.includes(nom)) THEME_SOL.persos.push(nom);
-          n++;
-        }
+        const set = THEME_SETS[th.id], sol = THEME_SOL[th.id];
+        if(!set || !sol) return;
+        if(set.has(nom)) return;                 // déjà dans le jeu
+        const info = th.info();
+        if(info && r.note) info[nom] = r.note;
+        set.add(nom);
+        if(!sol.includes(nom)) sol.push(nom);
+        touches[th.id] = true;
       });
-      if(n){ POOLS.persos = playableWords(THEME_SOL.persos); }
+      Object.keys(touches).forEach(id=>{ POOLS[id] = playableWords(THEME_SOL[id]); });
     }).catch(()=>{});
+  }
+
+  function persoDrawThemes(){
+    const box=$("persoThemes"); if(!box) return;
+    box.innerHTML = PERSO_THEMES.map(t=>
+      '<button class="perso-th'+(t.id===persoTheme?" on":"")+'" data-t="'+t.id+'">'
+      + t.e+' '+t.n+'</button>').join("");
+    Array.prototype.forEach.call(box.querySelectorAll(".perso-th"), b=>{
+      b.addEventListener("click", ()=>{
+        persoTheme=b.dataset.t; persoDrawThemes();
+        const th=PERSO_THEMES.find(x=>x.id===persoTheme);
+        $("persoNote").placeholder = th ? th.note : "";
+        $("persoMsg").textContent="";
+      });
+    });
   }
 
   function persoOpen(){
     if(!window.Persos || !Persos.configured()){ toast("Les propositions nécessitent la connexion au serveur"); return; }
     $("persoName").value=""; $("persoNote").value=""; $("persoMsg").textContent="";
     $("persoStep1").style.display=""; $("persoStep2").style.display="none";
+    persoDrawThemes();
+    const th0=PERSO_THEMES.find(x=>x.id===persoTheme);
+    $("persoNote").placeholder = th0 ? th0.note : "";
     openOverlay("persoOverlay");
     Persos.isAdmin().then(ok=>{ $("persoAdminBtn").style.display = ok ? "" : "none"; });
   }
@@ -1653,13 +1697,17 @@
     const nom = persoNorm($("persoName").value);
     const note = ($("persoNote").value||"").trim();
     const msg = $("persoMsg");
+    const th=PERSO_THEMES.find(x=>x.id===persoTheme);
     if(nom.length<4 || nom.length>15){ msg.textContent="Le nom doit faire 4 à 15 lettres, sans espace ni accent."; return; }
-    if(window.MOTUS_PERSOS_INFO[nom] || (THEME_SETS.persos && THEME_SETS.persos.has(nom))){
-      msg.textContent="« "+nom+" » est déjà dans le jeu."; return;
+    if(THEME_SETS[persoTheme] && THEME_SETS[persoTheme].has(nom)){
+      msg.textContent="« "+nom+" » est déjà dans le thème "+(th?th.n:"")+"."; return;
     }
-    if(note.length<15){ msg.textContent="Ajoute une courte description (au moins 15 caractères)."; return; }
+    // la notice n'est obligatoire que là où le jeu en affiche une
+    if(persoTheme!=="maladies" && note.length<15){
+      msg.textContent="Ajoute une courte description (au moins 15 caractères)."; return;
+    }
     msg.textContent="Envoi…";
-    Persos.suggest(nom, note).then(r=>{
+    Persos.suggest(nom, note, persoTheme).then(r=>{
       if(r==="ok"){
         msg.textContent="";
         toast("Merci ! Ta proposition sera examinée.", 3000);
@@ -1669,6 +1717,7 @@
       else if(r==="trop-de-propositions") msg.textContent="Tu as déjà 5 propositions en attente.";
       else if(r==="nom-invalide")        msg.textContent="Nom invalide (4 à 15 lettres).";
       else if(r==="note-invalide")       msg.textContent="Description trop courte ou trop longue.";
+      else if(r==="theme-invalide")      msg.textContent="Thème inconnu.";
       else                                msg.textContent="Envoi impossible — réessaie.";
     }).catch(()=>{ msg.textContent="Envoi impossible — réessaie."; });
   });
@@ -1684,26 +1733,48 @@
     box.innerHTML='<p class="sub">Chargement…</p>';
     Persos.pending().then(rows=>{
       if(!rows || !rows.length){ box.innerHTML='<p class="sub">Aucune proposition en attente.</p>'; return; }
+      const esc=t=>String(t==null?"":t).replace(/[<>"]/g,"");
+      // tout est éditable avant approbation : nom, notice et thème
       box.innerHTML = rows.map(r=>
         '<div class="perso-sg" data-id="'+r.id+'">'
-        + '<div class="nm">'+String(r.name).replace(/[<>]/g,"")+'</div>'
-        + '<div class="nt">'+String(r.note).replace(/[<>]/g,"")+'</div>'
-        + '<div class="by">proposé par '+String(r.author_pseudo||"Anonyme").replace(/[<>]/g,"")+'</div>'
+        + '<select class="ed-th">'+PERSO_THEMES.map(t=>
+            '<option value="'+t.id+'"'+((r.theme||"persos")===t.id?" selected":"")+'>'+t.e+' '+t.n+'</option>').join("")+'</select>'
+        + '<input class="ed-nm" maxlength="15" value="'+esc(r.name)+'">'
+        + '<textarea class="ed-nt" maxlength="300" rows="3">'+esc(r.note)+'</textarea>'
+        + '<div class="by">proposé par '+esc(r.author_pseudo||"Anonyme")+'</div>'
         + '<div class="ac"><button class="ok" data-a="1">✓ Approuver</button>'
         + '<button class="no" data-a="0">✕ Refuser</button></div></div>').join("");
-      Array.prototype.forEach.call(box.querySelectorAll("button"), b=>{
-        b.addEventListener("click", ()=>{
-          const card=b.closest(".perso-sg");
-          const id=+card.dataset.id, ok=b.dataset.a==="1";
-          b.disabled=true;
-          Persos.review(id, ok).then(r=>{
-            if(r==="ok"){
-              card.remove();
-              toast(ok ? "Approuvé — le personnage rejoint le jeu." : "Proposition refusée.");
-              if(ok) persoLoadApproved();
-              if(!box.querySelector(".perso-sg")) box.innerHTML='<p class="sub">Aucune proposition en attente.</p>';
-            } else { b.disabled=false; toast("Action impossible"); }
-          }).catch(()=>{ b.disabled=false; toast("Action impossible"); });
+
+      Array.prototype.forEach.call(box.querySelectorAll(".perso-sg"), card=>{
+        const id=+card.dataset.id;
+        const fin=(txt)=>{
+          card.remove(); toast(txt);
+          if(!box.querySelector(".perso-sg")) box.innerHTML='<p class="sub">Aucune proposition en attente.</p>';
+        };
+        card.querySelector(".no").addEventListener("click", function(){
+          this.disabled=true;
+          Persos.review(id,false).then(r=>{
+            if(r==="ok") fin("Proposition refusée."); else { this.disabled=false; toast("Action impossible"); }
+          }).catch(()=>{ this.disabled=false; toast("Action impossible"); });
+        });
+        card.querySelector(".ok").addEventListener("click", function(){
+          const btn=this; btn.disabled=true;
+          const nom=persoNorm(card.querySelector(".ed-nm").value);
+          const note=card.querySelector(".ed-nt").value.trim();
+          const th=card.querySelector(".ed-th").value;
+          if(nom.length<4 || nom.length>15){ btn.disabled=false; toast("Nom invalide (4 à 15 lettres)"); return; }
+          // on enregistre d'abord les corrections, puis on approuve
+          Persos.edit(id, nom, note, th).then(r=>{
+            if(r!=="ok"){
+              btn.disabled=false;
+              toast(r==="deja-propose" ? "Ce mot existe déjà dans ce thème" : "Correction impossible");
+              return;
+            }
+            return Persos.review(id,true).then(r2=>{
+              if(r2==="ok"){ fin("Approuvé — le mot rejoint le jeu."); persoLoadApproved(); }
+              else { btn.disabled=false; toast("Action impossible"); }
+            });
+          }).catch(()=>{ btn.disabled=false; toast("Action impossible"); });
         });
       });
     });
