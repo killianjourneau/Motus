@@ -167,6 +167,16 @@
   .def-tg .meta{ font-size:11.5px; color:var(--ink-dim); font-weight:700; }
   .def-tg .ln{ flex:none; font-weight:800; font-size:13px; color:var(--accent); }
   .def-none{ font-size:13px; color:var(--ink-dim); text-align:center; padding:10px 0; font-style:italic; }
+  .perso-note{ min-height:70px; resize:vertical; font-family:inherit; line-height:1.4; padding:10px 12px; }
+  .perso-sg{ background:var(--cell); border-radius:12px; padding:11px; margin-bottom:9px; }
+  .perso-sg .nm{ font-size:15px; font-weight:800; letter-spacing:.5px; }
+  .perso-sg .nt{ font-size:13px; color:var(--ink-dim); line-height:1.45; margin:4px 0 5px; }
+  .perso-sg .by{ font-size:11px; color:var(--ink-dim); font-style:italic; margin-bottom:8px; }
+  .perso-sg .ac{ display:flex; gap:7px; }
+  .perso-sg .ac button{ flex:1; border:none; border-radius:9px; padding:9px; font-size:12.5px;
+    font-weight:800; cursor:pointer; color:#fff; }
+  .perso-sg .ok{ background:var(--ok, #0f8a58); }
+  .perso-sg .no{ background:var(--absent); color:var(--ink); }
   .def-taunt{ font-size:13px; font-style:italic; color:var(--accent); margin:4px 0 6px; font-weight:700; }
   .def-mine .s.rate{ color:var(--yellow); font-weight:700; }
   .def-mine .s.tot{ color:var(--ink-dim); font-size:12px; }
@@ -415,6 +425,7 @@
         <button class="mode-item" data-mode="maladies"><span class="mi">🩺</span><b>Maladies</b><i>Pathologies connues</i></button>
         <button class="mode-item" data-mode="villes"><span class="mi">🏙️</span><b>Villes</b><i>France et monde</i></button>
         <button class="mode-item" data-mode="persos"><span class="mi">🎭</span><b>Personnages</b><i>Réels, fictifs, mythologiques</i></button>
+        <button class="mode-item" id="persoSuggestItem"><span class="mi">➕</span><b>Proposer un personnage</b><i>Soumettre à validation</i></button>
       </div>
     </div>
   </div>
@@ -612,6 +623,31 @@
     </div>
   </div>
 
+  <!-- Proposer un personnage / valider les propositions -->
+  <div class="overlay" id="persoOverlay">
+    <div class="modal">
+      <button class="close-x" data-close>&times;</button>
+      <h2>🎭 Proposer un personnage</h2>
+
+      <div id="persoStep1">
+        <p class="sub">Un personnage qui manque ? Propose-le. Il n'apparaîtra dans le jeu qu'une fois validé.</p>
+        <input id="persoName" class="duel-in" maxlength="15" autocomplete="off"
+               autocapitalize="characters" spellcheck="false" placeholder="Nom (4 à 15 lettres)">
+        <textarea id="persoNote" class="duel-in perso-note" maxlength="300" rows="3"
+                  placeholder="Qui est-ce ? (dates, métier, œuvre connue…)"></textarea>
+        <p class="duel-msg" id="persoMsg"></p>
+        <button class="btn" id="persoSend">Envoyer la proposition</button>
+        <button class="btn ghost" id="persoAdminBtn" style="display:none">🛠️ Propositions à valider</button>
+      </div>
+
+      <div id="persoStep2" style="display:none">
+        <p class="sub">Approuve pour ajouter au jeu, refuse pour écarter.</p>
+        <div id="persoPending"></div>
+        <button class="btn ghost" id="persoBack">Retour</button>
+      </div>
+    </div>
+  </div>
+
   <div class="overlay" id="defOverlay">
     <div class="modal">
       <button class="close-x" data-close>&times;</button>
@@ -733,21 +769,21 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.42.3"></script>
-<script src="./dico/motus-prenoms.js?v=1.42.3"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.42.3"></script>
-<script src="./dico/motus-maladies.js?v=1.42.3"></script>
-<script src="./dico/motus-maladies-info.js?v=1.42.3"></script>
-<script src="./dico/motus-villes.js?v=1.42.3"></script>
-<script src="./dico/motus-villes-info.js?v=1.42.3"></script>
-<script src="./dico/motus-persos.js?v=1.42.3"></script>
-<script src="./dico/motus-persos-info.js?v=1.42.3"></script>
-<script src="./dico/motus-persos-split.js?v=1.42.3"></script>
-<script src="./dico/motus-race.js?v=1.42.3"></script>
-<script src="./dico/motus-expert.js?v=1.42.3"></script>
-<script src="./profiles/config.js?v=1.42.3"></script>
-<script src="./profiles/profile.js?v=1.42.3"></script>
-<script src="./duel/duel.js?v=1.42.3"></script>
+<script src="./dico/motus-words.js?v=1.43.0"></script>
+<script src="./dico/motus-prenoms.js?v=1.43.0"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.43.0"></script>
+<script src="./dico/motus-maladies.js?v=1.43.0"></script>
+<script src="./dico/motus-maladies-info.js?v=1.43.0"></script>
+<script src="./dico/motus-villes.js?v=1.43.0"></script>
+<script src="./dico/motus-villes-info.js?v=1.43.0"></script>
+<script src="./dico/motus-persos.js?v=1.43.0"></script>
+<script src="./dico/motus-persos-info.js?v=1.43.0"></script>
+<script src="./dico/motus-persos-split.js?v=1.43.0"></script>
+<script src="./dico/motus-race.js?v=1.43.0"></script>
+<script src="./dico/motus-expert.js?v=1.43.0"></script>
+<script src="./profiles/config.js?v=1.43.0"></script>
+<script src="./profiles/profile.js?v=1.43.0"></script>
+<script src="./duel/duel.js?v=1.43.0"></script>
 <script>
 (() => {
   "use strict";
@@ -799,7 +835,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.42.3";
+  const VERSION = "1.43.0";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -1575,6 +1611,102 @@
     if(!count) return "pas encore noté";
     const moy = sum/count;
     return defStars(moy) + " " + moy.toFixed(1) + " (" + count + " avis)";
+  }
+
+  /* ---------------------------------------------------------------
+     Suggestions de personnages.
+     Les propositions approuvées sont fusionnées au démarrage : elles
+     rejoignent les formes acceptées ET les formes tirables, avec leur
+     notice. Rien n'est jamais affiché avant validation.
+     --------------------------------------------------------------- */
+  function persoNorm(t){
+    return (t||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+                  .replace(/[^A-Za-z]/g,"").toUpperCase();
+  }
+  function persoLoadApproved(){
+    if(!window.Persos || !Persos.configured()) return;
+    Persos.approved().then(rows=>{
+      if(!rows || !rows.length) return;
+      let n=0;
+      rows.forEach(r=>{
+        const nom = persoNorm(r.name);
+        if(!nom || nom.length<4 || nom.length>15) return;
+        if(!window.MOTUS_PERSOS_INFO[nom]){
+          window.MOTUS_PERSOS_INFO[nom] = r.note;
+          if(THEME_SETS.persos) THEME_SETS.persos.add(nom);
+          if(!THEME_SOL.persos.includes(nom)) THEME_SOL.persos.push(nom);
+          n++;
+        }
+      });
+      if(n){ POOLS.persos = playableWords(THEME_SOL.persos); }
+    }).catch(()=>{});
+  }
+
+  function persoOpen(){
+    if(!window.Persos || !Persos.configured()){ toast("Les propositions nécessitent la connexion au serveur"); return; }
+    $("persoName").value=""; $("persoNote").value=""; $("persoMsg").textContent="";
+    $("persoStep1").style.display=""; $("persoStep2").style.display="none";
+    openOverlay("persoOverlay");
+    Persos.isAdmin().then(ok=>{ $("persoAdminBtn").style.display = ok ? "" : "none"; });
+  }
+  $("persoSend").addEventListener("click", ()=>{
+    const nom = persoNorm($("persoName").value);
+    const note = ($("persoNote").value||"").trim();
+    const msg = $("persoMsg");
+    if(nom.length<4 || nom.length>15){ msg.textContent="Le nom doit faire 4 à 15 lettres, sans espace ni accent."; return; }
+    if(window.MOTUS_PERSOS_INFO[nom] || (THEME_SETS.persos && THEME_SETS.persos.has(nom))){
+      msg.textContent="« "+nom+" » est déjà dans le jeu."; return;
+    }
+    if(note.length<15){ msg.textContent="Ajoute une courte description (au moins 15 caractères)."; return; }
+    msg.textContent="Envoi…";
+    Persos.suggest(nom, note).then(r=>{
+      if(r==="ok"){
+        msg.textContent="";
+        toast("Merci ! Ta proposition sera examinée.", 3000);
+        $("persoOverlay").classList.remove("open");
+      }
+      else if(r==="deja-propose")        msg.textContent="Ce personnage a déjà été proposé.";
+      else if(r==="trop-de-propositions") msg.textContent="Tu as déjà 5 propositions en attente.";
+      else if(r==="nom-invalide")        msg.textContent="Nom invalide (4 à 15 lettres).";
+      else if(r==="note-invalide")       msg.textContent="Description trop courte ou trop longue.";
+      else                                msg.textContent="Envoi impossible — réessaie.";
+    }).catch(()=>{ msg.textContent="Envoi impossible — réessaie."; });
+  });
+  $("persoAdminBtn").addEventListener("click", ()=>{
+    $("persoStep1").style.display="none"; $("persoStep2").style.display="";
+    persoDrawPending();
+  });
+  $("persoBack").addEventListener("click", ()=>{
+    $("persoStep2").style.display="none"; $("persoStep1").style.display="";
+  });
+  function persoDrawPending(){
+    const box=$("persoPending");
+    box.innerHTML='<p class="sub">Chargement…</p>';
+    Persos.pending().then(rows=>{
+      if(!rows || !rows.length){ box.innerHTML='<p class="sub">Aucune proposition en attente.</p>'; return; }
+      box.innerHTML = rows.map(r=>
+        '<div class="perso-sg" data-id="'+r.id+'">'
+        + '<div class="nm">'+String(r.name).replace(/[<>]/g,"")+'</div>'
+        + '<div class="nt">'+String(r.note).replace(/[<>]/g,"")+'</div>'
+        + '<div class="by">proposé par '+String(r.author_pseudo||"Anonyme").replace(/[<>]/g,"")+'</div>'
+        + '<div class="ac"><button class="ok" data-a="1">✓ Approuver</button>'
+        + '<button class="no" data-a="0">✕ Refuser</button></div></div>').join("");
+      Array.prototype.forEach.call(box.querySelectorAll("button"), b=>{
+        b.addEventListener("click", ()=>{
+          const card=b.closest(".perso-sg");
+          const id=+card.dataset.id, ok=b.dataset.a==="1";
+          b.disabled=true;
+          Persos.review(id, ok).then(r=>{
+            if(r==="ok"){
+              card.remove();
+              toast(ok ? "Approuvé — le personnage rejoint le jeu." : "Proposition refusée.");
+              if(ok) persoLoadApproved();
+              if(!box.querySelector(".perso-sg")) box.innerHTML='<p class="sub">Aucune proposition en attente.</p>';
+            } else { b.disabled=false; toast("Action impossible"); }
+          }).catch(()=>{ b.disabled=false; toast("Action impossible"); });
+        });
+      });
+    });
   }
 
   /* Au lancement, on va voir si on s'est fait attaquer pendant l'absence :
@@ -3382,7 +3514,13 @@
   $("confirmNo").addEventListener("click", closeOverlays);
 
   $("modeBtn").addEventListener("click", ()=>openOverlay("modeOverlay"));
-  document.querySelectorAll(".mode-item").forEach(b=>b.addEventListener("click", ()=>{ closeOverlays(); requestMode(b.dataset.mode); }));
+  document.querySelectorAll(".mode-item").forEach(b=>b.addEventListener("click", ()=>{
+    // « Proposer un personnage » partage l'apparence des modes mais n'en est
+    // pas un : sans ce garde-fou il lancerait une partie en mode undefined.
+    if(!b.dataset.mode) return;
+    closeOverlays(); requestMode(b.dataset.mode);
+  }));
+  $("persoSuggestItem").addEventListener("click", ()=>{ closeOverlays(); persoOpen(); });
 
   document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click", closeOverlays));
   document.querySelectorAll(".overlay").forEach(o=>o.addEventListener("click", e=>{ if(e.target===o) closeOverlays(); }));
@@ -3442,6 +3580,7 @@
   refreshStats();
   hintSyncPush();        // un appareil déjà pourvu envoie son état dès le départ
   defCheckOnLaunch();
+  persoLoadApproved();
   const last = store.get("motus.last","free");
   if(last==="duel"){ const a=duelActive(); if(a) duelResume(a); else startFree("normal"); }
   else if(last==="race"){ const a=raceActive(); if(a) raceResume(a); else startFree("normal"); }
