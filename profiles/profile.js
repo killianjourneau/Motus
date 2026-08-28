@@ -36,7 +36,7 @@
   /* ---------- Compteurs détaillés (alimentés par addGame/defiDone) ---------- */
   function freshCounters(){
     return { daily:0, defi:0, one:0, two:0, last:0, f5:0, f10:0, f15:0, slow:0,
-             mC:0, mN:0, mL:0, mP:0, mM:0, mV:0, mX:0, xRare:0, xClean:0, xStreak:0, xBest:0,
+             mC:0, mN:0, mL:0, mP:0, mPe:0, mM:0, mV:0, mX:0, xRare:0, xClean:0, xStreak:0, xBest:0,
              modes:[], streak:0, best:0,
              hyph:0, night:0, dawn:0, wknd:0, days:[], dayBest:0,
              defiFast:0, dailyOne:0, allDiff:0, longFast:0, comeback:0, noYellow:0,
@@ -107,6 +107,8 @@
     {id:"v50",   e:"🗺️", n:"Géographe",          d:"50 villes trouvées",            c:"Modes", t:function(b){return b.mV>=50;}, p:[function(b){return b.mV;},50]},
     {id:"vcap",  e:"🏛️", n:"Tour du monde",      d:"10 capitales trouvées",         c:"Modes", t:function(b){return b.villeCap>=10;}, p:[function(b){return b.villeCap;},10]},
     {id:"vmonde",e:"🌍", n:"Globe-trotteur",     d:"15 villes étrangères trouvées", c:"Modes", t:function(b){return b.villeMonde>=15;}, p:[function(b){return b.villeMonde;},15]},
+    {id:"pe10",  e:"🎭", n:"Physionomiste",      d:"10 personnages trouvés",        c:"Modes", t:function(b){return b.mPe>=10;}, p:[function(b){return b.mPe;},10]},
+    {id:"pe50",  e:"🌟", n:"Biographe",          d:"50 personnages trouvés",        c:"Modes", t:function(b){return b.mPe>=50;}, p:[function(b){return b.mPe;},50]},
     {id:"x1",    e:"🎓", n:"Rigoureux",          d:"Trouver un mot en Expert",       c:"Modes", t:function(b){return b.mX>=1;}},
     {id:"x10",   e:"📐", n:"Méthodique",         d:"10 mots trouvés en Expert",      c:"Modes", t:function(b){return b.mX>=10;}, p:[function(b){return b.mX;},10]},
     {id:"x50",   e:"🧠", n:"Implacable",         d:"50 mots trouvés en Expert",      c:"Modes", t:function(b){return b.mX>=50;}, p:[function(b){return b.mX;},50]},
@@ -907,6 +909,7 @@
         else if (key === "normal") b.mN++;
         else if (key === "long") b.mL++;
         else if (key === "prenoms") b.mP++;
+        else if (key === "persos") b.mPe++;
         else if (key === "maladies") b.mM++;
         else if (key === "villes") { b.mV++; if (o.capital) b.villeCap++; if (o.foreign) b.villeMonde++; }
         else if (key === "expert") {
@@ -932,6 +935,7 @@
           if (key === "maladies") b.hintMaladies = (b.hintMaladies || 0) + 1;
           if (key === "prenoms") b.hintPrenoms = (b.hintPrenoms || 0) + 1;
           if (key === "villes") b.hintVilles = (b.hintVilles || 0) + 1;
+          if (key === "persos") b.hintPersos = (b.hintPersos || 0) + 1;
         }
         else { b.cleanStreak++; if (b.cleanStreak > b.cleanBest) b.cleanBest = b.cleanStreak; }
       } else {
