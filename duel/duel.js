@@ -527,10 +527,18 @@
   window.Persos = {
     configured: function () { return configured; },
 
-    suggest: function (name, note) {
+    suggest: function (name, note, theme) {
       var m = me();
       return rpc("perso_suggest", {
-        p_id: m.id, p_pseudo: m.pseudo, p_name: name, p_note: note
+        p_id: m.id, p_pseudo: m.pseudo, p_name: name, p_note: note,
+        p_theme: theme || "persos"
+      }).then(function (r) { return (Array.isArray(r) ? r[0] : r) || "erreur"; });
+    },
+
+    /* Correction par l'administrateur avant approbation. */
+    edit: function (suggId, name, note, theme) {
+      return rpc("perso_edit", {
+        p_id: me().id, p_sugg: suggId, p_name: name, p_note: note, p_theme: theme
       }).then(function (r) { return (Array.isArray(r) ? r[0] : r) || "erreur"; });
     },
 
