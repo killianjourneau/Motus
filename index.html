@@ -266,8 +266,7 @@
   #timer{ font-variant-numeric:tabular-nums; letter-spacing:.5px; background:var(--cell); padding:4px 10px; border-radius:8px; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
   main{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:4px 8px; min-height:0; }
   #board{ display:grid; gap:var(--gap); }
-  .row.two{ display:flex; flex-direction:column; gap:var(--gap); align-items:center; }
-  .row.two .subrow{ display:grid; gap:var(--gap); }
+  .tile.sep{ margin-left:calc(var(--tile) * 0.42); }
   #penduBox{ display:flex; flex-direction:column; align-items:center; gap:6px; }
   #penduSvg{ display:block; }
   .pendu-part{ opacity:0; transform:scale(.6); transform-origin:82px 60px; transition:opacity .25s ease, transform .25s ease; }
@@ -734,21 +733,21 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.42.1"></script>
-<script src="./dico/motus-prenoms.js?v=1.42.1"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.42.1"></script>
-<script src="./dico/motus-maladies.js?v=1.42.1"></script>
-<script src="./dico/motus-maladies-info.js?v=1.42.1"></script>
-<script src="./dico/motus-villes.js?v=1.42.1"></script>
-<script src="./dico/motus-villes-info.js?v=1.42.1"></script>
-<script src="./dico/motus-persos.js?v=1.42.1"></script>
-<script src="./dico/motus-persos-info.js?v=1.42.1"></script>
-<script src="./dico/motus-persos-split.js?v=1.42.1"></script>
-<script src="./dico/motus-race.js?v=1.42.1"></script>
-<script src="./dico/motus-expert.js?v=1.42.1"></script>
-<script src="./profiles/config.js?v=1.42.1"></script>
-<script src="./profiles/profile.js?v=1.42.1"></script>
-<script src="./duel/duel.js?v=1.42.1"></script>
+<script src="./dico/motus-words.js?v=1.42.3"></script>
+<script src="./dico/motus-prenoms.js?v=1.42.3"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.42.3"></script>
+<script src="./dico/motus-maladies.js?v=1.42.3"></script>
+<script src="./dico/motus-maladies-info.js?v=1.42.3"></script>
+<script src="./dico/motus-villes.js?v=1.42.3"></script>
+<script src="./dico/motus-villes-info.js?v=1.42.3"></script>
+<script src="./dico/motus-persos.js?v=1.42.3"></script>
+<script src="./dico/motus-persos-info.js?v=1.42.3"></script>
+<script src="./dico/motus-persos-split.js?v=1.42.3"></script>
+<script src="./dico/motus-race.js?v=1.42.3"></script>
+<script src="./dico/motus-expert.js?v=1.42.3"></script>
+<script src="./profiles/config.js?v=1.42.3"></script>
+<script src="./profiles/profile.js?v=1.42.3"></script>
+<script src="./duel/duel.js?v=1.42.3"></script>
 <script>
 (() => {
   "use strict";
@@ -768,7 +767,7 @@
     prenoms:  window.MOTUS_PRENOMS_SOL || THEMES.prenoms,
     maladies: THEMES.maladies,
     villes:   window.MOTUS_VILLES_SOL  || THEMES.villes,
-    persos:   THEMES.persos
+    persos:   window.MOTUS_PERSOS_SOL   || THEMES.persos
   };
   const THEME_MODES = ["prenoms","maladies","villes","persos"];
   // Toutes les propositions acceptées dans le mode (recherche rapide)
@@ -800,7 +799,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.42.1";
+  const VERSION = "1.42.3";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -861,7 +860,7 @@
   };
   let gaveUp = false;   // vrai uniquement en cas d'abandon volontaire, jamais après 6 essais épuisés
   let hintCols = [], hintsThisGame = 0;
-  const HINT_MODES = ["court","normal","long","prenoms","maladies","villes","daily","defi","pendu"];
+  const HINT_MODES = ["court","normal","long","prenoms","maladies","villes","persos","daily","defi","pendu"];
   const HINT_MAX_PER_WORD = 2;
   // duel
   // course à l'écriture
@@ -985,7 +984,10 @@
   function computeSizing(){
     const gap = len>=10 ? 3 : Math.max(4, Math.min(8, window.innerWidth*0.014));
     const maxW = Math.min(window.innerWidth-14, 560);
-    let tile = Math.floor((maxW - gap*(len-1))/len);
+    // l'écart prénom/nom (0.42 case) consomme de la largeur : sans ça, un nom
+    // composé et long déborderait de l'écran
+    const sp = (typeof currentSplit==="function") ? currentSplit() : 0;
+    let tile = Math.floor((maxW - gap*(len-1)) / (len + (sp ? 0.42 : 0)));
     // La grille compte toujours MAX_ROWS lignes, quelle que soit la longueur
     // du mot. Sur un mot court, la largeur seule autoriserait des cases bien
     // trop hautes pour l'espace réellement disponible — le plateau déborde
@@ -993,21 +995,10 @@
     // donc aussi la taille par la hauteur réellement offerte à <main>.
     const mainEl = document.querySelector("main");
     const availH = (mainEl && mainEl.clientHeight) || Math.round(window.innerHeight*0.5);
-    // un nom en deux parties occupe DEUX sous-lignes par tentative : le
-    // plateau fait alors deux fois plus haut, il faut le prévoir ici sinon
-    // il déborde sur le bandeau.
-    const sp = (typeof currentSplit==="function") ? currentSplit() : 0;
-    const lignes = sp ? MAX_ROWS*2 : MAX_ROWS;
-    const tileH = Math.floor((availH - gap*(lignes-1)) / lignes);
+    const tileH = Math.floor((availH - gap*(MAX_ROWS-1)) / MAX_ROWS);
     if(tileH > 0) tile = Math.min(tile, tileH);
-    // en deux parties, la largeur n'est contrainte que par la plus longue moitié
-    if(sp){
-      const large = Math.max(sp, len-sp);
-      const tW = Math.floor((maxW - gap*(large-1))/large);
-      tile = Math.min(Math.max(tile, 1), tW);
-    }
     tile = Math.min(tile, 58);
-    if(len<=8 && !sp) tile = Math.max(tile, 30);
+    if(len<=8) tile = Math.max(tile, 30);
     document.documentElement.style.setProperty("--tile", tile+"px");
     document.documentElement.style.setProperty("--gap", gap+"px");
   }
@@ -1024,31 +1015,17 @@
   function buildBoard(){
     const sp = currentSplit();
     board.classList.toggle("split", !!sp);
-    board.style.gridTemplateRows = sp
-      ? `repeat(${MAX_ROWS}, calc(var(--tile) * 2 + var(--gap)))`
-      : `repeat(${MAX_ROWS}, var(--tile))`;
+    board.style.gridTemplateRows = `repeat(${MAX_ROWS}, var(--tile))`;
     board.innerHTML="";
     for(let r=0;r<MAX_ROWS;r++){
       const rowEl=document.createElement("div"); rowEl.className="row"; rowEl.dataset.r=r;
-      if(sp){
-        rowEl.classList.add("two");
-        const mk=(from,to)=>{
-          const sub=document.createElement("div"); sub.className="subrow";
-          sub.style.gridTemplateColumns = `repeat(${to-from}, var(--tile))`;
-          for(let c=from;c<to;c++){
-            const t=document.createElement("div"); t.className="tile"; t.dataset.c=c; t.setAttribute("role","gridcell");
-            t.innerHTML="<span></span>"; sub.appendChild(t);
-          }
-          return sub;
-        };
-        rowEl.appendChild(mk(0,sp));
-        rowEl.appendChild(mk(sp,len));
-      } else {
-        rowEl.style.gridTemplateColumns = `repeat(${len}, var(--tile))`;
-        for(let c=0;c<len;c++){
-          const t=document.createElement("div"); t.className="tile"; t.dataset.c=c; t.setAttribute("role","gridcell");
-          t.innerHTML="<span></span>"; rowEl.appendChild(t);
-        }
+      rowEl.style.gridTemplateColumns = `repeat(${len}, var(--tile))`;
+      for(let c=0;c<len;c++){
+        const t=document.createElement("div"); t.className="tile"; t.dataset.c=c; t.setAttribute("role","gridcell");
+        // nom composé : tout tient sur UNE ligne, la séparation prénom/nom
+        // est marquée par un simple écart avant la première lettre du nom
+        if(sp && c===sp) t.classList.add("sep");
+        t.innerHTML="<span></span>"; rowEl.appendChild(t);
       }
       board.appendChild(rowEl);
     }
@@ -1829,7 +1806,7 @@
     }
     const list = theme==="prenoms"  ? (window.MOTUS_PRENOMS_SOL || [])
                : theme==="maladies" ? (window.MOTUS_MALADIES || [])
-               : theme==="persos"   ? (window.MOTUS_PERSOS || [])
+               : theme==="persos"   ? (window.MOTUS_PERSOS_SOL || window.MOTUS_PERSOS || [])
                :                      (window.MOTUS_VILLES_SOL || []);
     list.forEach(w=>{ (by[w.length]=by[w.length]||[]).push(w); });
     // une longueur n'est retenue que si le choix est assez varié
