@@ -504,4 +504,43 @@
   };
 
   window.Defense = F;
+
+  /* ---------------------------------------------------------------
+     Suggestions de personnages : proposer, consulter les approuvés,
+     et — pour un administrateur — valider ou rejeter.
+     --------------------------------------------------------------- */
+  window.Persos = {
+    configured: function () { return configured; },
+
+    suggest: function (name, note) {
+      var m = me();
+      return rpc("perso_suggest", {
+        p_id: m.id, p_pseudo: m.pseudo, p_name: name, p_note: note
+      }).then(function (r) { return (Array.isArray(r) ? r[0] : r) || "erreur"; });
+    },
+
+    /* Chargé au démarrage : ce que les joueurs ont fait valider. */
+    approved: function () {
+      if (!configured) return Promise.resolve([]);
+      return rpc("perso_approved", {}).then(function (rows) { return rows || []; })
+                                      .catch(function () { return []; });
+    },
+
+    isAdmin: function () {
+      if (!configured) return Promise.resolve(false);
+      return rpc("perso_is_admin", { p_id: me().id })
+        .then(function (r) { return !!(Array.isArray(r) ? r[0] : r); })
+        .catch(function () { return false; });
+    },
+
+    pending: function () {
+      return rpc("perso_pending", { p_id: me().id })
+        .then(function (rows) { return rows || []; }).catch(function () { return []; });
+    },
+
+    review: function (suggId, approve) {
+      return rpc("perso_review", { p_id: me().id, p_sugg: suggId, p_approve: !!approve })
+        .then(function (r) { return (Array.isArray(r) ? r[0] : r) || "erreur"; });
+    }
+  };
 })();

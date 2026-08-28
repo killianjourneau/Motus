@@ -747,3 +747,101 @@ grant execute on function defense_report(uuid,uuid,int,int,boolean) to anon, aut
 grant execute on function defense_feed(uuid,int)                    to anon, authenticated;
 grant execute on function defense_rate(uuid,uuid,int,int)           to anon, authenticated;
 grant execute on function defense_seen(uuid)                        to anon, authenticated;
+
+-- =====================================================================
+-- SUGGESTIONS DE PERSONNAGES (v1.43)
+-- N'importe qui peut proposer un personnage ; rien n'apparaît dans le jeu
+-- tant qu'un administrateur ne l'a pas approuvé. Le texte soumis est donc
+-- invisible des autres joueurs jusqu'à validation — c'est ce qui rend la
+-- fonctionnalité sûre sans modération automatique.
+-- =====================================================================
+
+-- Qui peut valider. À remplir UNE FOIS à la main depuis la console
+-- Supabase avec l'identifiant de profil du propriétaire du jeu :
+--   insert into app_admins(player_id) values ('<ton-uuid-de-profil>');
+create table if not exists app_admins (
+  player_id uuid primary key,
+  created_at timestamptz default now()
+);
+
+create table if not exists perso_suggestions (
+  id          bigserial primary key,
+  name        text not null,          -- déjà normalisé côté client : A-Z, 4 à 15
+  note        text not null,          -- la notice proposée
+  author_id   uuid,
+  author_pseudo text,
+  status      text default 'pending', -- pending | approved | rejected
+  created_at  timestamptz default now(),
+  reviewed_at timestamptz
+);
+create index if not exists perso_sugg_status_idx on perso_suggestions (status, created_at);
+create unique index if not exists perso_sugg_name_idx on perso_suggestions (name)
+  where status <> 'rejected';         -- pas deux fois le même en attente/approuvé
+
+alter table perso_suggestions enable row level security;
+alter table app_admins        enable row level security;
+
+create or replace function is_admin(p_id uuid) returns boolean
+language sql security definer stable as $$
+  select exists(select 1 from app_admins where player_id = p_id);
+$$;
+
+-- Proposer un personnage. Rejeté si déjà proposé ou déjà en jeu (le client
+-- vérifie la liste existante avant d'appeler).
+create or replace function perso_suggest(
+  p_id uuid, p_pseudo text, p_name text, p_note text
+) returns text language plpgsql security definer as $$
+declare v_name text; v_note text;
+begin
+  v_name := upper(regexp_replace(coalesce(p_name,''), '[^A-Za-z]', '', 'g'));
+  v_note := btrim(coalesce(p_note,''));
+  if length(v_name) < 4 or length(v_name) > 15 then return 'nom-invalide'; end if;
+  if length(v_note) < 15 or length(v_note) > 300 then return 'note-invalide'; end if;
+  if exists(select 1 from perso_suggestions
+             where name = v_name and status <> 'rejected') then return 'deja-propose'; end if;
+  -- garde-fou anti-spam : 5 propositions en attente par personne au maximum
+  if (select count(*) from perso_suggestions
+       where author_id = p_id and status = 'pending') >= 5 then return 'trop-de-propositions'; end if;
+  insert into perso_suggestions(name, note, author_id, author_pseudo)
+  values (v_name, v_note, p_id, p_pseudo);
+  return 'ok';
+end $$;
+
+-- Ce que le jeu charge au démarrage : uniquement l'approuvé.
+create or replace function perso_approved()
+returns table (name text, note text) language sql security definer stable as $$
+  select name, note from perso_suggestions where status = 'approved' order by name;
+$$;
+
+-- Réservé aux administrateurs.
+create or replace function perso_pending(p_id uuid)
+returns table (id bigint, name text, note text, author_pseudo text, created_at timestamptz)
+language sql security definer stable as $$
+  select s.id, s.name, s.note, s.author_pseudo, s.created_at
+    from perso_suggestions s
+   where s.status = 'pending' and is_admin(p_id)
+   order by s.created_at
+   limit 100;
+$$;
+
+create or replace function perso_review(p_id uuid, p_sugg bigint, p_approve boolean)
+returns text language plpgsql security definer as $$
+begin
+  if not is_admin(p_id) then return 'refuse'; end if;
+  update perso_suggestions
+     set status = case when p_approve then 'approved' else 'rejected' end,
+         reviewed_at = now()
+   where id = p_sugg and status = 'pending';
+  if not found then return 'introuvable'; end if;
+  return 'ok';
+end $$;
+
+-- Permet au client de savoir s'il doit afficher l'écran de validation.
+create or replace function perso_is_admin(p_id uuid) returns boolean
+language sql security definer stable as $$ select is_admin(p_id); $$;
+
+grant execute on function perso_suggest(uuid,text,text,text) to anon, authenticated;
+grant execute on function perso_approved()                   to anon, authenticated;
+grant execute on function perso_pending(uuid)                to anon, authenticated;
+grant execute on function perso_review(uuid,bigint,boolean)  to anon, authenticated;
+grant execute on function perso_is_admin(uuid)               to anon, authenticated;
