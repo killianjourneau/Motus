@@ -28,6 +28,23 @@
 
   /* Appelle une fonction de la base. Les erreurs métier ('introuvable',
      'complet', 'soi-meme') remontent telles quelles. */
+  /* Variante de rpc() qui conserve la LISTE complète.
+     rpc() ne renvoie que la première ligne (comportement voulu pour les
+     fonctions à résultat unique) — inutilisable pour une liste. */
+  function rpcList(name, params) {
+    if (!configured) return Promise.resolve([]);
+    return fetch(API + "/rest/v1/rpc/" + name, {
+      method: "POST", headers: headers(), body: JSON.stringify(params || {})
+    }).then(function (r) {
+      return r.text().then(function (txt) {
+        var data = null;
+        try { data = txt ? JSON.parse(txt) : null; } catch (e) {}
+        if (!r.ok) throw new Error("http-" + r.status);
+        return Array.isArray(data) ? data : (data ? [data] : []);
+      });
+    });
+  }
+
   function rpc(name, params) {
     if (!configured) return Promise.reject(new Error("non-configure"));
     return fetch(API + "/rest/v1/rpc/" + name, {
@@ -433,8 +450,7 @@
     /* Défenses que je peux attaquer maintenant. */
     targets: function (limit) {
       var m = me();
-      return rpc("defense_targets", { p_id: m.id, p_limit: limit || 20 })
-        .then(function (rows) { return rows ? [].concat(rows) : []; })
+      return rpcList("defense_targets", { p_id: m.id, p_limit: limit || 20 })
         .catch(function () { return []; });
     },
 
@@ -465,8 +481,7 @@
     /* Journal des attaques subies (les plus récentes d'abord). */
     feed: function (limit) {
       var m = me();
-      return rpc("defense_feed", { p_id: m.id, p_limit: limit || 15 })
-        .then(function (rows) { return rows ? [].concat(rows) : []; })
+      return rpcList("defense_feed", { p_id: m.id, p_limit: limit || 15 })
         .catch(function () { return []; });
     },
 
@@ -522,8 +537,8 @@
     /* Chargé au démarrage : ce que les joueurs ont fait valider. */
     approved: function () {
       if (!configured) return Promise.resolve([]);
-      return rpc("perso_approved", {}).then(function (rows) { return rows || []; })
-                                      .catch(function () { return []; });
+      return rpcList("perso_approved", {}).then(function (rows) { return rows || []; })
+                                          .catch(function () { return []; });
     },
 
     isAdmin: function () {
@@ -534,7 +549,7 @@
     },
 
     pending: function () {
-      return rpc("perso_pending", { p_id: me().id })
+      return rpcList("perso_pending", { p_id: me().id })
         .then(function (rows) { return rows || []; }).catch(function () { return []; });
     },
 
