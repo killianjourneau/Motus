@@ -32,6 +32,18 @@
     --red:#e23a44; --yellow:#f2be14; --absent:#aebbd0;
     --ink:#14233c; --ink-dim:#5c6c88;
   }
+  /* Thèmes accessibles : bleu/orange à la place du rouge/jaune, que la
+     forme la plus courante de daltonisme ne distingue pas. */
+  :root[data-theme="dark-a"]{
+    --bg:#071633; --bg-2:#0b2247; --cell:#10305f; --cell-edge:#1d477f;
+    --red:#3b82f6; --yellow:#f59e0b; --absent:#12294a;
+    --ink:#ffffff; --ink-dim:#8aa6cf;
+  }
+  :root[data-theme="light-a"]{
+    --bg:#eef2f9; --bg-2:#dfe7f3; --cell:#cdd8ea; --cell-edge:#b6c5df;
+    --red:#1d63d1; --yellow:#c77400; --absent:#aebbd0;
+    --ink:#14233c; --ink-dim:#5c6c88;
+  }
   :root[data-accent="blue"]{ --accent:#2f7de6; }
   :root[data-accent="green"]{ --accent:#0f8a58; }
   :root[data-accent="purple"]{ --accent:#8b5cf6; }
@@ -218,7 +230,7 @@
     </div>
   </div>
 
-<script src="./dico/motus-enfant.js?v=1.34.2"></script>
+<script src="./dico/motus-enfant.js?v=1.45.0"></script>
 <script>
 (function(){
   "use strict";
@@ -247,11 +259,16 @@
   var theme = store.get("motus.theme","dark");
   function applyTheme(){
     document.documentElement.dataset.theme = theme;
-    document.querySelector('meta[name=theme-color]').content = (theme==="light") ? "#eef2f9" : "#071633";
-    $("btnTheme").textContent = (theme==="dark") ? "☀️" : "🌙";
+    var clair = (theme==="light" || theme==="light-a");
+    document.querySelector('meta[name=theme-color]').content = clair ? "#eef2f9" : "#071633";
+    $("btnTheme").textContent = clair ? "🌙" : "☀️";
   }
   $("btnTheme").addEventListener("click", function(){
-    theme = (theme==="dark")?"light":"dark"; store.set("motus.theme",theme); applyTheme();
+    // on reste dans la même famille : un thème accessible ne doit pas se
+    // perdre sur un simple appui
+    var bascule = { dark:"light", light:"dark", "dark-a":"light-a", "light-a":"dark-a" };
+    theme = bascule[theme] || "light";
+    store.set("motus.theme",theme); applyTheme();
   });
 
   /* ---------- outils ---------- */

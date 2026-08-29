@@ -35,6 +35,39 @@
     --ink:#14233c; --ink-dim:#5c6c88; --key:#ffffff; --key-edge:#cbd8ea;
   }
 
+  /* ---- Thèmes accessibles ----
+     Le rouge et le jaune de Motus sont exactement la paire que la forme la
+     plus courante de daltonisme (deutéranopie/protanopie) ne distingue pas.
+     On les remplace par BLEU / ORANGE, discernables par toutes les formes de
+     daltonisme. Seules les couleurs de JEU changent : la couleur d'accent
+     personnalisable reste libre. */
+  :root[data-theme="dark-a"]{
+    --bg:#071633; --bg-2:#0b2247; --cell:#10305f; --cell-edge:#1d477f;
+    --red:#3b82f6; --yellow:#f59e0b; --absent:#12294a;
+    --ink:#ffffff; --ink-dim:#8aa6cf; --key:#22467c; --key-edge:#2f5c9e;
+  }
+  :root[data-theme="light-a"]{
+    --bg:#eef2f9; --bg-2:#dfe7f3; --cell:#cdd8ea; --cell-edge:#b6c5df;
+    --red:#1d63d1; --yellow:#c77400; --absent:#aebbd0;
+    --ink:#14233c; --ink-dim:#5c6c88; --key:#ffffff; --key-edge:#cbd8ea;
+  }
+  /* La couleur ne fait jamais foi à elle seule : un repère de forme est
+     ajouté sur la lettre bien placée et sur la lettre mal placée. */
+  :root[data-theme="dark-a"] .tile.correct::after,
+  :root[data-theme="light-a"] .tile.correct::after{
+    content:""; position:absolute; left:50%; bottom:5px; transform:translateX(-50%);
+    width:calc(var(--tile) * .26); height:3px; border-radius:2px; background:#fff; opacity:.9;
+  }
+  :root[data-theme="dark-a"] .tile.correct,
+  :root[data-theme="light-a"] .tile.correct{ position:relative; }
+  :root[data-theme="dark-a"] .key.correct::after,
+  :root[data-theme="light-a"] .key.correct::after{
+    content:""; position:absolute; left:50%; bottom:4px; transform:translateX(-50%);
+    width:12px; height:2.5px; border-radius:2px; background:#fff; opacity:.9;
+  }
+  :root[data-theme="dark-a"] .key.correct,
+  :root[data-theme="light-a"] .key.correct{ position:relative; }
+
   *{ box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
   html,body{ height:100%; }
   body{
@@ -171,6 +204,7 @@
   .perso-sg{ background:var(--cell); border-radius:12px; padding:11px; margin-bottom:9px; }
   .perso-sg .nm{ font-size:15px; font-weight:800; letter-spacing:.5px; }
   .perso-themes{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+  .perso-hint{ font-size:11.5px; color:var(--ink-dim); line-height:1.45; margin:-4px 0 10px; }
   .perso-th{ flex:1 1 auto; min-width:calc(50% - 6px); padding:9px 8px; border:none; border-radius:10px;
     background:var(--cell); color:var(--ink); font-size:13px; font-weight:800; cursor:pointer;
     box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
@@ -782,21 +816,21 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.44.1"></script>
-<script src="./dico/motus-prenoms.js?v=1.44.1"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.44.1"></script>
-<script src="./dico/motus-maladies.js?v=1.44.1"></script>
-<script src="./dico/motus-maladies-info.js?v=1.44.1"></script>
-<script src="./dico/motus-villes.js?v=1.44.1"></script>
-<script src="./dico/motus-villes-info.js?v=1.44.1"></script>
-<script src="./dico/motus-persos.js?v=1.44.1"></script>
-<script src="./dico/motus-persos-info.js?v=1.44.1"></script>
-<script src="./dico/motus-persos-split.js?v=1.44.1"></script>
-<script src="./dico/motus-race.js?v=1.44.1"></script>
-<script src="./dico/motus-expert.js?v=1.44.1"></script>
-<script src="./profiles/config.js?v=1.44.1"></script>
-<script src="./profiles/profile.js?v=1.44.1"></script>
-<script src="./duel/duel.js?v=1.44.1"></script>
+<script src="./dico/motus-words.js?v=1.45.0"></script>
+<script src="./dico/motus-prenoms.js?v=1.45.0"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.45.0"></script>
+<script src="./dico/motus-maladies.js?v=1.45.0"></script>
+<script src="./dico/motus-maladies-info.js?v=1.45.0"></script>
+<script src="./dico/motus-villes.js?v=1.45.0"></script>
+<script src="./dico/motus-villes-info.js?v=1.45.0"></script>
+<script src="./dico/motus-persos.js?v=1.45.0"></script>
+<script src="./dico/motus-persos-info.js?v=1.45.0"></script>
+<script src="./dico/motus-persos-split.js?v=1.45.0"></script>
+<script src="./dico/motus-race.js?v=1.45.0"></script>
+<script src="./dico/motus-expert.js?v=1.45.0"></script>
+<script src="./profiles/config.js?v=1.45.0"></script>
+<script src="./profiles/profile.js?v=1.45.0"></script>
+<script src="./duel/duel.js?v=1.45.0"></script>
 <script>
 (() => {
   "use strict";
@@ -848,7 +882,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.44.1";
+  const VERSION = "1.45.0";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -927,9 +961,16 @@
   /* ---------- Thème ---------- */
   function applyTheme(){
     document.documentElement.dataset.theme = theme;
-    document.querySelector('meta[name=theme-color]').content = (theme==="light") ? "#eef2f9" : "#071633";
+    const clair = (theme==="light" || theme==="light-a");
+    document.querySelector('meta[name=theme-color]').content = clair ? "#eef2f9" : "#071633";
   }
-  function toggleTheme(){ theme = (theme==="dark")?"light":"dark"; store.set("motus.theme",theme); applyTheme(); }
+  /* Bascule rapide clair/sombre : on reste dans la même famille, un joueur
+     daltonien ne doit pas perdre son thème accessible d'un simple appui. */
+  function toggleTheme(){
+    const bascule = { dark:"light", light:"dark", "dark-a":"light-a", "light-a":"dark-a" };
+    theme = bascule[theme] || "light";
+    store.set("motus.theme",theme); applyTheme();
+  }
 
   /* ---------- Couleur d'accent ---------- */
   const ACCENTS = [
@@ -953,7 +994,10 @@
         + '<div class="perso-themes">'
         +   '<button class="perso-th" data-th="dark">🌙 Sombre</button>'
         +   '<button class="perso-th" data-th="light">☀️ Clair</button>'
+        +   '<button class="perso-th" data-th="dark-a">🌙 Sombre accessible</button>'
+        +   '<button class="perso-th" data-th="light-a">☀️ Clair accessible</button>'
         + '</div>'
+        + '<p class="perso-hint">Les thèmes accessibles remplacent le rouge et le jaune par du bleu et de l\'orange, distinguables en cas de daltonisme.</p>'
         + '<p class="perso-t">Couleur d\'accent</p>'
         + '<div class="perso-swatches">'
         + ACCENTS.map(a=>`<button class="perso-sw" data-accent="${a.id}"><span class="perso-dot" style="background:${a.c}"></span></button>`).join("")
