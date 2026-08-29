@@ -782,21 +782,21 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.44.0"></script>
-<script src="./dico/motus-prenoms.js?v=1.44.0"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.44.0"></script>
-<script src="./dico/motus-maladies.js?v=1.44.0"></script>
-<script src="./dico/motus-maladies-info.js?v=1.44.0"></script>
-<script src="./dico/motus-villes.js?v=1.44.0"></script>
-<script src="./dico/motus-villes-info.js?v=1.44.0"></script>
-<script src="./dico/motus-persos.js?v=1.44.0"></script>
-<script src="./dico/motus-persos-info.js?v=1.44.0"></script>
-<script src="./dico/motus-persos-split.js?v=1.44.0"></script>
-<script src="./dico/motus-race.js?v=1.44.0"></script>
-<script src="./dico/motus-expert.js?v=1.44.0"></script>
-<script src="./profiles/config.js?v=1.44.0"></script>
-<script src="./profiles/profile.js?v=1.44.0"></script>
-<script src="./duel/duel.js?v=1.44.0"></script>
+<script src="./dico/motus-words.js?v=1.44.1"></script>
+<script src="./dico/motus-prenoms.js?v=1.44.1"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.44.1"></script>
+<script src="./dico/motus-maladies.js?v=1.44.1"></script>
+<script src="./dico/motus-maladies-info.js?v=1.44.1"></script>
+<script src="./dico/motus-villes.js?v=1.44.1"></script>
+<script src="./dico/motus-villes-info.js?v=1.44.1"></script>
+<script src="./dico/motus-persos.js?v=1.44.1"></script>
+<script src="./dico/motus-persos-info.js?v=1.44.1"></script>
+<script src="./dico/motus-persos-split.js?v=1.44.1"></script>
+<script src="./dico/motus-race.js?v=1.44.1"></script>
+<script src="./dico/motus-expert.js?v=1.44.1"></script>
+<script src="./profiles/config.js?v=1.44.1"></script>
+<script src="./profiles/profile.js?v=1.44.1"></script>
+<script src="./duel/duel.js?v=1.44.1"></script>
 <script>
 (() => {
   "use strict";
@@ -848,7 +848,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.44.0";
+  const VERSION = "1.44.1";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -1718,6 +1718,7 @@
       else if(r==="nom-invalide")        msg.textContent="Nom invalide (4 à 15 lettres).";
       else if(r==="note-invalide")       msg.textContent="Description trop courte ou trop longue.";
       else if(r==="theme-invalide")      msg.textContent="Thème inconnu.";
+      else if(r==="sql-obsolete")        msg.textContent="La base du jeu n'est pas à jour : le script duel/schema.sql doit être rejoué.";
       else                                msg.textContent="Envoi impossible — réessaie.";
     }).catch(()=>{ msg.textContent="Envoi impossible — réessaie."; });
   });
@@ -1764,16 +1765,21 @@
           const th=card.querySelector(".ed-th").value;
           if(nom.length<4 || nom.length>15){ btn.disabled=false; toast("Nom invalide (4 à 15 lettres)"); return; }
           // on enregistre d'abord les corrections, puis on approuve
+          const approuver = (avert)=>Persos.review(id,true).then(r2=>{
+            if(r2==="ok"){
+              fin(avert || "Approuvé — le mot rejoint le jeu.");
+              persoLoadApproved();
+            } else { btn.disabled=false; toast("Action impossible"); }
+          });
           Persos.edit(id, nom, note, th).then(r=>{
-            if(r!=="ok"){
-              btn.disabled=false;
-              toast(r==="deja-propose" ? "Ce mot existe déjà dans ce thème" : "Correction impossible");
-              return;
+            if(r==="ok") return approuver();
+            // base pas encore à jour : on approuve quand même, sans les
+            // corrections — mieux vaut valider que tout bloquer
+            if(r==="sql-obsolete"){
+              return approuver("Approuvé — mais tes corrections n'ont pas pu être enregistrées (base à mettre à jour).");
             }
-            return Persos.review(id,true).then(r2=>{
-              if(r2==="ok"){ fin("Approuvé — le mot rejoint le jeu."); persoLoadApproved(); }
-              else { btn.disabled=false; toast("Action impossible"); }
-            });
+            btn.disabled=false;
+            toast(r==="deja-propose" ? "Ce mot existe déjà dans ce thème" : "Correction impossible");
           }).catch(()=>{ btn.disabled=false; toast("Action impossible"); });
         });
       });
