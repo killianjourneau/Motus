@@ -775,8 +775,17 @@ create table if not exists perso_suggestions (
   reviewed_at timestamptz
 );
 create index if not exists perso_sugg_status_idx on perso_suggestions (status, created_at);
-create unique index if not exists perso_sugg_name_idx on perso_suggestions (name)
-  where status <> 'rejected';         -- pas deux fois le même en attente/approuvé
+
+-- v1.44 : les suggestions couvrent désormais TOUS les thèmes, pas seulement
+-- les personnages. « theme » vaut persos | prenoms | maladies | villes.
+alter table perso_suggestions add column if not exists theme text default 'persos';
+-- les propositions créées AVANT cette version n'ont pas de thème : on les
+-- rattache aux personnages, seul thème qui existait alors
+update perso_suggestions set theme = 'persos' where theme is null or btrim(theme) = '';
+drop index if exists perso_sugg_name_idx;   -- remplacé : l'unicité est par thème
+create unique index if not exists perso_sugg_theme_name_idx
+  on perso_suggestions (theme, name)
+  where status <> 'rejected';         -- pas deux fois le même dans un thème donné
 
 alter table perso_suggestions enable row level security;
 alter table app_admins        enable row level security;
@@ -788,41 +797,78 @@ $$;
 
 -- Proposer un personnage. Rejeté si déjà proposé ou déjà en jeu (le client
 -- vérifie la liste existante avant d'appeler).
+-- l'ancienne signature à 4 arguments doit disparaître, sinon un appel à
+-- 4 arguments devient ambigu avec la nouvelle (dont le 5e a un défaut)
+drop function if exists perso_suggest(uuid, text, text, text);
 create or replace function perso_suggest(
-  p_id uuid, p_pseudo text, p_name text, p_note text
+  p_id uuid, p_pseudo text, p_name text, p_note text, p_theme text default 'persos'
 ) returns text language plpgsql security definer as $$
-declare v_name text; v_note text;
+declare v_name text; v_note text; v_theme text;
 begin
+  v_theme := lower(btrim(coalesce(p_theme, 'persos')));
+  if v_theme not in ('persos','prenoms','maladies','villes') then return 'theme-invalide'; end if;
   v_name := upper(regexp_replace(coalesce(p_name,''), '[^A-Za-z]', '', 'g'));
   v_note := btrim(coalesce(p_note,''));
   if length(v_name) < 4 or length(v_name) > 15 then return 'nom-invalide'; end if;
-  if length(v_note) < 15 or length(v_note) > 300 then return 'note-invalide'; end if;
+  -- une notice s'impose là où le jeu en affiche une ; ailleurs elle reste
+  -- possible mais facultative
+  if v_theme in ('persos','prenoms','villes') then
+    if length(v_note) < 15 or length(v_note) > 300 then return 'note-invalide'; end if;
+  elsif length(v_note) > 300 then
+    return 'note-invalide';
+  end if;
   if exists(select 1 from perso_suggestions
-             where name = v_name and status <> 'rejected') then return 'deja-propose'; end if;
+             where theme = v_theme and name = v_name and status <> 'rejected') then return 'deja-propose'; end if;
   -- garde-fou anti-spam : 5 propositions en attente par personne au maximum
   if (select count(*) from perso_suggestions
        where author_id = p_id and status = 'pending') >= 5 then return 'trop-de-propositions'; end if;
-  insert into perso_suggestions(name, note, author_id, author_pseudo)
-  values (v_name, v_note, p_id, p_pseudo);
+  insert into perso_suggestions(theme, name, note, author_id, author_pseudo)
+  values (v_theme, v_name, v_note, p_id, p_pseudo);
   return 'ok';
 end $$;
 
 -- Ce que le jeu charge au démarrage : uniquement l'approuvé.
+drop function if exists perso_approved();
 create or replace function perso_approved()
-returns table (name text, note text) language sql security definer stable as $$
-  select name, note from perso_suggestions where status = 'approved' order by name;
+returns table (theme text, name text, note text) language sql security definer stable as $$
+  select s.theme, s.name, s.note from perso_suggestions s
+   where s.status = 'approved' order by s.theme, s.name;
 $$;
 
 -- Réservé aux administrateurs.
+drop function if exists perso_pending(uuid);
 create or replace function perso_pending(p_id uuid)
-returns table (id bigint, name text, note text, author_pseudo text, created_at timestamptz)
+returns table (id bigint, theme text, name text, note text, author_pseudo text, created_at timestamptz)
 language sql security definer stable as $$
-  select s.id, s.name, s.note, s.author_pseudo, s.created_at
+  select s.id, s.theme, s.name, s.note, s.author_pseudo, s.created_at
     from perso_suggestions s
    where s.status = 'pending' and is_admin(p_id)
    order by s.created_at
    limit 100;
 $$;
+
+-- L'administrateur corrige une proposition avant de l'approuver : faute de
+-- frappe dans le nom, notice à reformuler, mauvais thème.
+create or replace function perso_edit(
+  p_id uuid, p_sugg bigint, p_name text, p_note text, p_theme text
+) returns text language plpgsql security definer as $$
+declare v_name text; v_note text; v_theme text;
+begin
+  if not is_admin(p_id) then return 'refuse'; end if;
+  v_theme := lower(btrim(coalesce(p_theme, 'persos')));
+  if v_theme not in ('persos','prenoms','maladies','villes') then return 'theme-invalide'; end if;
+  v_name := upper(regexp_replace(coalesce(p_name,''), '[^A-Za-z]', '', 'g'));
+  v_note := btrim(coalesce(p_note,''));
+  if length(v_name) < 4 or length(v_name) > 15 then return 'nom-invalide'; end if;
+  if length(v_note) > 300 then return 'note-invalide'; end if;
+  if exists(select 1 from perso_suggestions
+             where theme = v_theme and name = v_name and status <> 'rejected'
+               and id <> p_sugg) then return 'deja-propose'; end if;
+  update perso_suggestions set theme = v_theme, name = v_name, note = v_note
+   where id = p_sugg and status = 'pending';
+  if not found then return 'introuvable'; end if;
+  return 'ok';
+end $$;
 
 create or replace function perso_review(p_id uuid, p_sugg bigint, p_approve boolean)
 returns text language plpgsql security definer as $$
@@ -840,7 +886,8 @@ end $$;
 create or replace function perso_is_admin(p_id uuid) returns boolean
 language sql security definer stable as $$ select is_admin(p_id); $$;
 
-grant execute on function perso_suggest(uuid,text,text,text) to anon, authenticated;
+grant execute on function perso_suggest(uuid,text,text,text,text) to anon, authenticated;
+grant execute on function perso_edit(uuid,bigint,text,text,text)  to anon, authenticated;
 grant execute on function perso_approved()                   to anon, authenticated;
 grant execute on function perso_pending(uuid)                to anon, authenticated;
 grant execute on function perso_review(uuid,bigint,boolean)  to anon, authenticated;

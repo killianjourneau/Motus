@@ -532,14 +532,23 @@
       return rpc("perso_suggest", {
         p_id: m.id, p_pseudo: m.pseudo, p_name: name, p_note: note,
         p_theme: theme || "persos"
-      }).then(function (r) { return (Array.isArray(r) ? r[0] : r) || "erreur"; });
+      }).then(function (r) { return (Array.isArray(r) ? r[0] : r) || "erreur"; })
+        .catch(function (e) {
+          // on remonte la vraie cause : « base pas à jour » ne se devine pas
+          return (String(e && e.message) === "fonctions-absentes") ? "sql-obsolete" : "erreur";
+        });
     },
 
-    /* Correction par l'administrateur avant approbation. */
+    /* Correction par l'administrateur avant approbation.
+       Renvoie « sql-obsolete » si la base n'a pas encore la fonction : le
+       client peut alors approuver sans corriger, plutôt que de tout bloquer. */
     edit: function (suggId, name, note, theme) {
       return rpc("perso_edit", {
         p_id: me().id, p_sugg: suggId, p_name: name, p_note: note, p_theme: theme
-      }).then(function (r) { return (Array.isArray(r) ? r[0] : r) || "erreur"; });
+      }).then(function (r) { return (Array.isArray(r) ? r[0] : r) || "erreur"; })
+        .catch(function (e) {
+          return (String(e && e.message) === "fonctions-absentes") ? "sql-obsolete" : "erreur";
+        });
     },
 
     /* Chargé au démarrage : ce que les joueurs ont fait valider. */
