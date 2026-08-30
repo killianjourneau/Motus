@@ -1,6 +1,6 @@
 /* Motus — service worker */
-const CACHE = "motus-v110";
-const V = "1.45.0";   // doit correspondre au ?v= des <script> de index.html
+const CACHE = "motus-v112";
+const V = "1.47.0";   // doit correspondre au ?v= des <script> de index.html
 const ASSETS = [
   "./",
   "./index.html",
@@ -84,6 +84,40 @@ self.addEventListener("fetch", (event) => {
         caches.open(CACHE).then((cache) => cache.put(req, copy));
         return res;
       });
+    })
+  );
+});
+
+/* ---------------------------------------------------------------
+   Notifications
+   « push » n'est utile que si un serveur d'envoi est branché un jour
+   (clés VAPID) ; le gestionnaire est prêt pour ce cas. En attendant,
+   les notifications sont déclenchées par la page via showNotification,
+   ce qui fonctionne sans aucune infrastructure.
+   --------------------------------------------------------------- */
+self.addEventListener("push", (event) => {
+  let d = {};
+  try { d = event.data ? event.data.json() : {}; } catch (e) {}
+  event.waitUntil(self.registration.showNotification(d.title || "Motus", {
+    body: d.body || "",
+    icon: "./icons/icon-512.png",
+    badge: "./icons/icon-512.png",
+    tag: d.tag || "motus",
+    data: { url: d.url || "./" }
+  }));
+});
+
+/* Un appui sur la notification ramène sur l'onglet déjà ouvert plutôt
+   que d'en empiler un nouveau. */
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const cible = (event.notification.data && event.notification.data.url) || "./";
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      for (const c of list) {
+        if ("focus" in c) { c.navigate && c.navigate(cible); return c.focus(); }
+      }
+      return clients.openWindow ? clients.openWindow(cible) : null;
     })
   );
 });

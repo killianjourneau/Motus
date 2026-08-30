@@ -204,11 +204,19 @@
   .perso-sg{ background:var(--cell); border-radius:12px; padding:11px; margin-bottom:9px; }
   .perso-sg .nm{ font-size:15px; font-weight:800; letter-spacing:.5px; }
   .perso-themes{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+  .st-block{ background:var(--cell); border-radius:12px; padding:4px 12px; margin:8px 0 12px; }
+  .st-row{ display:flex; justify-content:space-between; align-items:center; gap:10px;
+    font-size:13px; padding:7px 0; border-bottom:1px solid var(--cell-edge); }
+  .st-row:last-child{ border-bottom:none; }
+  .st-row span{ color:var(--ink-dim); }
+  .st-row b{ font-variant-numeric:tabular-nums; }
+  .dist .bar .pc{ font-size:11px; color:var(--ink-dim); font-weight:700; margin-left:6px; min-width:32px; text-align:right; }
   .perso-hint{ font-size:11.5px; color:var(--ink-dim); line-height:1.45; margin:-4px 0 10px; }
   .perso-th{ flex:1 1 auto; min-width:calc(50% - 6px); padding:9px 8px; border:none; border-radius:10px;
     background:var(--cell); color:var(--ink); font-size:13px; font-weight:800; cursor:pointer;
     box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
   .perso-th.on{ box-shadow:inset 0 0 0 2.5px var(--accent); }
+  .perso-th:disabled{ opacity:.5; cursor:default; }
   .perso-sg .ed-th, .perso-sg .ed-nm, .perso-sg .ed-nt{
     width:100%; margin-bottom:7px; padding:9px 11px; border:none; border-radius:9px;
     background:var(--bg-2); color:var(--ink); font-size:13.5px; font-family:inherit;
@@ -816,21 +824,21 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.45.0"></script>
-<script src="./dico/motus-prenoms.js?v=1.45.0"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.45.0"></script>
-<script src="./dico/motus-maladies.js?v=1.45.0"></script>
-<script src="./dico/motus-maladies-info.js?v=1.45.0"></script>
-<script src="./dico/motus-villes.js?v=1.45.0"></script>
-<script src="./dico/motus-villes-info.js?v=1.45.0"></script>
-<script src="./dico/motus-persos.js?v=1.45.0"></script>
-<script src="./dico/motus-persos-info.js?v=1.45.0"></script>
-<script src="./dico/motus-persos-split.js?v=1.45.0"></script>
-<script src="./dico/motus-race.js?v=1.45.0"></script>
-<script src="./dico/motus-expert.js?v=1.45.0"></script>
-<script src="./profiles/config.js?v=1.45.0"></script>
-<script src="./profiles/profile.js?v=1.45.0"></script>
-<script src="./duel/duel.js?v=1.45.0"></script>
+<script src="./dico/motus-words.js?v=1.47.0"></script>
+<script src="./dico/motus-prenoms.js?v=1.47.0"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.47.0"></script>
+<script src="./dico/motus-maladies.js?v=1.47.0"></script>
+<script src="./dico/motus-maladies-info.js?v=1.47.0"></script>
+<script src="./dico/motus-villes.js?v=1.47.0"></script>
+<script src="./dico/motus-villes-info.js?v=1.47.0"></script>
+<script src="./dico/motus-persos.js?v=1.47.0"></script>
+<script src="./dico/motus-persos-info.js?v=1.47.0"></script>
+<script src="./dico/motus-persos-split.js?v=1.47.0"></script>
+<script src="./dico/motus-race.js?v=1.47.0"></script>
+<script src="./dico/motus-expert.js?v=1.47.0"></script>
+<script src="./profiles/config.js?v=1.47.0"></script>
+<script src="./profiles/profile.js?v=1.47.0"></script>
+<script src="./duel/duel.js?v=1.47.0"></script>
 <script>
 (() => {
   "use strict";
@@ -882,7 +890,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.45.0";
+  const VERSION = "1.47.0";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -998,6 +1006,9 @@
         +   '<button class="perso-th" data-th="light-a">☀️ Clair accessible</button>'
         + '</div>'
         + '<p class="perso-hint">Les thèmes accessibles remplacent le rouge et le jaune par du bleu et de l\'orange, distinguables en cas de daltonisme.</p>'
+        + '<p class="perso-t">Notifications</p>'
+        + '<div class="perso-themes"><button class="perso-th" id="notifBtn"></button></div>'
+        + '<p class="perso-hint" id="notifHint"></p>'
         + '<p class="perso-t">Couleur d\'accent</p>'
         + '<div class="perso-swatches">'
         + ACCENTS.map(a=>`<button class="perso-sw" data-accent="${a.id}"><span class="perso-dot" style="background:${a.c}"></span></button>`).join("")
@@ -1008,11 +1019,31 @@
       box.querySelectorAll(".perso-sw").forEach(b=>b.addEventListener("click", ()=>{
         accent = b.dataset.accent; store.set("motus.accent",accent); applyAccent(); markPersonalizeSel();
       }));
+      const nb = box.querySelector("#notifBtn");
+      if(nb) nb.addEventListener("click", ()=>{
+        if(notifState()==="on"){ notifDisable(); notifPaint(); }
+        else notifEnable().then(()=>notifPaint());
+      });
       box.dataset.built="1";
     }
     markPersonalizeSel();
   }
+  function notifPaint(){
+    const b=$("notifBtn"), h=$("notifHint"); if(!b) return;
+    const et=notifState();
+    const libelle = { on:"🔔 Notifications activées", off:"🔕 Notifications désactivées",
+                      attente:"🔕 Notifications désactivées", bloque:"🚫 Bloquées par le navigateur",
+                      absent:"— Non gérées par ce navigateur" }[et];
+    b.textContent = libelle;
+    b.classList.toggle("on", et==="on");
+    b.disabled = (et==="bloque" || et==="absent");
+    if(h) h.textContent = et==="bloque"
+      ? "Autorise Motus dans les réglages de ton navigateur pour les réactiver."
+      : et==="absent" ? "Ce navigateur ne propose pas les notifications."
+      : "Te prévient quand ta défense est attaquée ou quand le mot du jour t'attend — seulement si le jeu n'est pas au premier plan.";
+  }
   function markPersonalizeSel(){
+    notifPaint();
     document.querySelectorAll(".perso-th").forEach(b=>b.classList.toggle("on", b.dataset.th===theme));
     document.querySelectorAll(".perso-sw").forEach(b=>b.classList.toggle("on", b.dataset.accent===accent));
   }
@@ -1456,6 +1487,7 @@
         if(window.Profile && Profile.defenseFeedNew) Profile.defenseFeedNew(fresh);
         Defense.markSeen();
         defShowAlert(unseen);
+        notifDefense(unseen);
       }
     });
   }
@@ -1830,6 +1862,82 @@
     });
   }
 
+  /* ---------------------------------------------------------------
+     NOTIFICATIONS
+     Déclenchées par l'application quand elle repère un événement. Elles
+     n'apparaissent QUE si l'onglet n'est pas au premier plan : sinon un
+     message dans le jeu suffit et une notification ferait doublon.
+     --------------------------------------------------------------- */
+  let notifOn = store.get("motus.notif", false);
+
+  function notifSupported(){
+    return typeof window !== "undefined" && "Notification" in window;
+  }
+  function notifState(){
+    if(!notifSupported()) return "absent";              // navigateur sans notifications
+    if(Notification.permission === "denied") return "bloque";   // refusé au niveau du navigateur
+    if(!notifOn) return "off";
+    return Notification.permission === "granted" ? "on" : "attente";
+  }
+
+  /* Demande l'autorisation au moment où le joueur l'active — jamais au
+     lancement, une demande non sollicitée se fait refuser d'office. */
+  function notifEnable(){
+    if(!notifSupported()){ toast("Ton navigateur ne gère pas les notifications"); return Promise.resolve(false); }
+    if(Notification.permission === "denied"){
+      toast("Les notifications sont bloquées dans les réglages du navigateur", 4000);
+      return Promise.resolve(false);
+    }
+    if(Notification.permission === "granted"){
+      notifOn = true; store.set("motus.notif", true); return Promise.resolve(true);
+    }
+    return Notification.requestPermission().then(p=>{
+      const ok = (p === "granted");
+      notifOn = ok; store.set("motus.notif", ok);
+      if(!ok) toast("Notifications refusées");
+      return ok;
+    }).catch(()=>false);
+  }
+  function notifDisable(){ notifOn = false; store.set("motus.notif", false); }
+
+  function notify(titre, corps, tag){
+    if(notifState() !== "on") return;
+    if(document.visibilityState === "visible") return;   // le joueur est déjà là
+    const opts = { body: corps || "", icon:"./icons/icon-512.png",
+                   badge:"./icons/icon-512.png", tag: tag || "motus", data:{ url:"./" } };
+    // via le service worker quand il est là : la notification survit à la
+    // fermeture de l'onglet
+    if(navigator.serviceWorker && navigator.serviceWorker.ready){
+      navigator.serviceWorker.ready.then(reg=>reg.showNotification(titre, opts))
+        .catch(()=>{ try{ new Notification(titre, opts); }catch(e){} });
+    } else {
+      try{ new Notification(titre, opts); }catch(e){}
+    }
+  }
+
+  function notifDefense(list){
+    if(!list || !list.length) return;
+    const perces = list.filter(r=>r.won).length;
+    notify(
+      perces ? "🛡️ Ta défense est tombée" : "🛡️ Assaut repoussé",
+      perces
+        ? (perces>1 ? perces+" adversaires ont percé ton mot." : (list.find(r=>r.won).attacker_pseudo||"Quelqu'un")+" a percé ton mot.")
+        : list.length+" attaque"+(list.length>1?"s":"")+" repoussée"+(list.length>1?"s":"")+" !",
+      "defense");
+  }
+
+  /* Rappel du mot du jour : une seule fois par jour, et seulement si le
+     joueur ne l'a pas encore fait. */
+  function notifDaily(){
+    if(notifState()!=="on") return;
+    const jour = todayKey();
+    if(store.get("motus.notifDaily","") === jour) return;   // déjà rappelé aujourd'hui
+    const d = store.get("motus.daily", null);
+    if(d && d.day === jour && d.done) return;               // déjà joué
+    store.set("motus.notifDaily", jour);
+    notify("✏️ Le mot du jour t'attend", "Une nouvelle grille est disponible.", "daily");
+  }
+
   /* Au lancement, on va voir si on s'est fait attaquer pendant l'absence :
      l'alerte n'apparaissait qu'en ouvrant l'écran Défense, donc on pouvait
      rester des jours sans savoir que son mot était tombé. */
@@ -1846,6 +1954,7 @@
         if(window.Profile && Profile.defenseFeedNew) Profile.defenseFeedNew(unseen.slice().reverse());
         Defense.markSeen();
         defShowAlert(unseen);
+        notifDefense(unseen);
       }).catch(()=>{});
     }, 1200);   // on laisse l'écran de jeu s'installer avant d'interrompre
   }
@@ -3197,10 +3306,57 @@
     $("sPlayed").textContent=stats.played; $("sWin").textContent=winPct()+"%"; $("sStreak").textContent=stats.streak;
   }
   function motusStatsHTML(){
-    const max=Math.max(1,...[1,2,3,4,5,6].map(i=>stats.dist[i]||0));
-    const bars=[1,2,3,4,5,6].map(i=>{ const v=stats.dist[i]||0, pct=Math.round(v/max*100);
-      return `<div class="bar"><span class="k">${i}</span><div class="t" style="width:${Math.max(pct,8)}%">${v}</div></div>`; }).join("");
-    return `<div class="dist-title">Motus — ${stats.played} parties · ${winPct()}% · série ${stats.streak} (record ${stats.best})</div><div class="dist">${bars}</div>`;
+    // Les compteurs du profil sont SYNCHRONISÉS entre appareils, contrairement
+    // à motus.stats qui reste local : on privilégie les premiers dès qu'ils
+    // contiennent quelque chose.
+    const b = (window.Profile && Profile.state && Profile.state.b) || {};
+    const dSync = Array.isArray(b.dist) && b.dist.some(v=>v>0) ? b.dist : null;
+    const dist = dSync ? dSync : [1,2,3,4,5,6].map(i=>stats.dist[i]||0);
+    const gagnees = dist.reduce((a,v)=>a+v,0);
+    const perdues = dSync ? (b.lost||0) : (stats.fail||0);
+    const jouees  = dSync ? (gagnees+perdues) : stats.played;
+    const pct     = jouees ? Math.round(gagnees/jouees*100) : 0;
+
+    const max = Math.max(1, ...dist);
+    const bars = dist.map((v,i)=>{
+      const pctB = Math.round(v/max*100);
+      const part = gagnees ? Math.round(v/gagnees*100) : 0;
+      return `<div class="bar"><span class="k">${i+1}</span>`
+           + `<div class="t" style="width:${Math.max(pctB,8)}%">${v}</div>`
+           + `<span class="pc">${part}%</span></div>`;
+    }).join("");
+
+    // en combien d'essais je trouve le plus souvent
+    let fort = 0; dist.forEach((v,i)=>{ if(v>dist[fort]) fort=i; });
+    const moyenne = gagnees
+      ? (dist.reduce((a,v,i)=>a+v*(i+1),0)/gagnees).toFixed(1)
+      : "—";
+    const tMoy = (function(){
+      if(!b.msCount) return null;
+      const sec = Math.round(b.msSum/b.msCount/1000);
+      return sec<60 ? sec+" s" : Math.floor(sec/60)+" min "+String(sec%60).padStart(2,"0")+" s";
+    })();
+
+    const detail = [
+      ["Parties gagnées", gagnees],
+      ["Moyenne d'essais", moyenne],
+      ["Trouvé le plus souvent en", gagnees ? (fort+1)+" essais" : "—"],
+      ["Temps moyen", tMoy || "—"]
+    ].map(([k,v])=>`<div class="st-row"><span>${k}</span><b>${v}</b></div>`).join("");
+
+    // répartition par mode, pour savoir où l'on joue vraiment
+    const parMode = [
+      ["Courts","mC"],["Normaux","mN"],["Longs","mL"],
+      ["Prénoms","mP"],["Personnages","mPe"],["Maladies","mM"],["Villes","mV"],["Expert","mX"]
+    ].filter(([,k])=>(b[k]||0)>0)
+     .sort((x,y)=>(b[y[1]]||0)-(b[x[1]]||0))
+     .map(([n,k])=>`<div class="st-row"><span>${n}</span><b>${b[k]}</b></div>`).join("");
+
+    return `<div class="dist-title">Motus — ${jouees} parties · ${pct}% de réussite · série ${stats.streak} (record ${Math.max(stats.best, b.best||0)})</div>`
+      + `<div class="dist">${bars}</div>`
+      + `<div class="st-block">${detail}</div>`
+      + (parMode ? `<div class="dist-title">Par mode</div><div class="st-block">${parMode}</div>` : "")
+      + (dSync ? "" : `<p class="perso-hint">Ces statistiques sont locales à cet appareil.</p>`);
   }
 
   /* ---------- Chrono ---------- */
@@ -3701,6 +3857,7 @@
   refreshStats();
   hintSyncPush();        // un appareil déjà pourvu envoie son état dès le départ
   defCheckOnLaunch();
+  setTimeout(notifDaily, 2500);   // après l'installation de l'écran
   persoLoadApproved();
   const last = store.get("motus.last","free");
   if(last==="duel"){ const a=duelActive(); if(a) duelResume(a); else startFree("normal"); }
