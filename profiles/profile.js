@@ -38,6 +38,7 @@
     return { daily:0, defi:0, one:0, two:0, last:0, f5:0, f10:0, f15:0, slow:0,
              mC:0, mN:0, mL:0, mP:0, mPe:0, mM:0, mV:0, mX:0, xRare:0, xClean:0, xStreak:0, xBest:0,
              modes:[], streak:0, best:0,
+             dist:[0,0,0,0,0,0], lost:0, msSum:0, msCount:0,   // stats personnelles (v1.47)
              hyph:0, night:0, dawn:0, wknd:0, days:[], dayBest:0,
              defiFast:0, dailyOne:0, allDiff:0, longFast:0, comeback:0, noYellow:0,
              villeCap:0, villeMonde:0,
@@ -894,6 +895,10 @@
       if (o.won) {
         b.streak++; if (b.streak > b.best) b.best = b.streak;
         var t = o.tries || 0, ms = o.ms || 0;
+        // répartition personnelle : en combien d'essais je trouve d'habitude
+        if (!Array.isArray(b.dist) || b.dist.length !== 6) b.dist = [0,0,0,0,0,0];
+        if (t >= 1 && t <= 6) b.dist[t-1]++;
+        if (ms > 0) { b.msSum = (b.msSum || 0) + ms; b.msCount = (b.msCount || 0) + 1; }
         if (t === 1) b.one++;
         if (t > 0 && t <= 2) b.two++;
         if (t >= 6) b.comeback++;
@@ -940,6 +945,7 @@
         else { b.cleanStreak++; if (b.cleanStreak > b.cleanBest) b.cleanBest = b.cleanStreak; }
       } else {
         b.streak = 0;
+        b.lost = (b.lost || 0) + 1;      // pour un taux de réussite honnête
         if (m === "expert") b.xStreak = 0;
         if (o.hint && o.sixFail) b.hintSixFail = (b.hintSixFail || 0) + 1;
       }
