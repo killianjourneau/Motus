@@ -211,6 +211,11 @@
   .st-row span{ color:var(--ink-dim); }
   .st-row b{ font-variant-numeric:tabular-nums; }
   .dist .bar .pc{ font-size:11px; color:var(--ink-dim); font-weight:700; margin-left:6px; min-width:32px; text-align:right; }
+  .tour-dots{ display:flex; gap:6px; justify-content:center; margin-bottom:14px; }
+  .tour-dot{ width:7px; height:7px; border-radius:50%; background:var(--cell-edge); transition:.2s; }
+  .tour-dot.on{ background:var(--accent); width:20px; border-radius:4px; }
+  #tourBody{ min-height:190px; }
+  #tourBody h2{ margin-bottom:8px; }
   .perso-hint{ font-size:11.5px; color:var(--ink-dim); line-height:1.45; margin:-4px 0 10px; }
   .perso-th{ flex:1 1 auto; min-width:calc(50% - 6px); padding:9px 8px; border:none; border-radius:10px;
     background:var(--cell); color:var(--ink); font-size:13px; font-weight:800; cursor:pointer;
@@ -530,6 +535,16 @@
   </div>
 
   <!-- Règles -->
+  <!-- Premier lancement : guide en 3 étapes, pour ne pas noyer d'emblée -->
+  <div class="overlay" id="tourOverlay">
+    <div class="modal">
+      <div class="tour-dots" id="tourDots"></div>
+      <div id="tourBody"></div>
+      <button class="btn" id="tourNext">Suivant</button>
+      <button class="btn ghost" id="tourSkip">Passer</button>
+    </div>
+  </div>
+
   <div class="overlay" id="helpOverlay">
     <div class="modal">
       <button class="close-x" data-close>&times;</button>
@@ -545,7 +560,8 @@
       <p><b>Défi</b> : 3 mots à trouver en <b>15 minutes</b> au total.</p>
       <p><b>Jour</b> : le même mot pour tout le monde, une fois par jour.<br>
          <b>Court</b> 4-5 lettres · <b>Normal</b> 6-8 · <b>Long</b> 10-15.</p>
-      <button class="btn" data-close>C'est parti</button>
+      <button class="btn" id="btnReplayTour">🧭 Revoir le guide de démarrage</button>
+      <button class="btn ghost" data-close>C'est parti</button>
     </div>
   </div>
   </div>
@@ -824,21 +840,21 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.47.0"></script>
-<script src="./dico/motus-prenoms.js?v=1.47.0"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.47.0"></script>
-<script src="./dico/motus-maladies.js?v=1.47.0"></script>
-<script src="./dico/motus-maladies-info.js?v=1.47.0"></script>
-<script src="./dico/motus-villes.js?v=1.47.0"></script>
-<script src="./dico/motus-villes-info.js?v=1.47.0"></script>
-<script src="./dico/motus-persos.js?v=1.47.0"></script>
-<script src="./dico/motus-persos-info.js?v=1.47.0"></script>
-<script src="./dico/motus-persos-split.js?v=1.47.0"></script>
-<script src="./dico/motus-race.js?v=1.47.0"></script>
-<script src="./dico/motus-expert.js?v=1.47.0"></script>
-<script src="./profiles/config.js?v=1.47.0"></script>
-<script src="./profiles/profile.js?v=1.47.0"></script>
-<script src="./duel/duel.js?v=1.47.0"></script>
+<script src="./dico/motus-words.js?v=1.48.0"></script>
+<script src="./dico/motus-prenoms.js?v=1.48.0"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.48.0"></script>
+<script src="./dico/motus-maladies.js?v=1.48.0"></script>
+<script src="./dico/motus-maladies-info.js?v=1.48.0"></script>
+<script src="./dico/motus-villes.js?v=1.48.0"></script>
+<script src="./dico/motus-villes-info.js?v=1.48.0"></script>
+<script src="./dico/motus-persos.js?v=1.48.0"></script>
+<script src="./dico/motus-persos-info.js?v=1.48.0"></script>
+<script src="./dico/motus-persos-split.js?v=1.48.0"></script>
+<script src="./dico/motus-race.js?v=1.48.0"></script>
+<script src="./dico/motus-expert.js?v=1.48.0"></script>
+<script src="./profiles/config.js?v=1.48.0"></script>
+<script src="./profiles/profile.js?v=1.48.0"></script>
+<script src="./duel/duel.js?v=1.48.0"></script>
 <script>
 (() => {
   "use strict";
@@ -890,7 +906,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.47.0";
+  const VERSION = "1.48.0";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -1861,6 +1877,53 @@
       });
     });
   }
+
+  /* ---------------------------------------------------------------
+     PREMIER LANCEMENT
+     Trois écrans courts, et rien de plus : uniquement ce qu'il faut pour
+     jouer la première grille. Le détail des 14 modes reste disponible dans
+     les règles, mais n'a pas sa place à l'arrivée.
+     --------------------------------------------------------------- */
+  const TOUR = [
+    { t:"Trouve le mot caché",
+      c:'<p class="sub">Six essais. La première lettre t\'est offerte.</p>'
+       +'<div class="legend">'
+       +'<div class="li"><div class="mini correct"><span>A</span></div> Bien placée</div>'
+       +'<div class="li"><div class="mini present"><span>B</span></div> Dans le mot, mais ailleurs</div>'
+       +'<div class="li"><div class="mini absent"><span>C</span></div> Absente du mot</div>'
+       +'</div>' },
+    { t:"Écris où tu veux",
+      c:'<p class="sub">Touche une case pour y écrire directement.</p>'
+       +'<p>Pas besoin de remplir dans l\'ordre : si tu sais qu\'une lettre est en 4ᵉ position, pose-la là et complète autour.</p>' },
+    { t:"Par où commencer",
+      c:'<p class="sub">Le <b>Mot du jour</b> est le même pour tout le monde : idéal pour se lancer, et une nouvelle grille chaque jour.</p>'
+       +'<p>Ensuite, explore à ton rythme : des thèmes (prénoms, villes, personnages), des duels, une aventure solo… tout est dans le menu des modes.</p>' }
+  ];
+  let tourStep = 0;
+
+  function tourShow(){
+    $("tourDots").innerHTML = TOUR.map((_,i)=>
+      '<span class="tour-dot'+(i===tourStep?" on":"")+'"></span>').join("");
+    const e = TOUR[tourStep];
+    $("tourBody").innerHTML = '<h2>'+e.t+'</h2>'+e.c;
+    $("tourNext").textContent = (tourStep===TOUR.length-1) ? "Jouer le mot du jour" : "Suivant";
+    $("tourSkip").style.display = (tourStep===TOUR.length-1) ? "none" : "";
+    openOverlay("tourOverlay");
+  }
+  function tourEnd(jouer){
+    store.set("motus.tour", true);
+    $("tourOverlay").classList.remove("open");
+    if(jouer) requestMode("daily");
+  }
+  $("tourNext").addEventListener("click", ()=>{
+    if(tourStep < TOUR.length-1){ tourStep++; tourShow(); }
+    else tourEnd(true);
+  });
+  $("tourSkip").addEventListener("click", ()=>tourEnd(false));
+  $("btnReplayTour").addEventListener("click", ()=>{
+    $("helpOverlay").classList.remove("open");
+    tourStep = 0; tourShow();
+  });
 
   /* ---------------------------------------------------------------
      NOTIFICATIONS
@@ -3800,7 +3863,12 @@
   $("persoSuggestItem").addEventListener("click", ()=>{ closeOverlays(); persoOpen(); });
 
   document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click", closeOverlays));
-  document.querySelectorAll(".overlay").forEach(o=>o.addEventListener("click", e=>{ if(e.target===o) closeOverlays(); }));
+  document.querySelectorAll(".overlay").forEach(o=>o.addEventListener("click", e=>{
+    // le guide de démarrage se quitte par « Passer » : un clic à côté le
+    // fermerait sans le marquer comme vu, il reviendrait au lancement suivant
+    if(o.id === "tourOverlay") return;
+    if(e.target===o) closeOverlays();
+  }));
   window.addEventListener("resize", ()=>{ if(len) computeSizing(); });
 
   // le compte se périme vite : on le rafraîchit en revenant sur l'application
@@ -3869,7 +3937,11 @@
     if(f && f.answer && f.mode!=="pendu" && !f.over && (f.guesses||[]).length < MAX_ROWS && (f.guesses||[])[(f.guesses||[]).length-1] !== f.answer){ restoreFree(f); }
     else startFree("normal");
   }
-  if(!store.get("motus.seen",false)){ openOverlay("helpOverlay"); store.set("motus.seen",true); }
+  // Premier lancement : le guide remplace l'ancien pavé de règles.
+  if(!store.get("motus.tour",false) && !store.get("motus.seen",false)){
+    store.set("motus.seen",true);
+    tourStep = 0; setTimeout(tourShow, 400);
+  }
 })();
 </script>
 </body>
