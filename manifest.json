@@ -1,6 +1,6 @@
 {
-  "name": "Motus",
-  "short_name": "Motus",
+  "name": "Mot en Six",
+  "short_name": "MotEnSix",
   "description": "Devinez le mot caché en 6 essais.",
   "lang": "fr",
   "dir": "ltr",
@@ -10,13 +10,28 @@
   "orientation": "portrait",
   "background_color": "#071633",
   "theme_color": "#071633",
-  "categories": ["games", "education"],
+  "categories": [
+    "games",
+    "education"
+  ],
   "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
     {
       "src": "./icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

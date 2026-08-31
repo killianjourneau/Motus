@@ -3,16 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
-<meta name="description" content="Motus — le jeu de mots. Devinez le mot caché en 6 essais.">
-<title>Motus</title>
+<meta name="description" content="Mot en Six — le jeu de mots. Devinez le mot caché en 6 essais.">
+<title>Mot en Six</title>
 
 <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#071633">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Motus">
-<link rel="apple-touch-icon" href="./icons/icon-512.png">
+<meta name="apple-mobile-web-app-title" content="Mot en Six">
+<link rel="apple-touch-icon" sizes="180x180" href="./icons/icon-180.png">
 
 <style>
   :root{
@@ -36,7 +36,7 @@
   }
 
   /* ---- Thèmes accessibles ----
-     Le rouge et le jaune de Motus sont exactement la paire que la forme la
+     Le rouge et le jaune de Mot en Six sont exactement la paire que la forme la
      plus courante de daltonisme (deutéranopie/protanopie) ne distingue pas.
      On les remplace par BLEU / ORANGE, discernables par toutes les formes de
      daltonisme. Seules les couleurs de JEU changent : la couleur d'accent
@@ -85,7 +85,14 @@
   header{ display:flex; align-items:center; flex-wrap:wrap; row-gap:6px; padding:12px clamp(12px,4vw,22px) 4px; gap:8px; }
   .brand{ display:flex; gap:5px; background:none; border:none; padding:0; cursor:pointer; }
   .brand:active{ transform:scale(.96); }
-  .brand b{ width:clamp(24px,7.2vw,30px); height:34px; display:grid; place-items:center; font-weight:800; font-size:clamp(16px,5vw,20px); border-radius:7px; background:var(--absent); }
+  /* dix cases au lieu de cinq : elles doivent rétrécir pour tenir sur un
+     téléphone étroit, séparateurs compris */
+  .brand{ gap:2px; }
+  .brand b{ width:clamp(15px,4.4vw,24px); height:clamp(22px,6.4vw,30px); display:grid; place-items:center;
+    font-weight:800; font-size:clamp(11px,3.2vw,16px); border-radius:5px; background:var(--absent); }
+  /* les points ne sont pas des lettres : ni case, ni couleur */
+  .brand b.sep{ width:clamp(5px,1.6vw,9px); background:none; color:var(--ink-dim); }
+  .brand b.sep span{ font-size:clamp(11px,3.2vw,16px); }
   .brand b.r{ background:var(--red); }
   .brand b.r span{ color:#fff; }
   .brand b.y{ background:var(--cell); position:relative; }
@@ -437,13 +444,13 @@
   <div id="rotate"><div class="ph">📱</div><p>Tourne ton téléphone à la verticale pour jouer.</p></div>
 
   <header>
-    <button class="brand" id="btnAbout" aria-label="À propos de Motus">
-      <b class="r"><span>M</span></b><b class="y"><span>O</span></b><b><span>T</span></b><b class="r"><span>U</span></b><b class="y"><span>S</span></b>
+    <button class="brand" id="btnAbout" aria-label="À propos de Mot en Six">
+      <b class="r"><span>M</span></b><b class="y"><span>O</span></b><b><span>T</span></b><b class="sep"><span>·</span></b><b class="y"><span>E</span></b><b class="r"><span>N</span></b><b class="sep"><span>·</span></b><b class="r"><span>S</span></b><b class="y"><span>I</span></b><b><span>X</span></b>
     </button>
     <div class="tools">
       
       <button class="icon-btn" id="btnKid" aria-label="Mode enfant">🧸</button>
-      <button class="icon-btn" id="btnRpg" aria-label="Motus Quête">⚔️</button>
+      <button class="icon-btn" id="btnRpg" aria-label="Mot en Six Quête">⚔️</button>
       <button class="icon-btn" id="btnProfile" aria-label="Profil">👤</button>
       <button class="icon-btn" id="btnNew" aria-label="Nouvelle partie">↻</button>
     </div>
@@ -570,13 +577,13 @@
   <div class="overlay" id="aboutOverlay">
     <div class="modal">
       <button class="close-x" data-close>&times;</button>
-      <h2>Motus</h2>
+      <h2>Mot en Six</h2>
       <p class="sub">Version <b id="appVersion"></b></p>
-      <p style="text-align:center">Un jeu de mots à la Motus, jouable hors-ligne.<br>Installe-le depuis ton navigateur pour l'avoir en application.</p>
+      <p style="text-align:center">Un jeu de mots à la Mot en Six, jouable hors-ligne.<br>Installe-le depuis ton navigateur pour l'avoir en application.</p>
       <div class="dist-title">Contenu</div>
       <p style="text-align:center;margin-bottom:6px" id="aboutCounts"></p>
       <div class="dist-title">Nouveautés</div>
-      <p style="text-align:center;font-size:13px;color:var(--ink-dim)">Motus Quête · Le Pendu · indices &amp; abandon · Course en solo</p>
+      <p style="text-align:center;font-size:13px;color:var(--ink-dim)">Mot en Six Quête · Le Pendu · indices &amp; abandon · Course en solo</p>
       <button class="btn" id="btnRulesFromAbout">📖 Règles du jeu</button>
       <button class="btn ghost" data-close>Fermer</button>
     </div>
@@ -840,21 +847,21 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.48.0"></script>
-<script src="./dico/motus-prenoms.js?v=1.48.0"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.48.0"></script>
-<script src="./dico/motus-maladies.js?v=1.48.0"></script>
-<script src="./dico/motus-maladies-info.js?v=1.48.0"></script>
-<script src="./dico/motus-villes.js?v=1.48.0"></script>
-<script src="./dico/motus-villes-info.js?v=1.48.0"></script>
-<script src="./dico/motus-persos.js?v=1.48.0"></script>
-<script src="./dico/motus-persos-info.js?v=1.48.0"></script>
-<script src="./dico/motus-persos-split.js?v=1.48.0"></script>
-<script src="./dico/motus-race.js?v=1.48.0"></script>
-<script src="./dico/motus-expert.js?v=1.48.0"></script>
-<script src="./profiles/config.js?v=1.48.0"></script>
-<script src="./profiles/profile.js?v=1.48.0"></script>
-<script src="./duel/duel.js?v=1.48.0"></script>
+<script src="./dico/motus-words.js?v=1.49.0"></script>
+<script src="./dico/motus-prenoms.js?v=1.49.0"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.49.0"></script>
+<script src="./dico/motus-maladies.js?v=1.49.0"></script>
+<script src="./dico/motus-maladies-info.js?v=1.49.0"></script>
+<script src="./dico/motus-villes.js?v=1.49.0"></script>
+<script src="./dico/motus-villes-info.js?v=1.49.0"></script>
+<script src="./dico/motus-persos.js?v=1.49.0"></script>
+<script src="./dico/motus-persos-info.js?v=1.49.0"></script>
+<script src="./dico/motus-persos-split.js?v=1.49.0"></script>
+<script src="./dico/motus-race.js?v=1.49.0"></script>
+<script src="./dico/motus-expert.js?v=1.49.0"></script>
+<script src="./profiles/config.js?v=1.49.0"></script>
+<script src="./profiles/profile.js?v=1.49.0"></script>
+<script src="./duel/duel.js?v=1.49.0"></script>
 <script>
 (() => {
   "use strict";
@@ -906,7 +913,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.48.0";
+  const VERSION = "1.49.0";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -1054,7 +1061,7 @@
     b.classList.toggle("on", et==="on");
     b.disabled = (et==="bloque" || et==="absent");
     if(h) h.textContent = et==="bloque"
-      ? "Autorise Motus dans les réglages de ton navigateur pour les réactiver."
+      ? "Autorise Mot en Six dans les réglages de ton navigateur pour les réactiver."
       : et==="absent" ? "Ce navigateur ne propose pas les notifications."
       : "Te prévient quand ta défense est attaquée ou quand le mot du jour t'attend — seulement si le jeu n'est pas au premier plan.";
   }
@@ -2045,7 +2052,7 @@
   function defShare(d){
     if(!d) return;
     const acc = defTauntTxt(d.taunt);
-    const txt = "🛡️ J'ai posé une défense sur Motus !\n"
+    const txt = "🛡️ J'ai posé une défense sur Mot en Six !\n"
       + "Un mot de " + d.len + " lettres, " + d.wins + " attaque" + (d.wins>1?"s":"")
       + " déjà repoussée" + (d.wins>1?"s":"") + "."
       + (acc ? "\n« " + acc + " »" : "")
@@ -2062,7 +2069,7 @@
   /* ===================================================================
      Mode Le Pendu — chaque lettre proposée révèle sa position dans le mot
      si elle y figure, ou coûte une vie sinon. Pas de première lettre
-     donnée (contrairement au Motus classique) : c'est la règle du jeu.
+     donnée (contrairement au Mot en Six classique) : c'est la règle du jeu.
      =================================================================== */
   const PENDU_LIVES = 8;
   let penduAnswer="", penduLen=0, penduGuessed=[], penduWrong=0, penduOver=false;
@@ -2131,7 +2138,7 @@
       const f = MODE_FACTOR.pendu || 1;
       // barème resserré : la moyenne des parties gagnées (quelques erreurs)
       // ne doit pas frôler le maximum — deviner des lettres va plus vite
-      // qu'un mot de Motus classique, la récompense doit rester modeste.
+      // qu'un mot de Mot en Six classique, la récompense doit rester modeste.
       let xp = win ? Math.round((8 + (PENDU_LIVES-penduWrong)*2) * f) : 5;
       if(win && hintsThisGame>0) xp = Math.round(xp * (1 - 0.25*hintsThisGame));
       Profile.addGame({
@@ -3222,7 +3229,7 @@
 
   /* ---------- Indices ---------- */
   // uniquement les modes solo classiques : jamais Expert (règles strictes),
-  // jamais Duel/Course (compétitif face à quelqu'un), jamais Motus Junior.
+  // jamais Duel/Course (compétitif face à quelqu'un), jamais Mot en Six Junior.
   function hintEligible(){ return HINT_MODES.indexOf(mode) >= 0; }
   // seule la 1re lettre (donnée dès le départ) reste totalement figée ;
   // une lettre révélée par indice peut être réécrite si le joueur le décide —
@@ -3415,7 +3422,7 @@
      .sort((x,y)=>(b[y[1]]||0)-(b[x[1]]||0))
      .map(([n,k])=>`<div class="st-row"><span>${n}</span><b>${b[k]}</b></div>`).join("");
 
-    return `<div class="dist-title">Motus — ${jouees} parties · ${pct}% de réussite · série ${stats.streak} (record ${Math.max(stats.best, b.best||0)})</div>`
+    return `<div class="dist-title">Mot en Six — ${jouees} parties · ${pct}% de réussite · série ${stats.streak} (record ${Math.max(stats.best, b.best||0)})</div>`
       + `<div class="dist">${bars}</div>`
       + `<div class="st-block">${detail}</div>`
       + (parMode ? `<div class="dist-title">Par mode</div><div class="st-block">${parMode}</div>` : "")
@@ -3620,12 +3627,12 @@
     if(mode==="defi"){
       const total = defiTimes.reduce((a,b)=>a+b,0);
       const line = defiTries.map(t => t>0 ? t+"/6" : "X").join(" · ");
-      return `Motus — Défi du jour #${defiNum}\n${defiFailed?"":"✅ "}${line} en ${fmtTime(total)} / 15:00\n${SHARE_URL}`;
+      return `Mot en Six — Défi du jour #${defiNum}\n${defiFailed?"":"✅ "}${line} en ${fmtTime(total)} / 15:00\n${SHARE_URL}`;
     }
     const tries = won ? guesses.length : "X";
     const grid = rowStates.map(st => st.map(s => s==="correct"?"🟥":s==="present"?"🟡":"⬛").join("")).join("\n");
     const t = timerValue();
-    return `Motus #${dailyNum} — ${tries}/6 en ${fmtTime(t)}\n${grid}\n${SHARE_URL}`;
+    return `Mot en Six #${dailyNum} — ${tries}/6 en ${fmtTime(t)}\n${grid}\n${SHARE_URL}`;
   }
   function share(){
     const text=shareText();
@@ -3796,7 +3803,7 @@
     setTimeout(()=>{ if(!raceRow || !raceRow.ready) $("raceWait").textContent=raceWaitMsg; }, 1500);
   });
   $("raceShare").addEventListener("click", ()=>{
-    const txt = "Course Motus ! Code : " + raceCode + "\n" + SHARE_URL + "?race=" + raceCode;
+    const txt = "Course Mot en Six ! Code : " + raceCode + "\n" + SHARE_URL + "?race=" + raceCode;
     if(navigator.share) navigator.share({text:txt}).catch(()=>copy(txt)); else copy(txt);
   });
 
@@ -3819,7 +3826,7 @@
   });
   $("duelAgain").addEventListener("click", ()=>{ clearDuel(); duelStopWatch(); duelFresh(); });
   $("duelShare").addEventListener("click", ()=>{
-    const txt = "Duel Motus ! Code : " + duelCode + "\n" + SHARE_URL + "?duel=" + duelCode;
+    const txt = "Duel Mot en Six ! Code : " + duelCode + "\n" + SHARE_URL + "?duel=" + duelCode;
     if(navigator.share) navigator.share({text:txt}).catch(()=>copy(txt)); else copy(txt);
   });
 

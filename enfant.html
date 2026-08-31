@@ -3,17 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Motus Junior — quatre petits jeux d'observation, dès 5 ans.">
-<title>Motus Junior</title>
+<meta name="description" content="Mot en Six Junior — quatre petits jeux d'observation, dès 5 ans.">
+<title>Mot en Six Junior</title>
 
 <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#071633">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Motus Junior">
-<link rel="apple-touch-icon" href="./icons/icon-512.png">
+<meta name="apple-mobile-web-app-title" content="Mot en Six Junior">
+<link rel="apple-touch-icon" sizes="180x180" href="./icons/icon-180.png">
 
 <script>
-  /* Thème et couleur partagés avec Motus, appliqués avant le rendu. */
+  /* Thème et couleur partagés avec Mot en Six, appliqués avant le rendu. */
   try{
     var t=JSON.parse(localStorage.getItem("motus.theme")); if(t) document.documentElement.dataset.theme=t;
     var a=JSON.parse(localStorage.getItem("motus.accent")); if(a) document.documentElement.dataset.accent=a;
@@ -166,9 +166,9 @@
 <body>
 
   <header>
-    <div class="brand">MOTUS <span class="j">Junior</span></div>
+    <div class="brand">MOT EN SIX <span class="j">Junior</span></div>
     <div class="tools">
-      <button class="icon-btn" id="btnGame" aria-label="Revenir à Motus">🔤</button>
+      <button class="icon-btn" id="btnGame" aria-label="Revenir à Mot en Six">🔤</button>
       <button class="icon-btn" id="btnTheme" aria-label="Thème">☀️</button>
       <button class="icon-btn" id="btnHelp" aria-label="Comment jouer">?</button>
     </div>
@@ -230,7 +230,7 @@
     </div>
   </div>
 
-<script src="./dico/motus-enfant.js?v=1.45.0"></script>
+<script src="./dico/motus-enfant.js?v=1.49.0"></script>
 <script>
 (function(){
   "use strict";

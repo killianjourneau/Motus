@@ -1,0 +1,16 @@
+{
+  "name": "motus",
+  "version": "1.49.0",
+  "description": "Mot en Six — jeu de mots en français, installable et jouable hors-ligne.",
+  "private": true,
+  "scripts": {
+    "test": "node tests/run.js",
+    "test:data": "node tests/run.js data",
+    "test:jeu": "node tests/run.js jeu",
+    "test:ui": "node tests/run.js ui",
+    "test:quete": "node tests/run.js quete"
+  },
+  "devDependencies": {
+    "jsdom": "^24.0.0"
+  }
+}

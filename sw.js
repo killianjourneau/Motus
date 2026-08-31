@@ -1,6 +1,6 @@
-/* Motus — service worker */
-const CACHE = "motus-v113";
-const V = "1.48.0";   // doit correspondre au ?v= des <script> de index.html
+/* Mot en Six — service worker */
+const CACHE = "motus-v115";
+const V = "1.49.0";   // doit correspondre au ?v= des <script> de index.html
 const ASSETS = [
   "./",
   "./index.html",
@@ -8,6 +8,8 @@ const ASSETS = [
   "./rpg.html",
   "./manifest.json",
   "./icons/icon-512.png",
+  "./icons/icon-192.png",
+  "./icons/icon-180.png",
   "./profiles/config.js?v=" + V,
   "./profiles/profile.js?v=" + V,
   "./duel/duel.js?v=" + V,
@@ -98,7 +100,7 @@ self.addEventListener("fetch", (event) => {
 self.addEventListener("push", (event) => {
   let d = {};
   try { d = event.data ? event.data.json() : {}; } catch (e) {}
-  event.waitUntil(self.registration.showNotification(d.title || "Motus", {
+  event.waitUntil(self.registration.showNotification(d.title || "Mot en Six", {
     body: d.body || "",
     icon: "./icons/icon-512.png",
     badge: "./icons/icon-512.png",
