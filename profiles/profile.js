@@ -370,6 +370,9 @@
 .ptab{ flex:1; height:36px; border:none; border-radius:9px; background:var(--cell); color:var(--ink-dim); font-weight:700; font-size:12px; cursor:pointer; box-shadow:inset 0 0 0 1.5px var(--cell-edge); padding:0 2px; }
 .ptab.active{ background:var(--accent); color:#fff; box-shadow:none; }
 .prof-row{ display:flex; gap:8px; margin-bottom:14px; }
+.compte-ok{ color:#3ecf6b; font-size:12px; font-weight:700; }
+.compte-ko{ color:#ffcb2e; font-size:12px; font-weight:700; }
+.compte-note{ font-size:11.5px; color:var(--ink-dim); line-height:1.5; margin:8px 0; }
 #pseudoInput,#restoreCode{ flex:1; height:44px; border:none; border-radius:10px; background:var(--cell); box-shadow:inset 0 0 0 1.5px var(--cell-edge); color:var(--ink); padding:0 12px; font-size:15px; font-weight:600; }
 #pseudoInput:focus,#restoreCode:focus{ outline:none; box-shadow:inset 0 0 0 2px var(--accent); }
 .prof-level{ margin-bottom:14px; }
@@ -493,11 +496,17 @@
       <div id="nextGoals"></div>
       <div id="gameStats"></div>
       <div id="personalizeBox"></div>
-      <details class="prof-sync">
-        <summary>Synchroniser sur un autre appareil</summary>
-        <p>Ton code (à coller sur l'autre appareil) :</p>
+      <details class="prof-sync" id="compteBox">
+        <summary>Mon compte <span id="compteEtat"></span></summary>
+        <p id="compteIntro"></p>
+        <button class="btn" id="compteSave" style="width:100%">🔗 Sauvegarder mon compte</button>
+        <p class="compte-note">Ce lien <b>est</b> ton compte : garde-le pour toi, et range-le quelque part
+          (notes, courriel que tu t'envoies). Il sert à te retrouver sur un autre téléphone
+          — ou sur celui-ci si tu effaces les données de ton navigateur.</p>
         <div class="prof-row"><code id="syncCode"></code><button class="btn ghost" id="copyCode">Copier</button></div>
-        <div class="prof-row"><input id="restoreCode" placeholder="Coller un code…" autocomplete="off"><button class="btn ghost" id="restoreBtn">Lier</button></div>
+        <p class="compte-note">Déjà un compte ailleurs ? Colle son code ici pour le récupérer.
+          <b>Attention :</b> la progression de cet appareil sera fusionnée avec l'autre.</p>
+        <div class="prof-row"><input id="restoreCode" placeholder="Coller un code ou un lien…" autocomplete="off"><button class="btn ghost" id="restoreBtn">Récupérer</button></div>
         <button class="btn ghost" id="syncBtn" style="width:100%">Synchroniser maintenant</button>
         <div id="syncMsg" style="text-align:center;margin-top:6px;font-size:12px"></div>
       </details>
@@ -588,8 +597,32 @@
       var b = el("btnRefreshToday"); b.classList.add("spin"); b.textContent = "Actualisation…";
       loadToday(function () { b.classList.remove("spin"); b.textContent = "↻ Actualiser"; });
     });
+    var boutonSave = el("compteSave");
+    if (boutonSave) boutonSave.addEventListener("click", function () {
+      var lien = location.origin + location.pathname + "?compte=" + state.id;
+      var txt = "Mon compte " + (state.pseudo || "") + " — ouvre ce lien pour le récupérer :\n" + lien;
+      marquerSauve();
+      if (navigator.share) navigator.share({ text: txt }).catch(function () { copier(txt); });
+      else copier(txt);
+    });
+    function copier(t) {
+      try {
+        navigator.clipboard.writeText(t);
+        el("syncMsg").textContent = "Lien copié — range-le en lieu sûr ✓";
+      } catch (e) { el("syncMsg").textContent = "Copie impossible : recopie le code ci-dessous."; }
+    }
+    /* Le joueur a fait la démarche : on cesse de le relancer. */
+    function marquerSauve() {
+      try { localStorage.setItem("motus.compteSauve", "1"); } catch (e) {}
+      peindreCompte();
+    }
+
     el("restoreBtn").addEventListener("click", function () {
-      var code = (el("restoreCode").value || "").trim();
+      var brut = (el("restoreCode").value || "").trim();
+      // on accepte aussi bien un lien complet qu'un code seul
+      var m = brut.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+      var code = m ? m[0] : brut;
+      if (code === state.id) { el("syncMsg").textContent = "C'est déjà ce compte."; el("restoreCode").value = ""; return; }
       if (!/^[0-9a-f-]{16,}$/i.test(code)) { el("restoreCode").value = ""; el("restoreCode").placeholder = "Code invalide"; return; }
       if (!configured) { el("restoreCode").placeholder = "Base non configurée"; el("restoreCode").value = ""; return; }
       fetchRemote(code).then(function (rem) {
@@ -598,7 +631,9 @@
         mergeRemote(rem);           // et on garde le meilleur des deux
         pushRemote();
         el("restoreCode").value = "";
-        el("syncMsg").textContent = "Profil lié ✓";
+        el("syncMsg").textContent = "Compte récupéré ✓";
+        try { localStorage.setItem("motus.compteSauve", "1"); } catch (e) {}
+        peindreCompte();
         fillProfil();
       });
     });
@@ -637,10 +672,45 @@
     set("pGames", state.games); set("pWins", state.wins); set("pXp", state.xp);
     var pi = el("pseudoInput"); if (pi && document.activeElement !== pi) pi.value = state.pseudo || "";
     var sc = el("syncCode"); if (sc) sc.textContent = state.id;
+    peindreCompte();
     var bd = BADGE_BY_ID[state.emblem];
     set("embEmoji", bd ? bd.e : "🎖️");
     set("embName", bd ? bd.n : "Aucun emblème");
     fillNextGoals();
+  }
+
+  /* Le joueur doit savoir, d'un coup d'œil, si sa progression survivrait à
+     la perte de son téléphone. */
+  function compteSauve() {
+    try { return localStorage.getItem("motus.compteSauve") === "1"; } catch (e) { return false; }
+  }
+  function peindreCompte() {
+    var et = el("compteEtat"), intro = el("compteIntro");
+    if (!et) return;
+    var ok = compteSauve();
+    et.textContent = ok ? "· sauvegardé ✓" : "· non sauvegardé";
+    et.className = ok ? "compte-ok" : "compte-ko";
+    if (intro) intro.textContent = ok
+      ? "Ta progression est récupérable ailleurs. Tu peux regénérer le lien à tout moment."
+      : "Ta progression n'existe que sur cet appareil. Si tu le perds ou que tu effaces les données du navigateur, tout disparaît.";
+  }
+
+  /* Invitation à sauvegarder, une fois que le joueur a quelque chose à
+     perdre — pas à la première partie, où il s'en moque à juste titre. */
+  function inviterSauvegarde() {
+    if (compteSauve()) return;
+    if (state.games < 12 && state.level < 3) return;
+    try {
+      if (localStorage.getItem("motus.compteRappel") === String(state.games)) return;
+      localStorage.setItem("motus.compteRappel", String(state.games));
+    } catch (e) {}
+    var t = el("badgeToast"); if (!t) return;
+    t.innerHTML = '<b>Pense à sauvegarder ton compte</b><br><span style="font-size:12px">'
+      + state.games + ' parties, niveau ' + levelInfo(state.xp).level
+      + ' — tout est encore sur ce seul appareil.</span>';
+    t.classList.add("show");
+    clearTimeout(btTimer);
+    btTimer = setTimeout(function () { t.classList.remove("show"); t.innerHTML = ""; }, 6000);
   }
 
   function badgeUnlocked(id) { return state.badges.indexOf(id) >= 0; }
@@ -951,6 +1021,7 @@
       }
 
       saveLocal(); checkBadges(); pushDebounced(); refreshOpen();
+      setTimeout(inviterSauvegarde, 2200);   // après l'écran de résultat
     },
 
     /* Course terminée. {won, finished, words, lives, ms, theme}
