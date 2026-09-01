@@ -1,0 +1,65 @@
+name: Nouvelle version
+
+# Se lance À LA MAIN depuis l'onglet Actions de GitHub, avec un bouton.
+# Aucun outil n'est nécessaire sur ton ordinateur : tout se passe ici.
+#
+# À utiliser après avoir déposé des fichiers modifiés : la bascule de
+# version change le nom du cache, sans quoi les navigateurs continuent de
+# servir l'ancienne version et tes joueurs ne voient RIEN de tes
+# modifications.
+
+on:
+  workflow_dispatch:
+    inputs:
+      niveau:
+        description: "Ampleur du changement"
+        required: true
+        default: corrige
+        type: choice
+        options:
+          - corrige   # une correction     1.50.2 → 1.50.3
+          - mineure   # un ajout           1.50.2 → 1.51.0
+          - majeure   # une refonte        1.50.2 → 2.0.0
+
+permissions:
+  contents: write        # nécessaire pour enregistrer la nouvelle version
+
+jobs:
+  basculer:
+    name: Basculer la version et vérifier
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Basculer la version partout
+        id: bascule
+        run: |
+          node scripts/version.js ${{ inputs.niveau }}
+          echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Installer les dépendances
+        run: npm install --no-audit --no-fund
+
+      - name: Lancer les tests
+        # Si un test échoue, rien n'est enregistré : la version reste
+        # inchangée et le jeu en ligne n'est pas touché.
+        run: npm test
+
+      - name: Enregistrer
+        run: |
+          git config user.name "Nouvelle version"
+          git config user.email "actions@github.com"
+          git add -A
+          git commit -m "Version ${{ steps.bascule.outputs.version }}"
+          git push
+
+      - name: Récapitulatif
+        run: |
+          echo "### Version ${{ steps.bascule.outputs.version }} publiée" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Les tests sont passés, la mise en ligne se lance automatiquement." >> $GITHUB_STEP_SUMMARY
+          echo "Compte une à deux minutes, puis rafraîchis le jeu." >> $GITHUB_STEP_SUMMARY

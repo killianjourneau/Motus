@@ -1,0 +1,33 @@
+# En-têtes HTTP — lus par Netlify et Cloudflare Pages.
+# (GitHub Pages ne les prend PAS en charge : voir DEPLOIEMENT.md)
+#
+# Règle qui gouverne tout : ce qui porte une étiquette ?v= peut être mis en
+# cache très longtemps, puisqu'un changement de version change l'adresse.
+# Ce qui n'en porte pas — index.html, sw.js — ne doit JAMAIS être mis en
+# cache durablement, sinon le navigateur continue de servir l'ancienne
+# version et la mise à jour n'arrive jamais.
+
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/index.html
+  Cache-Control: no-cache
+/rpg.html
+  Cache-Control: no-cache
+/enfant.html
+  Cache-Control: no-cache
+/manifest.json
+  Cache-Control: no-cache
+
+# Données et icônes : servies avec ?v=, donc renouvelées à chaque version.
+/dico/*
+  Cache-Control: public, max-age=31536000, immutable
+/icons/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Sécurité de base sur tout le site.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: SAMEORIGIN
+  Permissions-Policy: geolocation=(), microphone=(), camera=()
