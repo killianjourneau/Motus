@@ -208,6 +208,14 @@
   .perso-note{ min-height:70px; resize:vertical; font-family:inherit; line-height:1.4; padding:10px 12px; }
   .perso-sg{ background:var(--cell); border-radius:12px; padding:11px; margin-bottom:9px; }
   .perso-sg .nm{ font-size:15px; font-weight:800; letter-spacing:.5px; }
+  .admin-tuiles{ display:flex; flex-direction:column; gap:9px; margin:14px 0 4px; }
+  .admin-tuile{ display:flex; flex-direction:column; align-items:flex-start; gap:2px;
+    padding:14px 16px; border:none; border-radius:14px; background:var(--cell); color:var(--ink);
+    cursor:pointer; text-align:left; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
+  .admin-tuile:active{ transform:scale(.98); }
+  .admin-tuile .e{ font-size:24px; }
+  .admin-tuile b{ font-size:15px; }
+  .admin-tuile i{ font-style:normal; font-size:12px; color:var(--ink-dim); }
   .perso-themes{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
   .sparkline{ display:flex; align-items:flex-end; gap:2px; height:44px; padding:0 2px 4px;
     background:var(--cell); border-radius:12px; margin-bottom:12px; overflow-x:auto; }
@@ -452,6 +460,7 @@
       
       <button class="icon-btn" id="btnKid" aria-label="Mode enfant">🧸</button>
       <button class="icon-btn" id="btnRpg" aria-label="Mot en Six Quête">⚔️</button>
+      <button class="icon-btn" id="btnAdmin" aria-label="Administration" style="display:none">🛠️</button>
       <button class="icon-btn" id="btnProfile" aria-label="Profil">👤</button>
       <button class="icon-btn" id="btnNew" aria-label="Nouvelle partie">↻</button>
     </div>
@@ -701,6 +710,37 @@
   </div>
 
   <!-- Proposer un personnage / valider les propositions -->
+  <!-- Espace d'administration : réservé, et volontairement séparé du jeu -->
+  <div class="overlay" id="adminOverlay">
+    <div class="modal">
+      <button class="close-x" data-close>&times;</button>
+      <h2>🛠️ Administration</h2>
+
+      <div id="adminAccueil">
+        <div class="admin-tuiles">
+          <button class="admin-tuile" id="adminGoAudience">
+            <span class="e">📊</span><b>Audience</b><i>Qui joue, à quoi, et reviennent-ils</i>
+          </button>
+          <button class="admin-tuile" id="adminGoPropos">
+            <span class="e">📥</span><b>Propositions</b><i id="adminNbPropos">à valider</i>
+          </button>
+        </div>
+      </div>
+
+      <div id="adminAudience" style="display:none">
+        <p class="sub">Chiffres anonymes, sur les 30 derniers jours.</p>
+        <div id="statsAudience"></div>
+        <button class="btn ghost" id="adminRetour1">Retour</button>
+      </div>
+
+      <div id="adminPropos" style="display:none">
+        <p class="sub">Approuve pour ajouter au jeu, refuse pour écarter. Tout reste modifiable avant validation.</p>
+        <div id="persoPending"></div>
+        <button class="btn ghost" id="adminRetour2">Retour</button>
+      </div>
+    </div>
+  </div>
+
   <div class="overlay" id="persoOverlay">
     <div class="modal">
       <button class="close-x" data-close>&times;</button>
@@ -716,21 +756,9 @@
                   placeholder="Qui est-ce ? (dates, métier, œuvre connue…)"></textarea>
         <p class="duel-msg" id="persoMsg"></p>
         <button class="btn" id="persoSend">Envoyer la proposition</button>
-        <button class="btn ghost" id="persoAdminBtn" style="display:none">🛠️ Propositions à valider</button>
-        <button class="btn ghost" id="audienceBtn" style="display:none">📊 Audience</button>
+
       </div>
 
-      <div id="persoStep3" style="display:none">
-        <p class="sub">Chiffres anonymes, sur les 30 derniers jours.</p>
-        <div id="statsAudience"></div>
-        <button class="btn ghost" id="audienceBack">Retour</button>
-      </div>
-
-      <div id="persoStep2" style="display:none">
-        <p class="sub">Approuve pour ajouter au jeu, refuse pour écarter.</p>
-        <div id="persoPending"></div>
-        <button class="btn ghost" id="persoBack">Retour</button>
-      </div>
     </div>
   </div>
 
@@ -855,21 +883,21 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.50.2"></script>
-<script src="./dico/motus-prenoms.js?v=1.50.2"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.50.2"></script>
-<script src="./dico/motus-maladies.js?v=1.50.2"></script>
-<script src="./dico/motus-maladies-info.js?v=1.50.2"></script>
-<script src="./dico/motus-villes.js?v=1.50.2"></script>
-<script src="./dico/motus-villes-info.js?v=1.50.2"></script>
-<script src="./dico/motus-persos.js?v=1.50.2"></script>
-<script src="./dico/motus-persos-info.js?v=1.50.2"></script>
-<script src="./dico/motus-persos-split.js?v=1.50.2"></script>
-<script src="./dico/motus-race.js?v=1.50.2"></script>
-<script src="./dico/motus-expert.js?v=1.50.2"></script>
-<script src="./profiles/config.js?v=1.50.2"></script>
-<script src="./profiles/profile.js?v=1.50.2"></script>
-<script src="./duel/duel.js?v=1.50.2"></script>
+<script src="./dico/motus-words.js?v=1.50.3"></script>
+<script src="./dico/motus-prenoms.js?v=1.50.3"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.50.3"></script>
+<script src="./dico/motus-maladies.js?v=1.50.3"></script>
+<script src="./dico/motus-maladies-info.js?v=1.50.3"></script>
+<script src="./dico/motus-villes.js?v=1.50.3"></script>
+<script src="./dico/motus-villes-info.js?v=1.50.3"></script>
+<script src="./dico/motus-persos.js?v=1.50.3"></script>
+<script src="./dico/motus-persos-info.js?v=1.50.3"></script>
+<script src="./dico/motus-persos-split.js?v=1.50.3"></script>
+<script src="./dico/motus-race.js?v=1.50.3"></script>
+<script src="./dico/motus-expert.js?v=1.50.3"></script>
+<script src="./profiles/config.js?v=1.50.3"></script>
+<script src="./profiles/profile.js?v=1.50.3"></script>
+<script src="./duel/duel.js?v=1.50.3"></script>
 <script>
 (() => {
   "use strict";
@@ -921,7 +949,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.50.2";
+  const VERSION = "1.50.3";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -1793,15 +1821,12 @@
   function persoOpen(){
     if(!window.Persos || !Persos.configured()){ toast("Les propositions nécessitent la connexion au serveur"); return; }
     $("persoName").value=""; $("persoNote").value=""; $("persoMsg").textContent="";
-    $("persoStep1").style.display=""; $("persoStep2").style.display="none"; $("persoStep3").style.display="none";
+    $("persoStep1").style.display="";
     persoDrawThemes();
     const th0=PERSO_THEMES.find(x=>x.id===persoTheme);
     $("persoNote").placeholder = th0 ? th0.note : "";
     openOverlay("persoOverlay");
-    Persos.isAdmin().then(ok=>{
-      $("persoAdminBtn").style.display = ok ? "" : "none";
-      $("audienceBtn").style.display   = ok ? "" : "none";
-    });
+
   }
   $("persoSend").addEventListener("click", ()=>{
     const nom = persoNorm($("persoName").value);
@@ -1832,17 +1857,54 @@
       else                                msg.textContent="Envoi impossible — réessaie.";
     }).catch(()=>{ msg.textContent="Envoi impossible — réessaie."; });
   });
-  $("audienceBtn").addEventListener("click", ()=>{
-    $("persoStep1").style.display="none"; $("persoStep2").style.display="none";
-    $("persoStep3").style.display=""; audienceDraw();
-  });
-  $("audienceBack").addEventListener("click", ()=>{
-    $("persoStep3").style.display="none"; $("persoStep1").style.display="";
-  });
+  /* ---- Espace d'administration ---- */
+  function adminVue(nom){
+    ["adminAccueil","adminAudience","adminPropos"].forEach(id=>{
+      $(id).style.display = (id===nom) ? "" : "none";
+    });
+  }
+  function adminOpen(){
+    adminVue("adminAccueil");
+    openOverlay("adminOverlay");
+    // combien de propositions attendent : l'information utile en arrivant
+    if(window.Persos && Persos.configured()){
+      Persos.pending().then(rows=>{
+        const n = (rows||[]).length;
+        $("adminNbPropos").textContent = n
+          ? n + " proposition" + (n>1?"s":"") + " en attente"
+          : "aucune en attente";
+      }).catch(()=>{ $("adminNbPropos").textContent = "à valider"; });
+    }
+  }
+  $("btnAdmin").addEventListener("click", ()=>{ closeOverlays(); adminOpen(); });
+  $("adminGoAudience").addEventListener("click", ()=>{ adminVue("adminAudience"); audienceDraw(); });
+  $("adminGoPropos").addEventListener("click", ()=>{ adminVue("adminPropos"); persoDrawPending(); });
+  $("adminRetour1").addEventListener("click", ()=>adminOpen());
+  $("adminRetour2").addEventListener("click", ()=>adminOpen());
+
+  /* Le bouton n'apparaît que pour un administrateur, et la vérification
+     se fait une seule fois au démarrage. */
+  function adminDetecter(){
+    if(!window.Persos || !Persos.configured()) return;
+    Persos.isAdmin().then(ok=>{ if(ok) $("btnAdmin").style.display=""; }).catch(()=>{});
+  }
 
   function audienceDraw(){
     const box=$("statsAudience");
     box.innerHTML='<p class="sub">Chargement…</p>';
+    /* Sans ce garde-fou, un window.Audience absent lève une exception et
+       le message « Chargement… » reste indéfiniment — sans rien indiquer. */
+    if(!window.Audience || typeof Audience.lire !== "function"){
+      box.innerHTML = '<p class="sub">Le fichier <code>duel/duel.js</code> n\'est pas à jour '
+        + 'sur le serveur : la mesure d\'audience en fait partie. Redépose-le, puis relance '
+        + '« Nouvelle version ».</p>';
+      return;
+    }
+    if(!Audience.configured()){
+      box.innerHTML = '<p class="sub">La connexion au serveur n\'est pas configurée '
+        + '(<code>profiles/config.js</code>) : sans elle, rien ne peut être mesuré.</p>';
+      return;
+    }
     Audience.lire(30).then(lignes=>{
       if(!lignes || !lignes.length){
         box.innerHTML='<p class="sub">Aucune donnée pour l\'instant. Les compteurs se remplissent à mesure que des joueurs viennent.</p>';
@@ -1901,16 +1963,13 @@
         + '<div class="st-block"><div class="st-row"><span>Part de joueurs qui reviennent</span><b>'+fidelite+' %</b></div></div>'
         + (listeModes ? '<div class="dist-title">Parties par mode · taux de réussite</div><div class="dist">'+listeModes+'</div>' : '')
         + '<p class="perso-hint">Aucun identifiant n\'est enregistré : ce sont des compteurs par jour, rien de plus.</p>';
-    }).catch(()=>{ box.innerHTML='<p class="sub">Lecture impossible.</p>'; });
+    }).catch(e=>{
+      box.innerHTML = '<p class="sub">Lecture impossible. Si tu viens d\'ajouter la mesure '
+        + 'd\'audience, vérifie que <code>duel/schema.sql</code> a bien été rejoué dans Supabase.</p>';
+    });
   }
 
-  $("persoAdminBtn").addEventListener("click", ()=>{
-    $("persoStep1").style.display="none"; $("persoStep2").style.display="";
-    persoDrawPending();
-  });
-  $("persoBack").addEventListener("click", ()=>{
-    $("persoStep2").style.display="none"; $("persoStep1").style.display="";
-  });
+
   function persoDrawPending(){
     const box=$("persoPending");
     box.innerHTML='<p class="sub">Chargement…</p>';
@@ -1976,7 +2035,14 @@
      uniques sans transmettre qui que ce soit.
      --------------------------------------------------------------- */
   function mesure(cle){
-    if(window.Audience && Audience.configured()) Audience.ping(cle);
+    /* Une mesure ne doit JAMAIS interrompre une partie : on vérifie que la
+       fonction existe (un duel.js partiellement à jour n'a pas ping) et on
+       avale toute erreur. */
+    try{
+      if(window.Audience && typeof Audience.ping === "function" && Audience.configured()){
+        Audience.ping(cle);
+      }
+    }catch(e){}
   }
   /* Une seule fois par jour pour cette clé. */
   function mesureJour(cle){
@@ -4065,6 +4131,7 @@
   hintSyncPush();        // un appareil déjà pourvu envoie son état dès le départ
   defCheckOnLaunch();
   setTimeout(mesureDemarrage, 1500);   // sans retarder l'affichage
+  setTimeout(adminDetecter, 1800);
   setTimeout(notifDaily, 2500);   // après l'installation de l'écran
   persoLoadApproved();
   const last = store.get("motus.last","free");
