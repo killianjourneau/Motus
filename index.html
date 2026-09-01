@@ -83,21 +83,19 @@
 
   /* Header */
   header{ display:flex; align-items:center; flex-wrap:wrap; row-gap:6px; padding:12px clamp(12px,4vw,22px) 4px; gap:8px; }
-  .brand{ display:flex; gap:5px; background:none; border:none; padding:0; cursor:pointer; }
+  .brand{ display:flex; gap:2.5px; background:none; border:none; padding:0; cursor:pointer; }
   .brand:active{ transform:scale(.96); }
   /* dix cases au lieu de cinq : elles doivent rétrécir pour tenir sur un
      téléphone étroit, séparateurs compris */
-  .brand{ gap:2px; }
-  .brand b{ width:clamp(15px,4.4vw,24px); height:clamp(22px,6.4vw,30px); display:grid; place-items:center;
-    font-weight:800; font-size:clamp(11px,3.2vw,16px); border-radius:5px; background:var(--absent); }
-  /* les points ne sont pas des lettres : ni case, ni couleur */
-  .brand b.sep{ width:clamp(5px,1.6vw,9px); background:none; color:var(--ink-dim); }
-  .brand b.sep span{ font-size:clamp(11px,3.2vw,16px); }
+  .brand b{ width:clamp(17px,4.8vw,26px); height:clamp(25px,7vw,32px); display:grid; place-items:center;
+    font-weight:800; font-size:clamp(13px,3.6vw,18px); border-radius:6px; background:var(--absent); }
   .brand b.r{ background:var(--red); }
   .brand b.r span{ color:#fff; }
-  .brand b.y{ background:var(--cell); position:relative; }
-  .brand b.y::before{ content:""; position:absolute; inset:5px; border-radius:50%; background:var(--yellow); z-index:0; }
-  .brand b.y span{ position:relative; z-index:1; color:#1a1a1a; }
+  /* Jaune PLEIN, pas un rond : à cette taille le rond ne laissait qu'une
+     pastille de quelques pixels, la lettre devenait illisible. Un logo doit
+     se lire, il n'a pas à imiter le plateau. */
+  .brand b.y{ background:var(--yellow); }
+  .brand b.y span{ color:#14233c; }
   .tools{ display:flex; flex-wrap:wrap; justify-content:flex-end; gap:5px; flex:1; }
   .icon-btn{ width:clamp(33px,9vw,40px); height:clamp(33px,9vw,40px); flex:0 0 auto; border:none; border-radius:10px; background:var(--cell); color:var(--ink); font-size:16px; cursor:pointer; display:grid; place-items:center; transition:.15s; }
   .icon-btn:active{ transform:scale(.94); }
@@ -211,6 +209,9 @@
   .perso-sg{ background:var(--cell); border-radius:12px; padding:11px; margin-bottom:9px; }
   .perso-sg .nm{ font-size:15px; font-weight:800; letter-spacing:.5px; }
   .perso-themes{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+  .sparkline{ display:flex; align-items:flex-end; gap:2px; height:44px; padding:0 2px 4px;
+    background:var(--cell); border-radius:12px; margin-bottom:12px; overflow-x:auto; }
+  .sp-bar{ flex:1 0 4px; min-width:4px; background:var(--accent); border-radius:2px 2px 0 0; opacity:.85; }
   .st-block{ background:var(--cell); border-radius:12px; padding:4px 12px; margin:8px 0 12px; }
   .st-row{ display:flex; justify-content:space-between; align-items:center; gap:10px;
     font-size:13px; padding:7px 0; border-bottom:1px solid var(--cell-edge); }
@@ -445,7 +446,7 @@
 
   <header>
     <button class="brand" id="btnAbout" aria-label="À propos de Mot en Six">
-      <b class="r"><span>M</span></b><b class="y"><span>O</span></b><b><span>T</span></b><b class="sep"><span>·</span></b><b class="y"><span>E</span></b><b class="r"><span>N</span></b><b class="sep"><span>·</span></b><b class="r"><span>S</span></b><b class="y"><span>I</span></b><b><span>X</span></b>
+      <b class="r"><span>M</span></b><b class="y"><span>O</span></b><b><span>T</span></b><b class="y"><span>E</span></b><b class="r"><span>N</span></b><b class="r"><span>S</span></b><b class="y"><span>I</span></b><b><span>X</span></b>
     </button>
     <div class="tools">
       
@@ -716,6 +717,13 @@
         <p class="duel-msg" id="persoMsg"></p>
         <button class="btn" id="persoSend">Envoyer la proposition</button>
         <button class="btn ghost" id="persoAdminBtn" style="display:none">🛠️ Propositions à valider</button>
+        <button class="btn ghost" id="audienceBtn" style="display:none">📊 Audience</button>
+      </div>
+
+      <div id="persoStep3" style="display:none">
+        <p class="sub">Chiffres anonymes, sur les 30 derniers jours.</p>
+        <div id="statsAudience"></div>
+        <button class="btn ghost" id="audienceBack">Retour</button>
       </div>
 
       <div id="persoStep2" style="display:none">
@@ -847,21 +855,21 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.49.0"></script>
-<script src="./dico/motus-prenoms.js?v=1.49.0"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.49.0"></script>
-<script src="./dico/motus-maladies.js?v=1.49.0"></script>
-<script src="./dico/motus-maladies-info.js?v=1.49.0"></script>
-<script src="./dico/motus-villes.js?v=1.49.0"></script>
-<script src="./dico/motus-villes-info.js?v=1.49.0"></script>
-<script src="./dico/motus-persos.js?v=1.49.0"></script>
-<script src="./dico/motus-persos-info.js?v=1.49.0"></script>
-<script src="./dico/motus-persos-split.js?v=1.49.0"></script>
-<script src="./dico/motus-race.js?v=1.49.0"></script>
-<script src="./dico/motus-expert.js?v=1.49.0"></script>
-<script src="./profiles/config.js?v=1.49.0"></script>
-<script src="./profiles/profile.js?v=1.49.0"></script>
-<script src="./duel/duel.js?v=1.49.0"></script>
+<script src="./dico/motus-words.js?v=1.50.2"></script>
+<script src="./dico/motus-prenoms.js?v=1.50.2"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.50.2"></script>
+<script src="./dico/motus-maladies.js?v=1.50.2"></script>
+<script src="./dico/motus-maladies-info.js?v=1.50.2"></script>
+<script src="./dico/motus-villes.js?v=1.50.2"></script>
+<script src="./dico/motus-villes-info.js?v=1.50.2"></script>
+<script src="./dico/motus-persos.js?v=1.50.2"></script>
+<script src="./dico/motus-persos-info.js?v=1.50.2"></script>
+<script src="./dico/motus-persos-split.js?v=1.50.2"></script>
+<script src="./dico/motus-race.js?v=1.50.2"></script>
+<script src="./dico/motus-expert.js?v=1.50.2"></script>
+<script src="./profiles/config.js?v=1.50.2"></script>
+<script src="./profiles/profile.js?v=1.50.2"></script>
+<script src="./duel/duel.js?v=1.50.2"></script>
 <script>
 (() => {
   "use strict";
@@ -913,7 +921,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.49.0";
+  const VERSION = "1.50.2";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -1785,12 +1793,15 @@
   function persoOpen(){
     if(!window.Persos || !Persos.configured()){ toast("Les propositions nécessitent la connexion au serveur"); return; }
     $("persoName").value=""; $("persoNote").value=""; $("persoMsg").textContent="";
-    $("persoStep1").style.display=""; $("persoStep2").style.display="none";
+    $("persoStep1").style.display=""; $("persoStep2").style.display="none"; $("persoStep3").style.display="none";
     persoDrawThemes();
     const th0=PERSO_THEMES.find(x=>x.id===persoTheme);
     $("persoNote").placeholder = th0 ? th0.note : "";
     openOverlay("persoOverlay");
-    Persos.isAdmin().then(ok=>{ $("persoAdminBtn").style.display = ok ? "" : "none"; });
+    Persos.isAdmin().then(ok=>{
+      $("persoAdminBtn").style.display = ok ? "" : "none";
+      $("audienceBtn").style.display   = ok ? "" : "none";
+    });
   }
   $("persoSend").addEventListener("click", ()=>{
     const nom = persoNorm($("persoName").value);
@@ -1821,6 +1832,78 @@
       else                                msg.textContent="Envoi impossible — réessaie.";
     }).catch(()=>{ msg.textContent="Envoi impossible — réessaie."; });
   });
+  $("audienceBtn").addEventListener("click", ()=>{
+    $("persoStep1").style.display="none"; $("persoStep2").style.display="none";
+    $("persoStep3").style.display=""; audienceDraw();
+  });
+  $("audienceBack").addEventListener("click", ()=>{
+    $("persoStep3").style.display="none"; $("persoStep1").style.display="";
+  });
+
+  function audienceDraw(){
+    const box=$("statsAudience");
+    box.innerHTML='<p class="sub">Chargement…</p>';
+    Audience.lire(30).then(lignes=>{
+      if(!lignes || !lignes.length){
+        box.innerHTML='<p class="sub">Aucune donnée pour l\'instant. Les compteurs se remplissent à mesure que des joueurs viennent.</p>';
+        return;
+      }
+      // regroupement : par jour, puis par clé
+      const parJour={}, total={};
+      lignes.forEach(l=>{
+        (parJour[l.jour] = parJour[l.jour] || {})[l.cle] = l.valeur;
+        total[l.cle] = (total[l.cle]||0) + l.valeur;
+      });
+      const jours = Object.keys(parJour).sort().reverse();
+      const dernier = parJour[jours[0]] || {};
+
+      const somme = c => total[c] || 0;
+      const moyenne = c => jours.length ? Math.round(somme(c)/jours.length) : 0;
+
+      // ce qu'on veut savoir en premier
+      const enTete = [
+        ["Visiteurs aujourd'hui", dernier.visite || 0],
+        ["Moyenne par jour",      moyenne("visite")],
+        ["Nouveaux (30 j)",       somme("nouveau")],
+        ["Revenus un autre jour", somme("fidele")],
+        ["Installé sur l'écran d'accueil", somme("installe")]
+      ].map(([k,v])=>'<div class="st-row"><span>'+k+'</span><b>'+v+'</b></div>').join("");
+
+      // la question clé : reviennent-ils ?
+      const n = somme("nouveau"), f = somme("fidele");
+      const fidelite = n ? Math.round(100*f/(n+f)) : 0;
+
+      // parties par mode, triées
+      const modes = Object.keys(total).filter(c=>c.startsWith("partie:"))
+        .map(c=>({ nom:c.slice(7), parties:total[c], gagnees:total["gagne:"+c.slice(7)]||0 }))
+        .sort((a,b)=>b.parties-a.parties);
+      const maxM = Math.max(1, ...modes.map(m=>m.parties));
+      const listeModes = modes.map(m=>{
+        const pct = Math.round(m.parties/maxM*100);
+        const reussite = m.parties ? Math.round(100*m.gagnees/m.parties) : 0;
+        return '<div class="bar"><span class="k" style="width:74px;text-align:left">'+m.nom+'</span>'
+             + '<div class="t" style="width:'+Math.max(pct,8)+'%">'+m.parties+'</div>'
+             + '<span class="pc">'+reussite+'%</span></div>';
+      }).join("");
+
+      // courbe des visites, du plus ancien au plus récent
+      const serie = jours.slice().reverse();
+      const maxV = Math.max(1, ...serie.map(j=>(parJour[j].visite)||0));
+      const courbe = serie.map(j=>{
+        const v=(parJour[j].visite)||0;
+        return '<span class="sp-bar" style="height:'+Math.max(2, Math.round(v/maxV*40))+'px" title="'+j+' : '+v+'"></span>';
+      }).join("");
+
+      box.innerHTML =
+          '<div class="st-block">'+enTete+'</div>'
+        + '<div class="dist-title">Visites par jour</div>'
+        + '<div class="sparkline">'+courbe+'</div>'
+        + '<div class="st-block"><div class="st-row"><span>Part de joueurs qui reviennent</span><b>'+fidelite+' %</b></div></div>'
+        + (listeModes ? '<div class="dist-title">Parties par mode · taux de réussite</div><div class="dist">'+listeModes+'</div>' : '')
+        + '<p class="perso-hint">Aucun identifiant n\'est enregistré : ce sont des compteurs par jour, rien de plus.</p>';
+    }).catch(()=>{ box.innerHTML='<p class="sub">Lecture impossible.</p>'; });
+  }
+
   $("persoAdminBtn").addEventListener("click", ()=>{
     $("persoStep1").style.display="none"; $("persoStep2").style.display="";
     persoDrawPending();
@@ -1883,6 +1966,40 @@
         });
       });
     });
+  }
+
+  /* ---------------------------------------------------------------
+     MESURE D'AUDIENCE
+     Anonyme et interne : on incrémente des compteurs du jour, on
+     n'envoie jamais d'identifiant. L'unicité par jour est assurée ici,
+     dans le navigateur — c'est ce qui permet de compter des visiteurs
+     uniques sans transmettre qui que ce soit.
+     --------------------------------------------------------------- */
+  function mesure(cle){
+    if(window.Audience && Audience.configured()) Audience.ping(cle);
+  }
+  /* Une seule fois par jour pour cette clé. */
+  function mesureJour(cle){
+    const vu = store.get("motus.mesure", {}) || {};
+    const jour = todayKey();
+    if(vu[cle] === jour) return;
+    vu[cle] = jour; store.set("motus.mesure", vu);
+    mesure(cle);
+  }
+  function mesureDemarrage(){
+    if(!window.Audience || !Audience.configured()) return;
+    const premier = store.get("motus.premierJour", null);
+    if(!premier){
+      store.set("motus.premierJour", todayKey());
+      mesure("nouveau");                       // tout premier lancement
+    } else if(premier !== todayKey()){
+      mesureJour("fidele");                    // revenu un autre jour
+    }
+    mesureJour("visite");                      // visiteur unique du jour
+    // installé sur l'écran d'accueil plutôt qu'ouvert dans un onglet
+    try{
+      if(window.matchMedia && matchMedia("(display-mode: standalone)").matches) mesureJour("installe");
+    }catch(e){}
   }
 
   /* ---------------------------------------------------------------
@@ -3366,6 +3483,9 @@
 
   /* ---------- Stats ---------- */
   function recordResult(win, tries){
+    // quels modes sont réellement joués, et lesquels sont réussis
+    const cle = String(mode || "").replace(/[^a-z]/g, "").slice(0, 12);
+    if(cle){ mesure("partie:" + cle); if(win) mesure("gagne:" + cle); }
     stats.played++;
     if(win){ stats.won++; stats.streak++; if(stats.streak>stats.best) stats.best=stats.streak; if(tries>=1&&tries<=6) stats.dist[tries]=(stats.dist[tries]||0)+1; }
     else { stats.streak=0; stats.fail=(stats.fail||0)+1; }
@@ -3905,9 +4025,21 @@
     const dc = (q.get("duel")||"").trim().toUpperCase();
     const rc = (q.get("race")||"").trim().toUpperCase();
     const df = (q.get("defense")||"").trim();
-    if(!dc && !rc && !df) return;
+    const cp = (q.get("compte")||"").trim();
+    if(!dc && !rc && !df && !cp) return;
     try{ history.replaceState(null,"",location.pathname); }catch(e){}   // pas de re-déclenchement au rechargement
     setTimeout(()=>{
+      if(cp){                          // lien « récupérer mon compte »
+        if(window.Profile && Profile.open){
+          Profile.open(motusStatsHTML());
+          const champ = document.getElementById("restoreCode");
+          if(champ){ champ.value = cp; champ.scrollIntoView({block:"center"}); }
+          const boite = document.getElementById("compteBox");
+          if(boite) boite.open = true;
+          toast("Appuie sur « Récupérer » pour lier ce compte", 5000);
+        }
+        return;
+      }
       if(df){ defOpen(); return; }     // lien « viens attaquer ma défense »
       if(dc){
         duelFresh();
@@ -3932,6 +4064,7 @@
   refreshStats();
   hintSyncPush();        // un appareil déjà pourvu envoie son état dès le départ
   defCheckOnLaunch();
+  setTimeout(mesureDemarrage, 1500);   // sans retarder l'affichage
   setTimeout(notifDaily, 2500);   // après l'installation de l'écran
   persoLoadApproved();
   const last = store.get("motus.last","free");

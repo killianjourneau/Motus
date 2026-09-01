@@ -1,6 +1,6 @@
 /* Mot en Six — service worker */
-const CACHE = "motus-v115";
-const V = "1.49.0";   // doit correspondre au ?v= des <script> de index.html
+const CACHE = "motus-v118";
+const V = "1.50.2";   // doit correspondre au ?v= des <script> de index.html
 const ASSETS = [
   "./",
   "./index.html",
