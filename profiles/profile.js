@@ -494,6 +494,7 @@
         <div class="stat"><div class="n" id="pXp">0</div><div class="l">XP total</div></div>
       </div>
       <div id="nextGoals"></div>
+      <div id="adminSlot"></div>
       <div id="gameStats"></div>
       <div id="personalizeBox"></div>
       <details class="prof-sync" id="compteBox">
