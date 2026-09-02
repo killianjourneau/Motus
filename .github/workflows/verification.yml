@@ -1,0 +1,31 @@
+name: Vérification
+
+# Tourne à chaque envoi et à chaque proposition de modification.
+# C'est le garde-fou : rien ne part en ligne si ceci échoue.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  tests:
+    name: Tests et cohérence
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Installer les dépendances
+        run: npm install --no-audit --no-fund
+
+      - name: Vérifier la cohérence des versions
+        # Échoue si index.html, sw.js, package.json et les ?v= divergent —
+        # cause classique d'une mise à jour que les joueurs ne voient jamais.
+        run: node scripts/version.js --verifier
+
+      - name: Lancer la suite de tests
+        run: npm test
