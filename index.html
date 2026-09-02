@@ -460,7 +460,6 @@
       
       <button class="icon-btn" id="btnKid" aria-label="Mode enfant">🧸</button>
       <button class="icon-btn" id="btnRpg" aria-label="Mot en Six Quête">⚔️</button>
-      <button class="icon-btn" id="btnAdmin" aria-label="Administration" style="display:none">🛠️</button>
       <button class="icon-btn" id="btnProfile" aria-label="Profil">👤</button>
       <button class="icon-btn" id="btnNew" aria-label="Nouvelle partie">↻</button>
     </div>
@@ -883,21 +882,21 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.50.5"></script>
-<script src="./dico/motus-prenoms.js?v=1.50.5"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.50.5"></script>
-<script src="./dico/motus-maladies.js?v=1.50.5"></script>
-<script src="./dico/motus-maladies-info.js?v=1.50.5"></script>
-<script src="./dico/motus-villes.js?v=1.50.5"></script>
-<script src="./dico/motus-villes-info.js?v=1.50.5"></script>
-<script src="./dico/motus-persos.js?v=1.50.5"></script>
-<script src="./dico/motus-persos-info.js?v=1.50.5"></script>
-<script src="./dico/motus-persos-split.js?v=1.50.5"></script>
-<script src="./dico/motus-race.js?v=1.50.5"></script>
-<script src="./dico/motus-expert.js?v=1.50.5"></script>
-<script src="./profiles/config.js?v=1.50.5"></script>
-<script src="./profiles/profile.js?v=1.50.5"></script>
-<script src="./duel/duel.js?v=1.50.5"></script>
+<script src="./dico/motus-words.js?v=1.50.2"></script>
+<script src="./dico/motus-prenoms.js?v=1.50.2"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.50.2"></script>
+<script src="./dico/motus-maladies.js?v=1.50.2"></script>
+<script src="./dico/motus-maladies-info.js?v=1.50.2"></script>
+<script src="./dico/motus-villes.js?v=1.50.2"></script>
+<script src="./dico/motus-villes-info.js?v=1.50.2"></script>
+<script src="./dico/motus-persos.js?v=1.50.2"></script>
+<script src="./dico/motus-persos-info.js?v=1.50.2"></script>
+<script src="./dico/motus-persos-split.js?v=1.50.2"></script>
+<script src="./dico/motus-race.js?v=1.50.2"></script>
+<script src="./dico/motus-expert.js?v=1.50.2"></script>
+<script src="./profiles/config.js?v=1.50.2"></script>
+<script src="./profiles/profile.js?v=1.50.2"></script>
+<script src="./duel/duel.js?v=1.50.2"></script>
 <script>
 (() => {
   "use strict";
@@ -949,7 +948,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.50.5";
+  const VERSION = "1.50.2";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -1876,7 +1875,15 @@
       }).catch(()=>{ $("adminNbPropos").textContent = "à valider"; });
     }
   }
-  $("btnAdmin").addEventListener("click", ()=>{ closeOverlays(); adminOpen(); });
+  /* Le bouton vit dans le panneau de profil : le bandeau du haut n'a de
+     place que pour quatre icônes, une cinquième décalait la mise en page. */
+  function adminPoserBouton(){
+    const emplacement = $("adminSlot");
+    if(!emplacement || emplacement.dataset.pret) return;
+    emplacement.dataset.pret = "1";
+    emplacement.innerHTML = '<button class="btn ghost" id="btnAdmin" style="width:100%">🛠️ Administration</button>';
+    $("btnAdmin").addEventListener("click", ()=>{ closeOverlays(); adminOpen(); });
+  }
   $("adminGoAudience").addEventListener("click", ()=>{ adminVue("adminAudience"); audienceDraw(); });
   $("adminGoPropos").addEventListener("click", ()=>{ adminVue("adminPropos"); persoDrawPending(); });
   $("adminRetour1").addEventListener("click", ()=>adminOpen());
@@ -1884,9 +1891,10 @@
 
   /* Le bouton n'apparaît que pour un administrateur, et la vérification
      se fait une seule fois au démarrage. */
+  let estAdmin = false;
   function adminDetecter(){
     if(!window.Persos || !Persos.configured()) return;
-    Persos.isAdmin().then(ok=>{ if(ok) $("btnAdmin").style.display=""; }).catch(()=>{});
+    Persos.isAdmin().then(ok=>{ estAdmin = ok; if(ok) adminPoserBouton(); }).catch(()=>{});
   }
 
   function audienceDraw(){
@@ -1964,8 +1972,12 @@
         + (listeModes ? '<div class="dist-title">Parties par mode · taux de réussite</div><div class="dist">'+listeModes+'</div>' : '')
         + '<p class="perso-hint">Aucun identifiant n\'est enregistré : ce sont des compteurs par jour, rien de plus.</p>';
     }).catch(e=>{
-      box.innerHTML = '<p class="sub">Lecture impossible. Si tu viens d\'ajouter la mesure '
-        + 'd\'audience, vérifie que <code>duel/schema.sql</code> a bien été rejoué dans Supabase.</p>';
+      const msg = String((e && e.message) || "");
+      box.innerHTML = /fonctions-absentes|404/.test(msg)
+        ? '<p class="sub"><b>La base n\'est pas à jour.</b><br>La mesure d\'audience a besoin de '
+          + 'nouvelles tables : ouvre ton projet Supabase → <b>SQL Editor</b>, colle tout le contenu de '
+          + '<code>duel/schema.sql</code>, puis <b>Run</b>. Le script est rejouable, il ne casse rien.</p>'
+        : '<p class="sub">Lecture impossible : ' + (msg || "erreur inconnue") + '</p>';
     });
   }
 
@@ -4026,7 +4038,7 @@
   $("hintBtn").addEventListener("click", useHint);
   $("giveUpBtn").addEventListener("click", giveUp);
   $("btnRulesFromAbout").addEventListener("click", ()=>{ closeOverlays(); openOverlay("helpOverlay"); });
-  $("btnProfile").addEventListener("click", ()=>{ if(window.Profile){ Profile.open(motusStatsHTML()); renderPersonalize(); } });
+  $("btnProfile").addEventListener("click", ()=>{ if(window.Profile){ Profile.open(motusStatsHTML()); renderPersonalize(); if(estAdmin) adminPoserBouton(); } });
   $("btnNew").addEventListener("click", ()=>{
     closeOverlays();
     if(mode==="daily"){ switchMode("normal"); return; }        // le mot du jour est unique : on lance un mot au hasard
