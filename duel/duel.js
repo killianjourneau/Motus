@@ -537,9 +537,10 @@
     },
     /* Réservé à l'administrateur — rpcList, car la fonction renvoie
        plusieurs lignes (rpc() ne rendrait que la première). */
+    /* On NE masque PAS l'erreur : une fonction SQL absente renverrait une
+       liste vide, indiscernable d'une absence réelle de données. */
     lire: function (jours) {
-      return rpcList("stats_read", { p_id: me().id, p_jours: jours || 30 })
-        .catch(function () { return []; });
+      return rpcList("stats_read", { p_id: me().id, p_jours: jours || 30 });
     }
   };
 
