@@ -1,0 +1,62 @@
+name: Publication
+
+# Publie sur GitHub Pages — mais UNIQUEMENT si les tests passent.
+# C'est là toute la différence avec un simple envoi de fichiers : une
+# régression ne peut plus atteindre les joueurs.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Une publication à la fois ; on ne coupe pas celle en cours.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  verifier:
+    name: Vérifier avant de publier
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm install --no-audit --no-fund
+      - name: Cohérence des versions
+        run: node scripts/version.js --verifier
+      - name: Tests
+        run: npm test
+
+  publier:
+    name: Publier
+    needs: verifier          # ← le verrou : pas de tests verts, pas de publication
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploiement.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Préparer le contenu à publier
+        # On ne publie que le jeu : ni tests, ni scripts, ni dépendances.
+        run: |
+          mkdir -p site
+          rsync -a --exclude='.git' --exclude='.github' --exclude='node_modules' \
+                   --exclude='tests' --exclude='scripts' --exclude='package*.json' \
+                   ./ site/
+          echo "Publié le $(date -u +%Y-%m-%dT%H:%M:%SZ)" > site/version.txt
+          grep -o 'const VERSION = "[0-9.]*"' site/index.html >> site/version.txt
+
+      - uses: actions/configure-pages@v4
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: deploiement
+        uses: actions/deploy-pages@v4
