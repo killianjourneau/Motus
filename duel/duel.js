@@ -524,6 +524,25 @@
      Suggestions de personnages : proposer, consulter les approuvés,
      et — pour un administrateur — valider ou rejeter.
      --------------------------------------------------------------- */
+  /* ---------------------------------------------------------------
+     Mesure d'audience. Aucun identifiant n'est transmis : on incrémente
+     un compteur du jour, rien de plus. Les échecs sont silencieux —
+     une mesure ne doit jamais gêner une partie.
+     --------------------------------------------------------------- */
+  window.Audience = {
+    configured: function () { return configured; },
+    ping: function (cle) {
+      if (!configured) return Promise.resolve(null);
+      return rpc("stats_ping", { p_cle: cle }).catch(function () { return null; });
+    },
+    /* Réservé à l'administrateur — rpcList, car la fonction renvoie
+       plusieurs lignes (rpc() ne rendrait que la première). */
+    lire: function (jours) {
+      return rpcList("stats_read", { p_id: me().id, p_jours: jours || 30 })
+        .catch(function () { return []; });
+    }
+  };
+
   window.Persos = {
     configured: function () { return configured; },
 
