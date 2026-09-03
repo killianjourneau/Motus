@@ -6,6 +6,12 @@ name: Publication
 on:
   push:
     branches: [main]
+  # GitHub ne déclenche PAS un workflow depuis un enregistrement fait par un
+  # autre workflow (protection contre les boucles infinies). « Nouvelle
+  # version » enregistrerait donc dans le vide. On écoute sa FIN à la place.
+  workflow_run:
+    workflows: ["Nouvelle version"]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
@@ -21,10 +27,17 @@ concurrency:
 jobs:
   verifier:
     name: Vérifier avant de publier
+    # si « Nouvelle version » a échoué, on ne publie rien
+    if: >-
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+        with:
+          # sans ça, on récupérerait l'état d'AVANT la bascule de version
+          ref: main
+      - uses: actions/setup-node@v5
         with:
           node-version: "20"
       - run: npm install --no-audit --no-fund
@@ -41,7 +54,10 @@ jobs:
       name: github-pages
       url: ${{ steps.deploiement.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+        with:
+          # sans ça, on récupérerait l'état d'AVANT la bascule de version
+          ref: main
 
       - name: Préparer le contenu à publier
         # On ne publie que le jeu : ni tests, ni scripts, ni dépendances.

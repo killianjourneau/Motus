@@ -29,9 +29,9 @@ jobs:
     name: Basculer la version et vérifier
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "20"
 
@@ -63,4 +63,3 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Les tests sont passés, la mise en ligne se lance automatiquement." >> $GITHUB_STEP_SUMMARY
           echo "Compte une à deux minutes, puis rafraîchis le jeu." >> $GITHUB_STEP_SUMMARY
-
