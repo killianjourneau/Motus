@@ -644,6 +644,8 @@
   function badgeToast(bd) {
     mount();
     var t = el("badgeToast"); if (!t) return;
+    // le moteur sonore vit dans le jeu : on l'appelle sans le dupliquer ici
+    try { if (window.motusSon) window.motusSon("badge"); } catch (e) {}
     t.querySelector(".be").textContent = bd.e;
     t.querySelector("b").textContent = "Badge débloqué : " + bd.n;
     t.querySelector("small").textContent = bd.d;
