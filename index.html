@@ -882,21 +882,21 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.50.3"></script>
-<script src="./dico/motus-prenoms.js?v=1.50.3"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.50.3"></script>
-<script src="./dico/motus-maladies.js?v=1.50.3"></script>
-<script src="./dico/motus-maladies-info.js?v=1.50.3"></script>
-<script src="./dico/motus-villes.js?v=1.50.3"></script>
-<script src="./dico/motus-villes-info.js?v=1.50.3"></script>
-<script src="./dico/motus-persos.js?v=1.50.3"></script>
-<script src="./dico/motus-persos-info.js?v=1.50.3"></script>
-<script src="./dico/motus-persos-split.js?v=1.50.3"></script>
-<script src="./dico/motus-race.js?v=1.50.3"></script>
-<script src="./dico/motus-expert.js?v=1.50.3"></script>
-<script src="./profiles/config.js?v=1.50.3"></script>
-<script src="./profiles/profile.js?v=1.50.3"></script>
-<script src="./duel/duel.js?v=1.50.3"></script>
+<script src="./dico/motus-words.js?v=1.50.2"></script>
+<script src="./dico/motus-prenoms.js?v=1.50.2"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.50.2"></script>
+<script src="./dico/motus-maladies.js?v=1.50.2"></script>
+<script src="./dico/motus-maladies-info.js?v=1.50.2"></script>
+<script src="./dico/motus-villes.js?v=1.50.2"></script>
+<script src="./dico/motus-villes-info.js?v=1.50.2"></script>
+<script src="./dico/motus-persos.js?v=1.50.2"></script>
+<script src="./dico/motus-persos-info.js?v=1.50.2"></script>
+<script src="./dico/motus-persos-split.js?v=1.50.2"></script>
+<script src="./dico/motus-race.js?v=1.50.2"></script>
+<script src="./dico/motus-expert.js?v=1.50.2"></script>
+<script src="./profiles/config.js?v=1.50.2"></script>
+<script src="./profiles/profile.js?v=1.50.2"></script>
+<script src="./duel/duel.js?v=1.50.2"></script>
 <script>
 (() => {
   "use strict";
@@ -948,7 +948,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.50.3";
+  const VERSION = "1.50.2";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -1064,6 +1064,8 @@
         +   '<button class="perso-th" data-th="light-a">☀️ Clair accessible</button>'
         + '</div>'
         + '<p class="perso-hint">Les thèmes accessibles remplacent le rouge et le jaune par du bleu et de l\'orange, distinguables en cas de daltonisme.</p>'
+        + '<p class="perso-t">Sons</p>'
+        + '<div class="perso-themes"><button class="perso-th" id="sonBtn"></button></div>'
         + '<p class="perso-t">Notifications</p>'
         + '<div class="perso-themes"><button class="perso-th" id="notifBtn"></button></div>'
         + '<p class="perso-hint" id="notifHint"></p>'
@@ -1077,6 +1079,12 @@
       box.querySelectorAll(".perso-sw").forEach(b=>b.addEventListener("click", ()=>{
         accent = b.dataset.accent; store.set("motus.accent",accent); applyAccent(); markPersonalizeSel();
       }));
+      const sb = box.querySelector("#sonBtn");
+      if(sb) sb.addEventListener("click", ()=>{
+        sonActif = !sonActif; store.set("motus.son", sonActif);
+        sonPaint();
+        if(sonActif) son("correct");   // un aperçu immédiat, sinon on doute
+      });
       const nb = box.querySelector("#notifBtn");
       if(nb) nb.addEventListener("click", ()=>{
         if(notifState()==="on"){ notifDisable(); notifPaint(); }
@@ -1085,6 +1093,11 @@
       box.dataset.built="1";
     }
     markPersonalizeSel();
+  }
+  function sonPaint(){
+    const b=$("sonBtn"); if(!b) return;
+    b.textContent = sonActif ? "🔊 Sons activés" : "🔇 Sons coupés";
+    b.classList.toggle("on", sonActif);
   }
   function notifPaint(){
     const b=$("notifBtn"), h=$("notifHint"); if(!b) return;
@@ -1101,7 +1114,7 @@
       : "Te prévient quand ta défense est attaquée ou quand le mot du jour t'attend — seulement si le jeu n'est pas au premier plan.";
   }
   function markPersonalizeSel(){
-    notifPaint();
+    sonPaint(); notifPaint();
     document.querySelectorAll(".perso-th").forEach(b=>b.classList.toggle("on", b.dataset.th===theme));
     document.querySelectorAll(".perso-sw").forEach(b=>b.classList.toggle("on", b.dataset.accent===accent));
   }
@@ -1223,8 +1236,11 @@
     moveCursor(c);
   });
   function setCell(r,c,ch){
+    const avant = grid[r][c];
     grid[r][c]=ch; const t=tileAt(r,c); t.querySelector("span").textContent=ch;
     t.classList.toggle("filled", !!ch);
+    if(ch && !avant) son("touche");
+    else if(!ch && avant) son("efface");
     duelSendLive();
   }
 
@@ -1361,7 +1377,7 @@
         // en mode thème on explique clairement POURQUOI c'est refusé
         toast(`« ${guess} » n'est pas dans la liste<br><small>${REJECT_HINT[mode]}</small>`, 2800);
       } else {
-        toast("Mot inconnu");
+        toast("Mot inconnu"); son("refuse");
       }
       return;
     }
@@ -1372,7 +1388,11 @@
     if(mode==="duel" && duelCode && window.Duel && Duel.moves) Duel.moves(duelCode, guesses);
     for(let c=0;c<len;c++){
       const t=tileAt(row,c);
-      setTimeout(()=>{ t.classList.add("reveal"); setTimeout(()=>{ t.classList.remove("filled"); t.classList.add(states[c]); paintKey(guess[c],states[c]); }, 250); }, c*180);
+      setTimeout(()=>{ t.classList.add("reveal"); setTimeout(()=>{
+        t.classList.remove("filled"); t.classList.add(states[c]); paintKey(guess[c],states[c]);
+        // une note par lettre : la ligne se révèle en petite mélodie
+        son(states[c]==="correct" ? "correct" : states[c]==="present" ? "present" : "absent", c);
+      }, 250); }, c*180);
     }
     setTimeout(()=>finishRow(guess===answer), (len-1)*180+520);
   }
@@ -1422,13 +1442,13 @@
     rowStates.push(Array(len).fill("burn"));
     for(let c=0;c<len;c++){ const t=tileAt(row,c); t.classList.remove("filled"); t.classList.add("burn"); }
     toast("« "+word+" » n'existe pas — tentative perdue", 2600);
-    vibrate([40,60,40]);
+    vibrate([40,60,40]); son("refuse");
     setTimeout(()=>finishRow(false), 620);
   }
 
   function finishRow(win){
     if(win){
-      over=true; ended=true; won=true; timerStop(); vibrate([12,40,12]);
+      over=true; ended=true; won=true; timerStop(); vibrate([12,40,12]); son("gagne");
       for(let c=0;c<len;c++) setTimeout(()=>tileAt(row,c).classList.add("jump"), c*70);
       recordResult(true, guesses.length); awardXp(true);
       if(mode==="defense"){ defFinish(true); setTimeout(()=>showEnd(true), 720); return; }
@@ -2038,6 +2058,69 @@
       });
     });
   }
+
+  /* ---------------------------------------------------------------
+     SONS
+     Entièrement SYNTHÉTISÉS : aucun fichier audio, donc aucun poids
+     ajouté, aucun temps de chargement, aucune question de licence — un
+     point qui compte pour une publication sur les magasins.
+
+     Deux contraintes de navigateur respectées ici :
+       • le son ne peut démarrer qu'après un geste du joueur ;
+       • un contexte audio suspendu doit être réveillé, sinon tout est
+         muet en silence, sans erreur.
+     --------------------------------------------------------------- */
+  let sonActif = store.get("motus.son", true);
+  let ctxAudio = null;
+
+  function audioPret(){
+    if(!sonActif) return null;
+    try{
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if(!AC) return null;
+      if(!ctxAudio) ctxAudio = new AC();
+      if(ctxAudio.state === "suspended") ctxAudio.resume();
+      return ctxAudio;
+    }catch(e){ return null; }
+  }
+
+  /* Une note courte. `type` façonne le timbre, l'enveloppe évite le clic
+     désagréable d'un son qui démarre ou s'arrête net. */
+  function note(freq, duree, volume, type, retard){
+    const ctx = audioPret(); if(!ctx) return;
+    const t0 = ctx.currentTime + (retard || 0);
+    const osc = ctx.createOscillator(), gain = ctx.createGain();
+    osc.type = type || "sine";
+    osc.frequency.setValueAtTime(freq, t0);
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.exponentialRampToValueAtTime(volume, t0 + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duree);
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start(t0); osc.stop(t0 + duree + 0.02);
+  }
+  function suite(notes, volume, type){
+    notes.forEach((f, i) => note(f, 0.16, volume || 0.12, type || "triangle", i * 0.085));
+  }
+
+  /* Palette : discrète par nature — on tape des mots, pas sur un flipper. */
+  const SONS = {
+    touche:   ()=> note(320, 0.035, 0.035, "square"),
+    efface:   ()=> note(200, 0.045, 0.035, "square"),
+    correct:  (i)=> note(523 + (i||0)*70, 0.13, 0.10, "triangle"),
+    present:  (i)=> note(392 + (i||0)*40, 0.13, 0.075, "triangle"),
+    absent:   ()=> note(150, 0.10, 0.05, "sine"),
+    gagne:    ()=> suite([523, 659, 784, 1047], 0.13),
+    perdu:    ()=> suite([392, 330, 262], 0.11, "sine"),
+    refuse:   ()=> { note(180, 0.09, 0.07, "sawtooth"); note(150, 0.09, 0.06, "sawtooth", 0.06); },
+    indice:   ()=> suite([784, 1047], 0.10),
+    badge:    ()=> suite([523, 659, 784, 1047, 1319], 0.12),
+    niveau:   ()=> suite([440, 554, 659, 880], 0.13)
+  };
+  function son(nom, i){
+    if(!sonActif) return;
+    try{ const f = SONS[nom]; if(f) f(i); }catch(e){}
+  }
+  window.motusSon = son;      // pour profile.js (badges, montées de niveau)
 
   /* ---------------------------------------------------------------
      MESURE D'AUDIENCE
@@ -3445,7 +3528,7 @@
       const missing = penduAnswer.split("").filter((c,i,arr)=>arr.indexOf(c)===i && penduGuessed.indexOf(c)<0);
       if(!missing.length) return;
       const letter = missing[Math.floor(Math.random()*missing.length)];
-      hintsThisGame++; hintSpendOne();
+      hintsThisGame++; hintSpendOne(); son("indice");
       penduGuessed.push(letter); paintKey(letter,"correct"); penduRender();
       refreshHintUI(); vibrate([15]);
       toast("💡 Lettre révélée : " + letter);
@@ -3858,6 +3941,7 @@
 
   let endAgainMode = "normal";
   function showEnd(win, isDaily){
+    if(!win) son("perdu");
     refreshStats();
     const daily = isDaily || mode==="daily";
     $("endTitle").textContent = win ? "Bravo !" : "Dommage…";
