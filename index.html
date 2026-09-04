@@ -266,6 +266,7 @@
   .tour-dot.on{ background:var(--accent); width:20px; border-radius:4px; }
   #tourBody{ min-height:190px; }
   #tourBody h2{ margin-bottom:8px; }
+  .mention{ font-size:11px; color:var(--ink-dim); text-align:center; line-height:1.5; margin-top:14px; }
   .perso-hint{ font-size:11.5px; color:var(--ink-dim); line-height:1.45; margin:-4px 0 10px; }
   .perso-th{ flex:1 1 auto; min-width:calc(50% - 6px); padding:9px 8px; border:none; border-radius:10px;
     background:var(--cell); color:var(--ink); font-size:13px; font-weight:800; cursor:pointer;
@@ -622,13 +623,15 @@
       <button class="close-x" data-close>&times;</button>
       <h2>Mot en Six</h2>
       <p class="sub">Version <b id="appVersion"></b></p>
-      <p style="text-align:center">Un jeu de mots à la Mot en Six, jouable hors-ligne.<br>Installe-le depuis ton navigateur pour l'avoir en application.</p>
+      <p style="text-align:center">Trouve le mot caché en six essais.<br>Installe-le depuis ton navigateur pour l'avoir en application.</p>
       <div class="dist-title">Contenu</div>
       <p style="text-align:center;margin-bottom:6px" id="aboutCounts"></p>
       <div class="dist-title">Nouveautés</div>
       <p style="text-align:center;font-size:13px;color:var(--ink-dim)">Mot en Six Quête · Le Pendu · indices &amp; abandon · Course en solo</p>
       <button class="btn" id="btnRulesFromAbout">📖 Règles du jeu</button>
       <button class="btn ghost" data-close>Fermer</button>
+      <p class="mention">© Killian Journeau — tous droits réservés.<br>
+        Contenus et dictionnaires protégés. Jouer et partager le lien est libre.</p>
     </div>
   </div>
 
@@ -989,7 +992,10 @@
   const DUEL_LIMIT = 5*60*1000;                  // 5 minutes pour le duel
   const AZERTY = ["AZERTYUIOP","QSDFGHJKLM","WXCVBN"];
   const DASH = "-";   // le tiret compte comme une lettre (prénoms composés)
-  const SHARE_URL = "https://killianjourneau.github.io/Motus/";
+  /* Déduite de l'adresse réelle : un changement d'hébergement ou de nom de
+     domaine n'oblige plus à retoucher le code, et les liens partagés pointent
+     toujours vers l'endroit d'où le joueur vient. */
+  const SHARE_URL = location.origin + location.pathname.replace(/[^/]*$/, "");
   const EPOCH = Math.floor(Date.UTC(2025,0,1)/86400000);
 
   /* ---------- Persistance protégée ---------- */

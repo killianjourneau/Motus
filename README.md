@@ -65,6 +65,26 @@ insert into app_admins(player_id) values ('<votre-uuid-de-profil>');
 L'identifiant se lit dans la console du navigateur :
 `JSON.parse(localStorage.getItem('motus.profile')).id`
 
+## Mesure d'audience
+
+Le tableau de bord est accessible depuis le profil, **uniquement pour un
+administrateur** (voir « Se déclarer modérateur »).
+
+Ce qui est enregistré : des **compteurs par jour**, rien d'autre. Pas
+d'identifiant, pas d'adresse IP, pas d'horodatage précis, aucun événement
+individuel — donc rien qui permette de suivre une personne. L'unicité
+quotidienne est calculée dans le navigateur : le jeu n'envoie « visite »
+qu'une fois par jour, ce qui permet de compter des visiteurs uniques sans
+jamais transmettre qui les envoie.
+
+Volume : une trentaine de lignes par jour, négligeable même sur une offre
+gratuite.
+
+> Cette approche — mesure interne, strictement anonyme, sans traceur tiers —
+> se rapproche des conditions d'exemption de consentement de la CNIL, ce qui
+> éviterait un bandeau cookies. À faire confirmer par un juriste avant toute
+> exploitation commerciale.
+
 ## Mettre à jour
 
 Trois valeurs doivent rester alignées, sinon les navigateurs continuent de servir
@@ -119,3 +139,13 @@ valider** : un test le vérifie.
 
 Pour les thèmes, un mot n'est tirable que s'il possède une notice. Sans elle, il
 reste acceptable à la saisie mais ne sortira jamais comme réponse.
+
+---
+
+## Licence
+
+© Killian Journeau. **Tous droits réservés** — voir [`LICENCE.md`](LICENCE.md).
+
+Ce projet n'est pas un logiciel libre. Le code, les 2 500 notices rédigées, les
+textes de l'aventure et la constitution des bases de données sont protégés.
+Jouer et partager le lien est libre ; réutiliser le contenu ne l'est pas.
