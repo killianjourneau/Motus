@@ -1,0 +1,11 @@
+# Mot en Six — jeu de mots en français
+User-agent: *
+Allow: /
+
+# Inutile d'explorer les dictionnaires : des centaines de milliers de mots
+# bruts qui n'apportent rien aux résultats de recherche et gaspillent le
+# budget d'exploration.
+Disallow: /dico/
+Disallow: /duel/
+
+Sitemap: https://killianjourneau.github.io/Motus/sitemap.xml

@@ -6,6 +6,40 @@
 <meta name="description" content="Mot en Six — le jeu de mots. Devinez le mot caché en 6 essais.">
 <title>Mot en Six</title>
 
+<!-- Aperçu affiché quand un joueur partage le lien (WhatsApp, Messenger,
+     Facebook, Discord, Twitter…). Sans ces balises, le lien apparaît nu :
+     un partage sans image reçoit bien moins de clics. -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Mot en Six">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:title" content="Mot en Six — trouve le mot caché en 6 essais">
+<meta property="og:description" content="Un mot par jour, des duels, quatre thèmes et une aventure solo. Gratuit, sans publicité, jouable hors-ligne.">
+<meta property="og:url" content="https://killianjourneau.github.io/Motus/">
+<meta property="og:image" content="https://killianjourneau.github.io/Motus/icons/apercu.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Mot en Six — trouve le mot caché en 6 essais">
+<meta name="twitter:description" content="Un mot par jour, des duels, quatre thèmes et une aventure solo.">
+<meta name="twitter:image" content="https://killianjourneau.github.io/Motus/icons/apercu.png">
+<link rel="canonical" href="https://killianjourneau.github.io/Motus/">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "VideoGame",
+  "name": "Mot en Six",
+  "alternateName": "MOTENSIX",
+  "description": "Jeu de mots en français : trouver le mot caché en six essais. Mot du jour, duels en ligne, quatre thèmes documentés, aventure solo et mode enfant.",
+  "url": "https://killianjourneau.github.io/Motus/",
+  "image": "https://killianjourneau.github.io/Motus/icons/apercu.png",
+  "inLanguage": "fr",
+  "genre": ["Jeu de mots", "Puzzle"],
+  "playMode": ["SinglePlayer", "MultiPlayer"],
+  "applicationCategory": "GameApplication",
+  "operatingSystem": "Tout navigateur web",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" }
+}
+</script>
 <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#071633">
 <meta name="mobile-web-app-capable" content="yes">
@@ -882,21 +916,21 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.51.1"></script>
-<script src="./dico/motus-prenoms.js?v=1.51.1"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.51.1"></script>
-<script src="./dico/motus-maladies.js?v=1.51.1"></script>
-<script src="./dico/motus-maladies-info.js?v=1.51.1"></script>
-<script src="./dico/motus-villes.js?v=1.51.1"></script>
-<script src="./dico/motus-villes-info.js?v=1.51.1"></script>
-<script src="./dico/motus-persos.js?v=1.51.1"></script>
-<script src="./dico/motus-persos-info.js?v=1.51.1"></script>
-<script src="./dico/motus-persos-split.js?v=1.51.1"></script>
-<script src="./dico/motus-race.js?v=1.51.1"></script>
-<script src="./dico/motus-expert.js?v=1.51.1"></script>
-<script src="./profiles/config.js?v=1.51.1"></script>
-<script src="./profiles/profile.js?v=1.51.1"></script>
-<script src="./duel/duel.js?v=1.51.1"></script>
+<script src="./dico/motus-words.js?v=1.50.2"></script>
+<script src="./dico/motus-prenoms.js?v=1.50.2"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.50.2"></script>
+<script src="./dico/motus-maladies.js?v=1.50.2"></script>
+<script src="./dico/motus-maladies-info.js?v=1.50.2"></script>
+<script src="./dico/motus-villes.js?v=1.50.2"></script>
+<script src="./dico/motus-villes-info.js?v=1.50.2"></script>
+<script src="./dico/motus-persos.js?v=1.50.2"></script>
+<script src="./dico/motus-persos-info.js?v=1.50.2"></script>
+<script src="./dico/motus-persos-split.js?v=1.50.2"></script>
+<script src="./dico/motus-race.js?v=1.50.2"></script>
+<script src="./dico/motus-expert.js?v=1.50.2"></script>
+<script src="./profiles/config.js?v=1.50.2"></script>
+<script src="./profiles/profile.js?v=1.50.2"></script>
+<script src="./duel/duel.js?v=1.50.2"></script>
 <script>
 (() => {
   "use strict";
@@ -948,7 +982,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.51.1";
+  const VERSION = "1.50.2";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
