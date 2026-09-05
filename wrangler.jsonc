@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+
+  "name": "motensix",
+  "compatibility_date": "2026-09-01",
+
+  // Site entièrement statique : aucun code serveur, Cloudflare se contente
+  // de servir les fichiers. C'est ce que faisait Cloudflare Pages, désormais
+  // fusionné dans Workers.
+  "assets": {
+    "directory": "./",
+    // une adresse inconnue renvoie une vraie erreur 404, plutôt que de
+    // servir le jeu sous n'importe quelle adresse (mauvais pour le
+    // référencement)
+    "not_found_handling": "none"
+  }
+}
