@@ -1,0 +1,24 @@
+# Ce qui NE doit PAS être publié en ligne.
+# Même rôle que les exclusions de l'ancien workflow de publication : les
+# joueurs reçoivent le jeu, rien d'autre.
+
+.git
+.github
+node_modules
+tests
+scripts
+package.json
+package-lock.json
+wrangler.jsonc
+.assetsignore
+
+# Documentation interne : sans intérêt pour un joueur, et inutile de
+# publier la procédure de déploiement.
+DEPLOIEMENT.md
+DEPOT-PRIVE.md
+README.md
+
+# Le schéma de base de données s'exécute dans Supabase, jamais servi au
+# navigateur — et il décrit toute la structure du serveur.
+duel/schema.sql
+/duel/schema.sql
