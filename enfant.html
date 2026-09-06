@@ -230,7 +230,7 @@
     </div>
   </div>
 
-<script src="./dico/motus-enfant.js?v=1.50.3"></script>
+<script src="./dico/motus-enfant.js?v=1.50.2"></script>
 <script>
 (function(){
   "use strict";
@@ -248,8 +248,11 @@
 
   var game   = store.get("motus.enfant.game","intrus");   // sans lecture par défaut : jouable dès 5 ans
   var level  = store.get("motus.enfant.level","facile");
-  var best   = store.get("motus.enfant.best.time",{}) || {};   // record en TEMPS (ms), remplace l'ancien système par étoiles
-  var runStart = 0;
+  /* Record en NOMBRE DE COUPS. Plus lisible qu'un chrono pour un enfant :
+     on compte ce qu'on fait, pas la vitesse à laquelle on le fait — et ça
+     n'encourage pas à se précipiter. */
+  var best   = store.get("motus.enfant.best.coups",{}) || {};
+  var coups  = 0;
   var lives = LIVES, stars = 0, locked = false;
   var target = null, choices = [];        // lettres / intrus
   var countN = 0;                          // comptage
@@ -290,15 +293,18 @@
   }
   function bestKey(){ return game + ":" + level; }
   function bestVal(){ return best[bestKey()] || 0; }
-  function isCompletionGame(){ return game==="memo"; }   // record = temps le plus COURT (fini le tableau) ; les autres = temps le plus LONG (survie)
-  function fmtTime(ms){
-    var s = Math.max(0, Math.round(ms/1000));
-    var m = Math.floor(s/60), r = s%60;
-    return m>0 ? (m+"min "+(r<10?"0":"")+r+"s") : (s+"s");
+  /* Mémoire : on retourne des cartes jusqu'à finir — le record est le
+     NOMBRE MINIMUM de retournements. Les trois autres se jouent à trois vies
+     jusqu'à l'erreur de trop — le record est le NOMBRE MAXIMUM de bonnes
+     réponses. */
+  function isCompletionGame(){ return game==="memo"; }
+  function fmtCoups(n){
+    if(game==="memo") return n + (n>1 ? " retournements" : " retournement");
+    return n + (n>1 ? " bonnes réponses" : " bonne réponse");
   }
   function paintRecord(){
     var b = bestVal();
-    $("record").textContent = b>0 ? "🏆 "+fmtTime(b) : "🏆 —";
+    $("record").textContent = b>0 ? "🏆 "+fmtCoups(b) : "🏆 —";
   }
 
   /* =======================================================
@@ -493,7 +499,10 @@
       return '<button class="card" data-i="'+i+'" aria-label="Carte '+(i+1)+'">'+c.e+'</button>';
     }).join("");
     Array.prototype.forEach.call(box.querySelectorAll(".card"), function(b){
-      b.addEventListener("click", function(){ flip(+b.dataset.i, b); });
+      b.addEventListener("click", function(){
+        if(!locked && !b.classList.contains("up") && !b.classList.contains("done")) coups++;
+        flip(+b.dataset.i, b);
+      });
     });
     $("ask").innerHTML = "Retrouve les <b>paires</b> identiques";
   }
@@ -585,7 +594,7 @@
      Déroulement commun
      ======================================================= */
   function win(msg){
-    stars++; paintScore(); vibrate([12,40,12]);
+    stars++; coups++; paintScore(); vibrate([12,40,12]);
     $("ask").innerHTML = msg;
     setTimeout(newRound, 1400);
   }
@@ -611,17 +620,18 @@
   }
 
   function endRun(missed, title){
-    var elapsed = Date.now() - runStart;
     var completed = isCompletionGame();
     var b = bestVal();
-    var record = completed ? (b===0 || elapsed<b) : (elapsed>b);
-    if(record){ best[bestKey()] = elapsed; store.set("motus.enfant.best.time", best); b = elapsed; }
+    /* Mémoire : le record tombe quand on utilise MOINS de retournements.
+       Ailleurs : quand on donne PLUS de bonnes réponses. */
+    var record = coups > 0 && (completed ? (b === 0 || coups < b) : (coups > b));
+    if(record){ best[bestKey()] = coups; store.set("motus.enfant.best.coups", best); b = coups; }
     $("endTitle").textContent = title || (stars>0 ? "Bien joué !" : "On réessaie ?");
-    $("endStars").textContent = fmtTime(elapsed);
+    $("endStars").textContent = fmtCoups(coups);
     $("endSub").textContent = record
-      ? "Nouveau record : "+fmtTime(elapsed)+" ! (⭐ "+stars+")"
-      : (completed ? "Ton record : "+fmtTime(b)+" (⭐ "+stars+")"
-                   : "Tu as tenu "+fmtTime(elapsed)+" — ton record : "+fmtTime(b)+" (⭐ "+stars+")");
+      ? "Nouveau record ! 🏆"
+      : (b > 0 ? "Ton record : " + fmtCoups(b)
+               : "Rejoue pour battre ton record !");
     var ew = $("endWord");
     if(missed){ ew.innerHTML = 'C\'était <b>'+missed.m+'</b> '+missed.e; ew.style.display="block"; }
     else { ew.style.display="none"; }
@@ -629,7 +639,7 @@
   }
   function startRun(){
     $("endOverlay").classList.remove("open");
-    lives = LIVES; stars = 0; locked = false; runStart = Date.now();
+    lives = LIVES; stars = 0; coups = 0; locked = false;
     paintScore(); newRound();
   }
 

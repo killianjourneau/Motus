@@ -919,21 +919,21 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.50.3"></script>
-<script src="./dico/motus-prenoms.js?v=1.50.3"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.50.3"></script>
-<script src="./dico/motus-maladies.js?v=1.50.3"></script>
-<script src="./dico/motus-maladies-info.js?v=1.50.3"></script>
-<script src="./dico/motus-villes.js?v=1.50.3"></script>
-<script src="./dico/motus-villes-info.js?v=1.50.3"></script>
-<script src="./dico/motus-persos.js?v=1.50.3"></script>
-<script src="./dico/motus-persos-info.js?v=1.50.3"></script>
-<script src="./dico/motus-persos-split.js?v=1.50.3"></script>
-<script src="./dico/motus-race.js?v=1.50.3"></script>
-<script src="./dico/motus-expert.js?v=1.50.3"></script>
-<script src="./profiles/config.js?v=1.50.3"></script>
-<script src="./profiles/profile.js?v=1.50.3"></script>
-<script src="./duel/duel.js?v=1.50.3"></script>
+<script src="./dico/motus-words.js?v=1.50.2"></script>
+<script src="./dico/motus-prenoms.js?v=1.50.2"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.50.2"></script>
+<script src="./dico/motus-maladies.js?v=1.50.2"></script>
+<script src="./dico/motus-maladies-info.js?v=1.50.2"></script>
+<script src="./dico/motus-villes.js?v=1.50.2"></script>
+<script src="./dico/motus-villes-info.js?v=1.50.2"></script>
+<script src="./dico/motus-persos.js?v=1.50.2"></script>
+<script src="./dico/motus-persos-info.js?v=1.50.2"></script>
+<script src="./dico/motus-persos-split.js?v=1.50.2"></script>
+<script src="./dico/motus-race.js?v=1.50.2"></script>
+<script src="./dico/motus-expert.js?v=1.50.2"></script>
+<script src="./profiles/config.js?v=1.50.2"></script>
+<script src="./profiles/profile.js?v=1.50.2"></script>
+<script src="./duel/duel.js?v=1.50.2"></script>
 <script>
 (() => {
   "use strict";
@@ -985,7 +985,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.50.3";
+  const VERSION = "1.50.2";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -3948,12 +3948,16 @@
     if(mode==="defi"){
       const total = defiTimes.reduce((a,b)=>a+b,0);
       const line = defiTries.map(t => t>0 ? t+"/6" : "X").join(" · ");
-      return `Mot en Six — Défi du jour #${defiNum}\n${defiFailed?"":"✅ "}${line} en ${fmtTime(total)} / 15:00\n${SHARE_URL}`;
+      return `Mot en Six — Défi du jour #${defiNum}\n${defiFailed?"":"✅ "}${line} en ${fmtTime(total)} / 15:00\n`
+           + `3 mots, 15 minutes. Tu fais mieux ?\n${SHARE_URL}`;
     }
     const tries = won ? guesses.length : "X";
     const grid = rowStates.map(st => st.map(s => s==="correct"?"🟥":s==="present"?"🟡":"⬛").join("")).join("\n");
     const t = timerValue();
-    return `Mot en Six #${dailyNum} — ${tries}/6 en ${fmtTime(t)}\n${grid}\n${SHARE_URL}`;
+    /* La grille seule parle aux joueurs habitués — mais pas à quelqu'un qui
+       découvre. Une ligne suffit à transformer un partage en invitation. */
+    return `Mot en Six #${dailyNum} — ${tries}/6 en ${fmtTime(t)}\n${grid}\n`
+         + `Le mot du jour, en 6 essais. À toi :\n${SHARE_URL}`;
   }
   function share(){
     const text=shareText();
