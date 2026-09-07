@@ -83,6 +83,14 @@
     box-shadow:inset 0 0 0 1.5px var(--cell-edge); font-weight:800; font-size:12.5px; cursor:pointer; }
   .lv.on{ background:var(--accent); color:#fff; box-shadow:none; }
   .score{ display:flex; align-items:center; gap:10px; font-weight:800; font-size:15px; }
+  .score.duo{ justify-content:center; gap:14px; }
+  .joueur{ display:flex; align-items:center; gap:5px; padding:6px 11px; border-radius:12px;
+    background:var(--cell); font-weight:800; font-size:14px; opacity:.45; transition:.2s; }
+  .joueur.actif{ opacity:1; box-shadow:inset 0 0 0 2.5px var(--accent); transform:scale(1.05); }
+  .joueur .av{ font-size:19px; }
+  .joueur .pts{ font-variant-numeric:tabular-nums; }
+  .joueur .vies{ font-size:10px; letter-spacing:-1px; }
+  .joueur.fini{ opacity:.3; text-decoration:line-through; }
   .record{ font-size:12.5px; color:var(--ink-dim); font-weight:700; }
   .score .hearts{ letter-spacing:1px; }
   .score .hearts.hide{ display:none; }
@@ -187,10 +195,18 @@
       <button class="lv" data-lv="moyen">Moyen</button>
       <button class="lv" data-lv="expert">Grand</button>
     </div>
-    <div class="score">
+    <div class="levels" id="joueursBox">
+      <button class="lv on" data-nb="1">👤 Seul</button>
+      <button class="lv" data-nb="2">👥 À deux</button>
+    </div>
+    <div class="score" id="scoreSolo">
       <span class="hearts" id="hearts">❤️❤️❤️</span>
       <span id="stars">⭐ 0</span>
       <span id="record" class="record">🏆 —</span>
+    </div>
+    <div class="score duo" id="scoreDuo" style="display:none">
+      <span class="joueur" id="j0"></span>
+      <span class="joueur" id="j1"></span>
     </div>
   </div>
 
@@ -230,7 +246,7 @@
     </div>
   </div>
 
-<script src="./dico/motus-enfant.js?v=1.50.3"></script>
+<script src="./dico/motus-enfant.js?v=1.50.2"></script>
 <script>
 (function(){
   "use strict";
@@ -253,6 +269,25 @@
      n'encourage pas à se précipiter. */
   var best   = store.get("motus.enfant.best.coups",{}) || {};
   var coups  = 0;
+
+  /* ---- Mode à deux, sur le même écran ----
+     Chacun joue à son tour. Un écran partagé rendrait les images minuscules
+     sur un téléphone ; l'alternance est aussi la façon dont les enfants
+     jouent naturellement à un jeu de société. */
+  var AVATARS = ["🐰", "🦊"];
+  var joueurs = store.get("motus.enfant.joueurs", 1);
+  var tour = 0;
+  var pts  = [0, 0];
+  var vies = [LIVES, LIVES];
+  function duo(){ return joueurs === 2; }
+  function elimine(i){ return vies[i] <= 0; }
+  function finDuo(){ return elimine(0) && elimine(1); }
+
+  /* Passe au joueur suivant, en sautant celui qui n'a plus de vies. */
+  function joueurSuivant(){
+    if(!duo() || finDuo()) return;
+    do { tour = 1 - tour; } while(elimine(tour));
+  }
   var lives = LIVES, stars = 0, locked = false;
   var target = null, choices = [];        // lettres / intrus
   var countN = 0;                          // comptage
@@ -285,12 +320,26 @@
   function hide(){ ["word","countBox","choices","nums","memo"].forEach(function(id){ $(id).style.display="none"; $(id).innerHTML=""; }); }
 
   function paintScore(){
+    $("scoreSolo").style.display = duo() ? "none" : "";
+    $("scoreDuo").style.display  = duo() ? "" : "none";
+    if(duo()){ paintDuo(); return; }
     var h=$("hearts");
     h.classList.toggle("hide", game==="memo");        // en mémoire, se tromper ne coûte rien
     h.textContent = "❤️".repeat(Math.max(0,lives)) + "🖤".repeat(Math.max(0,LIVES-lives));
     $("stars").textContent = "⭐ " + stars;
     paintRecord();
   }
+  function paintDuo(){
+    for(var i=0;i<2;i++){
+      var e=$("j"+i); if(!e) continue;
+      var coeurs = (game==="memo") ? ""
+        : '<span class="vies">' + "❤️".repeat(Math.max(0,vies[i])) + "🖤".repeat(Math.max(0,LIVES-vies[i])) + '</span>';
+      e.innerHTML = '<span class="av">'+AVATARS[i]+'</span><span class="pts">'+pts[i]+'</span>'+coeurs;
+      e.className = "joueur" + (i===tour && !finDuo() ? " actif" : "") + (elimine(i) && game!=="memo" ? " fini" : "");
+    }
+  }
+  /* Rappel visuel de qui joue, ajouté devant la consigne. */
+  function prefixeTour(){ return duo() ? '<span class="av">'+AVATARS[tour]+'</span> ' : ""; }
   function bestKey(){ return game + ":" + level; }
   function bestVal(){ return best[bestKey()] || 0; }
   /* Mémoire : on retourne des cartes jusqu'à finir — le record est le
@@ -343,7 +392,7 @@
     Array.prototype.forEach.call(box.querySelectorAll(".ch"), function(b){
       b.addEventListener("click", function(){ answerIntrus(+b.dataset.i, b); });
     });
-    $("ask").innerHTML = "Touche celui qui n'est <b>pas comme les autres</b>";
+    $("ask").innerHTML = prefixeTour() + "Touche celui qui n'est <b>pas comme les autres</b>";
   }
   function answerIntrus(i, btn){
     if(locked) return;
@@ -441,7 +490,7 @@
       box.innerHTML = w1.split("").map(function(c){ return '<span>'+c+'</span>'; }).join("")
         + '<span class="sep">+</span>'
         + w2.split("").map(function(c){ return '<span>'+c+'</span>'; }).join("");
-      $("ask").innerHTML = 'Combien de fois la lettre <b>'+pickW.letter+'</b> apparaît dans <b>ces deux mots</b> ?';
+      $("ask").innerHTML = prefixeTour() + 'Combien de fois la lettre <b>'+pickW.letter+'</b> apparaît dans <b>ces deux mots</b> ?';
     } else if(level==="expert"){
       // compter une lettre dans une phrase
       var ph = pickPhraseForCount();
@@ -449,7 +498,7 @@
       countN = pickP.n;
       box.classList.add("txt","phrase");
       box.textContent = ph;
-      $("ask").innerHTML = 'Combien de fois la lettre <b>'+pickP.letter+'</b> apparaît dans cette phrase ?';
+      $("ask").innerHTML = prefixeTour() + 'Combien de fois la lettre <b>'+pickP.letter+'</b> apparaît dans cette phrase ?';
     } else {
       // facile : compter une image précise au milieu d'autres (0 possible, rare)
       countN = (Math.random() < 0.08) ? 0 : 1 + Math.floor(Math.random()*9);
@@ -461,7 +510,7 @@
       for(var j=0;j<bruit;j++) cells.push(pick(autres).e);
       shuffle(cells);
       box.innerHTML = cells.map(function(e){ return '<span>'+e+'</span>'; }).join("");
-      $("ask").innerHTML = 'Combien y a-t-il de <b>' + cible.e + '</b> ?';
+      $("ask").innerHTML = prefixeTour() + 'Combien y a-t-il de <b>' + cible.e + '</b> ?';
     }
 
     var nums = $("nums"); nums.style.display="flex";
@@ -504,7 +553,7 @@
         flip(+b.dataset.i, b);
       });
     });
-    $("ask").innerHTML = "Retrouve les <b>paires</b> identiques";
+    $("ask").innerHTML = prefixeTour() + "Retrouve les <b>paires</b> identiques";
   }
   function flip(i, btn){
     if(locked || btn.classList.contains("up") || btn.classList.contains("done")) return;
@@ -517,8 +566,11 @@
       setTimeout(function(){
         a.el.classList.add("done"); b.el.classList.add("done");
         memoUp = []; memoDone++; locked = false;
-        stars++; paintScore(); vibrate([10]);
-        $("ask").innerHTML = "Bravo ! Une paire de <b>" + memo[a.i].m + "</b>";
+        // règle classique du memory : trouver une paire donne le droit de rejouer
+        if(duo()) pts[tour]++; else stars++;
+        paintScore(); vibrate([10]);
+        $("ask").innerHTML = prefixeTour() + "Bravo ! Une paire de <b>" + memo[a.i].m + "</b>"
+          + (duo() ? " — rejoue !" : "");
         if(memoDone * 2 === memo.length){
           locked = true;
           setTimeout(function(){ endRun(null, "Tableau terminé !"); }, 900);
@@ -529,7 +581,13 @@
       setTimeout(function(){
         a.el.classList.remove("up"); b.el.classList.remove("up");
         memoUp = []; locked = false;
-        $("ask").innerHTML = "Pas pareil — essaie encore !";
+        // paire ratée : la main passe à l'autre joueur
+        if(duo()){
+          tour = 1 - tour; paintScore();
+          $("ask").innerHTML = "Pas pareil — au tour de " + AVATARS[tour] + " !";
+        } else {
+          $("ask").innerHTML = "Pas pareil — essaie encore !";
+        }
       }, 900);
     }
   }
@@ -572,7 +630,7 @@
     Array.prototype.forEach.call(box.querySelectorAll(".ch"), function(b){
       b.addEventListener("click", function(){ answerLettre(+b.dataset.i, b); });
     });
-    $("ask").innerHTML = 'Quel mot commence par <b>'+ini+'</b> ?';
+    $("ask").innerHTML = prefixeTour() + 'Quel mot commence par <b>'+ini+'</b> ?';
     drawWord(false);
   }
   function answerLettre(i, btn){
@@ -594,12 +652,35 @@
      Déroulement commun
      ======================================================= */
   function win(msg){
+    if(duo()){
+      pts[tour]++; paintScore(); vibrate([12,40,12]);
+      $("ask").innerHTML = msg;
+      joueurSuivant();
+      setTimeout(newRound, 1400);
+      return;
+    }
     stars++; coups++; paintScore(); vibrate([12,40,12]);
     $("ask").innerHTML = msg;
     setTimeout(newRound, 1400);
   }
   /* msg = explication de l'erreur ; last = ce qu'on révèle si c'était la dernière vie */
   function loseLife(msg, last){
+    if(duo()){
+      vies[tour]--; paintScore(); vibrate([30,60,30]);
+      shakeEl(game==="lettre" ? "word" : "choices");
+      // chacun a ses propres vies : la partie ne s'arrête que lorsque les
+      // deux sont éliminés, celui qui reste continue seul
+      if(finDuo()){
+        locked = true;
+        $("ask").innerHTML = msg + " " + last;
+        setTimeout(function(){ endRun(target); }, 1600);
+        return;
+      }
+      $("ask").innerHTML = elimine(tour) ? (msg + " " + AVATARS[tour] + " n'a plus de cœurs.") : msg;
+      joueurSuivant();
+      setTimeout(newRound, 1600);
+      return;
+    }
     lives--; paintScore(); vibrate([30,60,30]);
     shakeEl(game==="lettre" ? "word" : "choices");
     if(lives<=0){
@@ -620,6 +701,19 @@
   }
 
   function endRun(missed, title){
+    if(duo()){
+      var g = pts[0] > pts[1] ? 0 : (pts[1] > pts[0] ? 1 : -1);
+      $("endTitle").textContent = g < 0 ? "Égalité !" : "Bravo " + AVATARS[g] + " !";
+      $("endStars").innerHTML = AVATARS[0] + " " + pts[0] + "  &nbsp;·&nbsp;  " + AVATARS[1] + " " + pts[1];
+      $("endSub").textContent = g < 0
+        ? "Vous êtes à égalité — il faut rejouer pour se départager."
+        : AVATARS[g] + " gagne avec " + pts[g] + (pts[g] > 1 ? " points" : " point") + " !";
+      var ed = $("endWord");
+      if(missed){ ed.innerHTML = 'C\'était <b>'+missed.m+'</b> '+missed.e; ed.style.display="block"; }
+      else { ed.style.display="none"; }
+      $("endOverlay").classList.add("open");
+      return;    // les records restent réservés au jeu en solo
+    }
     var completed = isCompletionGame();
     var b = bestVal();
     /* Mémoire : le record tombe quand on utilise MOINS de retournements.
@@ -640,11 +734,12 @@
   function startRun(){
     $("endOverlay").classList.remove("open");
     lives = LIVES; stars = 0; coups = 0; locked = false;
+    tour = 0; pts = [0,0]; vies = [LIVES, LIVES];
     paintScore(); newRound();
   }
 
   /* ---------- changement de jeu ou de niveau ---------- */
-  function hasProgress(){ return stars>0 || lives<LIVES; }
+  function hasProgress(){ return duo() ? (pts[0]>0 || pts[1]>0 || vies[0]<LIVES || vies[1]<LIVES) : (stars>0 || lives<LIVES); }
   function askSwitch(apply){
     if(!hasProgress()){ apply(); return; }
     $("confirmOverlay").classList.add("open");
@@ -653,7 +748,10 @@
   }
   function paintPickers(){
     Array.prototype.forEach.call(document.querySelectorAll(".gm"), function(x){ x.classList.toggle("on", x.dataset.g===game); });
-    Array.prototype.forEach.call(document.querySelectorAll(".lv"), function(x){ x.classList.toggle("on", x.dataset.lv===level); });
+    // les boutons « à deux » partagent la classe .lv pour le style : on ne
+    // traite ici que ceux qui portent réellement un niveau
+    Array.prototype.forEach.call(document.querySelectorAll("[data-lv]"), function(x){ x.classList.toggle("on", x.dataset.lv===level); });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-nb]"), function(x){ x.classList.toggle("on", +x.dataset.nb===joueurs); });
   }
   Array.prototype.forEach.call(document.querySelectorAll(".gm"), function(b){
     b.addEventListener("click", function(){
@@ -664,11 +762,21 @@
       });
     });
   });
-  Array.prototype.forEach.call(document.querySelectorAll(".lv"), function(b){
+  Array.prototype.forEach.call(document.querySelectorAll("[data-lv]"), function(b){
     b.addEventListener("click", function(){
       if(b.dataset.lv === level) return;
       askSwitch(function(){
         level = b.dataset.lv; store.set("motus.enfant.level", level);
+        paintPickers(); startRun();
+      });
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-nb]"), function(b){
+    b.addEventListener("click", function(){
+      var n = +b.dataset.nb;
+      if(n === joueurs) return;
+      askSwitch(function(){
+        joueurs = n; store.set("motus.enfant.joueurs", joueurs);
         paintPickers(); startRun();
       });
     });
