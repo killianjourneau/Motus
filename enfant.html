@@ -83,6 +83,15 @@
     box-shadow:inset 0 0 0 1.5px var(--cell-edge); font-weight:800; font-size:12.5px; cursor:pointer; }
   .lv.on{ background:var(--accent); color:#fff; box-shadow:none; }
   .score{ display:flex; align-items:center; gap:10px; font-weight:800; font-size:15px; }
+  .reglages{ border:none; background:var(--cell); color:var(--ink); font-size:12.5px; font-weight:800;
+    padding:7px 12px; border-radius:11px; cursor:pointer; box-shadow:inset 0 0 0 1.5px var(--cell-edge);
+    white-space:nowrap; }
+  .reglages:active{ transform:scale(.96); }
+  .choix{ display:flex; gap:8px; margin-bottom:14px; }
+  .choix button{ flex:1; padding:14px 6px; border:none; border-radius:13px; background:var(--cell);
+    color:var(--ink); font-size:15px; font-weight:800; cursor:pointer;
+    box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
+  .choix button.on{ background:var(--red); color:#fff; box-shadow:none; }
   .score.duo{ justify-content:center; gap:14px; }
   .joueur{ display:flex; align-items:center; gap:5px; padding:6px 11px; border-radius:12px;
     background:var(--cell); font-weight:800; font-size:14px; opacity:.45; transition:.2s; }
@@ -190,15 +199,7 @@
   </div>
 
   <div class="bar">
-    <div class="levels">
-      <button class="lv on" data-lv="facile">Petit</button>
-      <button class="lv" data-lv="moyen">Moyen</button>
-      <button class="lv" data-lv="expert">Grand</button>
-    </div>
-    <div class="levels" id="joueursBox">
-      <button class="lv on" data-nb="1">👤 Seul</button>
-      <button class="lv" data-nb="2">👥 À deux</button>
-    </div>
+    <button class="reglages" id="btnReglages"></button>
     <div class="score" id="scoreSolo">
       <span class="hearts" id="hearts">❤️❤️❤️</span>
       <span id="stars">⭐ 0</span>
@@ -218,6 +219,27 @@
     <div class="nums" id="nums" style="display:none"></div>
     <div id="memo" style="display:none"></div>
   </main>
+
+  <!-- Réglages : ouverts au clic sur un jeu. Les sortir du bandeau libère
+       toute une rangée, qui débordait sur les téléphones étroits. -->
+  <div class="overlay" id="setupOverlay">
+    <div class="modal">
+      <h2 id="setupTitre"></h2>
+      <p class="sub">Quel niveau ?</p>
+      <div class="choix" id="setupNiveaux">
+        <button data-lv="facile">Petit</button>
+        <button data-lv="moyen">Moyen</button>
+        <button data-lv="expert">Grand</button>
+      </div>
+      <p class="sub">Combien de joueurs ?</p>
+      <div class="choix" id="setupJoueurs">
+        <button data-nb="1">👤 Seul</button>
+        <button data-nb="2">👥 À deux</button>
+      </div>
+      <button class="btn" id="setupGo">Jouer</button>
+      <button class="btn ghost" id="setupAnnuler">Annuler</button>
+    </div>
+  </div>
 
   <div class="overlay" id="endOverlay">
     <div class="modal">
@@ -246,7 +268,7 @@
     </div>
   </div>
 
-<script src="./dico/motus-enfant.js?v=1.50.4"></script>
+<script src="./dico/motus-enfant.js?v=1.50.2"></script>
 <script>
 (function(){
   "use strict";
@@ -750,36 +772,55 @@
     Array.prototype.forEach.call(document.querySelectorAll(".gm"), function(x){ x.classList.toggle("on", x.dataset.g===game); });
     // les boutons « à deux » partagent la classe .lv pour le style : on ne
     // traite ici que ceux qui portent réellement un niveau
-    Array.prototype.forEach.call(document.querySelectorAll("[data-lv]"), function(x){ x.classList.toggle("on", x.dataset.lv===level); });
-    Array.prototype.forEach.call(document.querySelectorAll("[data-nb]"), function(x){ x.classList.toggle("on", +x.dataset.nb===joueurs); });
+    var NIV = { facile:"Petit", moyen:"Moyen", expert:"Grand" };
+    var r = $("btnReglages");
+    if(r) r.textContent = (NIV[level] || level) + " · " + (joueurs===2 ? "à deux 👥" : "seul 👤");
   }
   Array.prototype.forEach.call(document.querySelectorAll(".gm"), function(b){
-    b.addEventListener("click", function(){
-      if(b.dataset.g === game) return;
-      askSwitch(function(){
-        game = b.dataset.g; store.set("motus.enfant.game", game);
-        paintPickers(); startRun();
-      });
-    });
+    // Choisir un jeu ouvre les réglages : niveau et nombre de joueurs se
+    // décident là, ce qui libère toute une rangée du bandeau.
+    b.addEventListener("click", function(){ ouvrirReglages(b.dataset.g); });
   });
-  Array.prototype.forEach.call(document.querySelectorAll("[data-lv]"), function(b){
-    b.addEventListener("click", function(){
-      if(b.dataset.lv === level) return;
-      askSwitch(function(){
-        level = b.dataset.lv; store.set("motus.enfant.level", level);
-        paintPickers(); startRun();
-      });
-    });
+
+  /* ---- Fenêtre de réglages ---- */
+  var setupJeu = null, setupLv = null, setupNb = null;
+  var NOMS = { intrus:"🧩 Intrus", compter:"🔢 Compter", memo:"🧠 Mémoire", lettre:"🔠 Lettres" };
+
+  function ouvrirReglages(g){
+    setupJeu = g || game;
+    setupLv  = level;
+    setupNb  = joueurs;
+    $("setupTitre").textContent = NOMS[setupJeu] || "Réglages";
+    peindreReglages();
+    $("setupOverlay").classList.add("open");
+  }
+  function peindreReglages(){
+    Array.prototype.forEach.call(document.querySelectorAll("#setupNiveaux [data-lv]"),
+      function(x){ x.classList.toggle("on", x.dataset.lv === setupLv); });
+    Array.prototype.forEach.call(document.querySelectorAll("#setupJoueurs [data-nb]"),
+      function(x){ x.classList.toggle("on", +x.dataset.nb === setupNb); });
+  }
+  Array.prototype.forEach.call(document.querySelectorAll("#setupNiveaux [data-lv]"), function(b){
+    b.addEventListener("click", function(){ setupLv = b.dataset.lv; peindreReglages(); });
   });
-  Array.prototype.forEach.call(document.querySelectorAll("[data-nb]"), function(b){
-    b.addEventListener("click", function(){
-      var n = +b.dataset.nb;
-      if(n === joueurs) return;
-      askSwitch(function(){
-        joueurs = n; store.set("motus.enfant.joueurs", joueurs);
-        paintPickers(); startRun();
-      });
-    });
+  Array.prototype.forEach.call(document.querySelectorAll("#setupJoueurs [data-nb]"), function(b){
+    b.addEventListener("click", function(){ setupNb = +b.dataset.nb; peindreReglages(); });
+  });
+  $("btnReglages").addEventListener("click", function(){ ouvrirReglages(game); });
+  $("setupAnnuler").addEventListener("click", function(){ $("setupOverlay").classList.remove("open"); });
+
+  $("setupGo").addEventListener("click", function(){
+    var change = (setupJeu !== game) || (setupLv !== level) || (setupNb !== joueurs);
+    $("setupOverlay").classList.remove("open");
+    // rien n'a bougé : on ne relance pas une partie en cours pour rien
+    if(!change) return;
+    var appliquer = function(){
+      game = setupJeu;    store.set("motus.enfant.game", game);
+      level = setupLv;    store.set("motus.enfant.level", level);
+      joueurs = setupNb;  store.set("motus.enfant.joueurs", joueurs);
+      paintPickers(); startRun();
+    };
+    askSwitch(appliquer);
   });
 
   /* ---------- aide, adaptée au jeu en cours ---------- */

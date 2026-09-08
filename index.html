@@ -273,7 +273,7 @@
     box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
   .perso-th.on{ box-shadow:inset 0 0 0 2.5px var(--accent); }
   .perso-th:disabled{ opacity:.5; cursor:default; }
-  .perso-sg .ed-th, .perso-sg .ed-nm, .perso-sg .ed-nt{
+  .perso-sg .ed-th, .perso-sg .ed-nm, .perso-sg .ed-nt, .perso-sg .ed-po{
     width:100%; margin-bottom:7px; padding:9px 11px; border:none; border-radius:9px;
     background:var(--bg-2); color:var(--ink); font-size:13.5px; font-family:inherit;
     box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
@@ -386,6 +386,8 @@
   main{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:4px 8px; min-height:0; }
   #board{ display:grid; gap:var(--gap); }
   .tile.sep{ margin-left:calc(var(--tile) * 0.42); }
+  #penduBox.gagne #penduRow .tile{ animation:bounce .5s ease; }
+  #penduRow .tile.manque{ background:var(--absent); box-shadow:none; opacity:.75; }
   #penduBox{ display:flex; flex-direction:column; align-items:center; gap:6px; }
   #penduSvg{ display:block; }
   .pendu-part{ opacity:0; transform:scale(.6); transform-origin:82px 60px; transition:opacity .25s ease, transform .25s ease; }
@@ -919,21 +921,21 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.50.4"></script>
-<script src="./dico/motus-prenoms.js?v=1.50.4"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.50.4"></script>
-<script src="./dico/motus-maladies.js?v=1.50.4"></script>
-<script src="./dico/motus-maladies-info.js?v=1.50.4"></script>
-<script src="./dico/motus-villes.js?v=1.50.4"></script>
-<script src="./dico/motus-villes-info.js?v=1.50.4"></script>
-<script src="./dico/motus-persos.js?v=1.50.4"></script>
-<script src="./dico/motus-persos-info.js?v=1.50.4"></script>
-<script src="./dico/motus-persos-split.js?v=1.50.4"></script>
-<script src="./dico/motus-race.js?v=1.50.4"></script>
-<script src="./dico/motus-expert.js?v=1.50.4"></script>
-<script src="./profiles/config.js?v=1.50.4"></script>
-<script src="./profiles/profile.js?v=1.50.4"></script>
-<script src="./duel/duel.js?v=1.50.4"></script>
+<script src="./dico/motus-words.js?v=1.50.2"></script>
+<script src="./dico/motus-prenoms.js?v=1.50.2"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.50.2"></script>
+<script src="./dico/motus-maladies.js?v=1.50.2"></script>
+<script src="./dico/motus-maladies-info.js?v=1.50.2"></script>
+<script src="./dico/motus-villes.js?v=1.50.2"></script>
+<script src="./dico/motus-villes-info.js?v=1.50.2"></script>
+<script src="./dico/motus-persos.js?v=1.50.2"></script>
+<script src="./dico/motus-persos-info.js?v=1.50.2"></script>
+<script src="./dico/motus-persos-split.js?v=1.50.2"></script>
+<script src="./dico/motus-race.js?v=1.50.2"></script>
+<script src="./dico/motus-expert.js?v=1.50.2"></script>
+<script src="./profiles/config.js?v=1.50.2"></script>
+<script src="./profiles/profile.js?v=1.50.2"></script>
+<script src="./duel/duel.js?v=1.50.2"></script>
 <script>
 (() => {
   "use strict";
@@ -985,7 +987,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.50.4";
+  const VERSION = "1.50.2";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -1104,6 +1106,9 @@
         +   '<button class="perso-th" data-th="light-a">☀️ Clair accessible</button>'
         + '</div>'
         + '<p class="perso-hint">Les thèmes accessibles remplacent le rouge et le jaune par du bleu et de l\'orange, distinguables en cas de daltonisme.</p>'
+        + '<p class="perso-t">Clavier</p>'
+        + '<div class="perso-themes"><button class="perso-th" id="clavierBtn"></button></div>'
+        + '<p class="perso-hint">Place la touche Entrée du côté qui t\'arrange — Effacer passe de l\'autre côté.</p>'
         + '<p class="perso-t">Sons</p>'
         + '<div class="perso-themes"><button class="perso-th" id="sonBtn"></button></div>'
         + '<p class="perso-t">Notifications</p>'
@@ -1119,6 +1124,13 @@
       box.querySelectorAll(".perso-sw").forEach(b=>b.addEventListener("click", ()=>{
         accent = b.dataset.accent; store.set("motus.accent",accent); applyAccent(); markPersonalizeSel();
       }));
+      const cb = box.querySelector("#clavierBtn");
+      if(cb) cb.addEventListener("click", ()=>{
+        entreeADroite = !entreeADroite; store.set("motus.entreeDroite", entreeADroite);
+        clavierPaint();
+        buildKeyboard();                 // reconstruit dans le nouvel ordre
+        repaintKeys();                   // et on remet les couleurs déjà connues
+      });
       const sb = box.querySelector("#sonBtn");
       if(sb) sb.addEventListener("click", ()=>{
         sonActif = !sonActif; store.set("motus.son", sonActif);
@@ -1133,6 +1145,10 @@
       box.dataset.built="1";
     }
     markPersonalizeSel();
+  }
+  function clavierPaint(){
+    const b=$("clavierBtn"); if(!b) return;
+    b.textContent = entreeADroite ? "⌫ à gauche · ENTRÉE à droite" : "ENTRÉE à gauche · ⌫ à droite";
   }
   function sonPaint(){
     const b=$("sonBtn"); if(!b) return;
@@ -1154,7 +1170,7 @@
       : "Te prévient quand ta défense est attaquée ou quand le mot du jour t'attend — seulement si le jeu n'est pas au premier plan.";
   }
   function markPersonalizeSel(){
-    sonPaint(); notifPaint();
+    clavierPaint(); sonPaint(); notifPaint();
     document.querySelectorAll(".perso-th").forEach(b=>b.classList.toggle("on", b.dataset.th===theme));
     document.querySelectorAll(".perso-sw").forEach(b=>b.classList.toggle("on", b.dataset.accent===accent));
   }
@@ -1303,14 +1319,21 @@
   }
 
   /* ---------- Clavier ---------- */
+  let entreeADroite = store.get("motus.entreeDroite", false);
   function buildKeyboard(){
     keyboard.innerHTML=""; keyEnter=null; keyBack=null;
     AZERTY.forEach((line,i)=>{
       const kr=document.createElement("div"); kr.className="krow";
-      if(i===2){ keyEnter = makeKey("ENTRÉE","enter",true); kr.appendChild(keyEnter); }
+      // Entrée à gauche par défaut ; on peut permuter avec Effacer pour
+      // convenir aux gauchers, ou simplement à l'habitude de chacun.
+      if(i===2){
+        keyEnter = makeKey("ENTRÉE","enter",true);
+        keyBack  = makeKey("⌫","back",true);
+        kr.appendChild(entreeADroite ? keyBack : keyEnter);
+      }
       for(const ch of line){ const k=makeKey(ch,ch,false); keyEls[ch]=k; kr.appendChild(k); }
       if(i===2){ const kd=makeKey(DASH,DASH,false); kd.classList.add("dash"); keyEls[DASH]=kd; kr.appendChild(kd); }
-      if(i===2){ keyBack = makeKey("⌫","back",true); kr.appendChild(keyBack); }
+      if(i===2){ kr.appendChild(entreeADroite ? keyEnter : keyBack); }
       keyboard.appendChild(kr);
     });
   }
@@ -1334,6 +1357,26 @@
     const cur = k.classList.contains("correct")?"correct":k.classList.contains("present")?"present":k.classList.contains("absent")?"absent":null;
     if(cur && rank[cur]>=rank[state]) return;
     k.classList.remove("absent","present","correct"); k.classList.add(state);
+  }
+
+  /* Reconstruire le clavier efface les couleurs, qui vivent sur les touches.
+     On les rejoue depuis l'état de la partie en cours. */
+  function repaintKeys(){
+    if(mode==="pendu"){
+      (penduGuessed||[]).forEach(ch=>{
+        paintKey(ch, penduAnswer && penduAnswer.indexOf(ch)>=0 ? "correct" : "absent");
+      });
+    } else {
+      (rowStates||[]).forEach((st,r)=>{
+        const mot = (guesses||[])[r] || "";
+        if(!mot || mot[0]==="!") return;          // ligne brûlée : pas de couleur
+        st.forEach((etat,c)=>{ if(mot[c] && etat) paintKey(mot[c], etat); });
+      });
+      if(typeof hintCols!=="undefined" && typeof answer==="string"){
+        (hintCols||[]).forEach(c=>{ if(answer[c]) paintKey(answer[c],"correct"); });
+      }
+    }
+    if(typeof applyBannedKeys==="function") applyBannedKeys();
   }
 
   /* ---------- Saisie ---------- */
@@ -1854,9 +1897,12 @@
         if(set.has(nom)) return;                 // déjà dans le jeu
         const info = th.info();
         if(info && r.note) info[nom] = r.note;
-        set.add(nom);
-        if(!sol.includes(nom)) sol.push(nom);
-        touches[th.id] = true;
+        set.add(nom);                            // acceptable à la saisie
+        // « accepte » s'arrête là : le mot ne sortira jamais comme réponse
+        if((r.portee || "tirable") === "tirable"){
+          if(!sol.includes(nom)) sol.push(nom);
+          touches[th.id] = true;
+        }
       });
       Object.keys(touches).forEach(id=>{ POOLS[id] = playableWords(THEME_SOL[id]); });
     }).catch(()=>{});
@@ -2055,6 +2101,10 @@
             '<option value="'+t.id+'"'+((r.theme||"persos")===t.id?" selected":"")+'>'+t.e+' '+t.n+'</option>').join("")+'</select>'
         + '<input class="ed-nm" maxlength="15" value="'+esc(r.name)+'">'
         + '<textarea class="ed-nt" maxlength="300" rows="3">'+esc(r.note)+'</textarea>'
+        + '<select class="ed-po">'
+        +   '<option value="tirable"'+((r.portee||"tirable")==="tirable"?" selected":"")+'>🎯 Peut sortir comme réponse</option>'
+        +   '<option value="accepte"'+((r.portee||"tirable")==="accepte"?" selected":"")+'>✏️ Seulement acceptable à la saisie</option>'
+        + '</select>'
         + '<div class="by">proposé par '+esc(r.author_pseudo||"Anonyme")+'</div>'
         + '<div class="ac"><button class="ok" data-a="1">✓ Approuver</button>'
         + '<button class="no" data-a="0">✕ Refuser</button></div></div>').join("");
@@ -2076,6 +2126,7 @@
           const nom=persoNorm(card.querySelector(".ed-nm").value);
           const note=card.querySelector(".ed-nt").value.trim();
           const th=card.querySelector(".ed-th").value;
+          const po=card.querySelector(".ed-po").value;
           if(nom.length<4 || nom.length>15){ btn.disabled=false; toast("Nom invalide (4 à 15 lettres)"); return; }
           // on enregistre d'abord les corrections, puis on approuve
           const approuver = (avert)=>Persos.review(id,true).then(r2=>{
@@ -2084,7 +2135,7 @@
               persoLoadApproved();
             } else { btn.disabled=false; toast("Action impossible"); }
           });
-          Persos.edit(id, nom, note, th).then(r=>{
+          Persos.edit(id, nom, note, th, po).then(r=>{
             if(r==="ok") return approuver();
             // base pas encore à jour : on approuve quand même, sans les
             // corrections — mieux vaut valider que tout bloquer
@@ -2092,7 +2143,9 @@
               return approuver("Approuvé — mais tes corrections n'ont pas pu être enregistrées (base à mettre à jour).");
             }
             btn.disabled=false;
-            toast(r==="deja-propose" ? "Ce mot existe déjà dans ce thème" : "Correction impossible");
+            toast(r==="deja-propose" ? "Ce mot existe déjà dans ce thème"
+                : r==="note-requise" ? "Une description est nécessaire pour un mot qui peut sortir"
+                : "Correction impossible");
           }).catch(()=>{ btn.disabled=false; toast("Action impossible"); });
         });
       });
@@ -2422,6 +2475,16 @@
   }
   // ordre d'apparition des parties du dessin : une par erreur, jusqu'à 8
   const PENDU_PARTS = ["p-tete","p-corps","p-brasg","p-brasd","p-jambeg","p-jambed","p-yeux","p-bouche"];
+  /* Défaite : on complète les lettres manquantes, grisées, pour que le
+     joueur voie le mot avant que la fenêtre ne s'ouvre. */
+  function penduReveal(){
+    const tiles = $("penduRow").children;
+    for(let c=0;c<penduLen;c++){
+      if(penduGuessed.indexOf(penduAnswer[c])>=0) continue;
+      tiles[c].querySelector("span").textContent = penduAnswer[c];
+      tiles[c].classList.add("filled","manque");
+    }
+  }
   function penduRender(){
     const tiles = $("penduRow").children;
     for(let c=0;c<penduLen;c++){
@@ -2440,13 +2503,22 @@
     if(penduAnswer.indexOf(letter)>=0){
       paintKey(letter,"correct");
       penduRender(); refreshGiveUpUI();
-      if(penduAnswer.split("").every(c=>penduGuessed.indexOf(c)>=0)) penduFinish(true);
+      if(penduAnswer.split("").every(c=>penduGuessed.indexOf(c)>=0)){
+        // on laisse le temps de VOIR le mot complété : la fenêtre de victoire
+        // s'ouvrait dans le même souffle que la dernière lettre
+        son("gagne");
+        const box = $("penduBox"); if(box) box.classList.add("gagne");
+        setTimeout(()=>penduFinish(true), 1100);
+      }
     } else {
       penduWrong++;
       paintKey(letter,"absent");
       penduRender(); refreshGiveUpUI();
       vibrate([30]);
-      if(penduWrong>=PENDU_LIVES) penduFinish(false);
+      if(penduWrong>=PENDU_LIVES){
+        penduReveal();                       // on montre le mot manqué
+        setTimeout(()=>penduFinish(false), 1100);
+      }
     }
   }
   function penduFinish(win){
@@ -2467,6 +2539,7 @@
       if(window.Profile.penduDone) Profile.penduDone({ won:win, wrong:penduWrong, lives:PENDU_LIVES });
     }
     refreshStats();
+    const box = $("penduBox"); if(box) box.classList.remove("gagne");
     $("endTitle").textContent = win ? "Gracié ! 🎉" : "Pendu… 💀";
     $("endSub").innerHTML = win
       ? `Trouvé avec ${PENDU_LIVES-penduWrong} vie${(PENDU_LIVES-penduWrong)>1?"s":""} restante${(PENDU_LIVES-penduWrong)>1?"s":""} · <b>${fmtTime(timerValue())}</b>`
@@ -3572,7 +3645,13 @@
       penduGuessed.push(letter); paintKey(letter,"correct"); penduRender();
       refreshHintUI(); vibrate([15]);
       toast("💡 Lettre révélée : " + letter);
-      if(penduAnswer.split("").every(c=>penduGuessed.indexOf(c)>=0)) penduFinish(true);
+      if(penduAnswer.split("").every(c=>penduGuessed.indexOf(c)>=0)){
+        // on laisse le temps de VOIR le mot complété : la fenêtre de victoire
+        // s'ouvrait dans le même souffle que la dernière lettre
+        son("gagne");
+        const box = $("penduBox"); if(box) box.classList.add("gagne");
+        setTimeout(()=>penduFinish(true), 1100);
+      }
       return;
     }
     if(hintCols.length>=HINT_MAX_PER_WORD){ toast("Indices déjà utilisés au maximum pour ce mot"); return; }
