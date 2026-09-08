@@ -275,7 +275,7 @@
     </div>
   </div>
 
-<script src="./dico/motus-enfant.js?v=1.50.3"></script>
+<script src="./dico/motus-enfant.js?v=1.50.2"></script>
 <script>
 (function(){
   "use strict";
@@ -668,7 +668,11 @@
     Array.prototype.forEach.call(box.querySelectorAll(".ch"), function(b){
       b.addEventListener("click", function(){ answerLettre(+b.dataset.i, b); });
     });
-    $("ask").innerHTML = prefixeTour() + 'Quel mot commence par <b>'+ini+'</b> ?';
+    /* Plusieurs images peuvent commencer par la même lettre : sans le nombre
+       de lettres, l'enfant n'a aucun moyen de trancher. Les cases vides le
+       montrent, mais il faut aussi le dire. */
+    $("ask").innerHTML = prefixeTour() + 'Quel mot de <b>' + target.m.length
+      + ' lettres</b> commence par <b>' + ini + '</b> ?';
     drawWord(false);
   }
   function answerLettre(i, btn){
@@ -682,8 +686,9 @@
       return;
     }
     btn.classList.add("wrong");
-    loseLife("Non : ça, c'est " + choices[i].m + ". Cherche un mot de " + target.m.length + " lettres qui commence par " + target.m[0] + " !",
-             "Le mot cherché était " + target.m + ".");
+    loseLife("Non, ça c'est <b>" + choices[i].m + "</b> (" + choices[i].m.length + " lettres)."
+             + " Cherche un mot de <b>" + target.m.length + " lettres</b> qui commence par <b>" + target.m[0] + "</b> !",
+             "Le mot cherché était <b>" + target.m + "</b>.");
   }
 
   /* =======================================================
