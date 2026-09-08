@@ -126,8 +126,15 @@
   .ch:active{ transform:scale(.94); }
   .ch.wrong{ opacity:.28; box-shadow:inset 0 0 0 2px var(--absent); pointer-events:none; }
   .ch.good{ background:var(--accent); box-shadow:none; }
-  .ch.word{ aspect-ratio:auto; min-height:56px; font-size:min(6.5vw,20px); font-weight:800;
-    letter-spacing:.5px; padding:10px 6px; }
+  /* Mots : ils doivent tenir sur UNE ligne quelle que soit leur longueur.
+     CONCOMBRE débordait sur deux lignes et dépassait de sa case. */
+  .ch.word{ aspect-ratio:auto; min-height:56px; font-weight:800;
+    letter-spacing:.3px; padding:10px 4px;
+    font-size:min(5.2vw,18px); line-height:1.15;
+    white-space:nowrap; overflow:hidden; }
+  /* la taille se réduit encore pour les mots vraiment longs */
+  .ch.word.long{ font-size:min(4.1vw,15px); letter-spacing:0; }
+  .ch.word.tres-long{ font-size:min(3.4vw,13px); letter-spacing:-.2px; }
 
   /* --- jeu du comptage --- */
   #countBox{ display:flex; flex-wrap:wrap; gap:10px; justify-content:center; align-items:center;
@@ -268,7 +275,7 @@
     </div>
   </div>
 
-<script src="./dico/motus-enfant.js?v=1.50.3"></script>
+<script src="./dico/motus-enfant.js?v=1.50.2"></script>
 <script>
 (function(){
   "use strict";
@@ -409,7 +416,16 @@
     var box = $("choices");
     box.style.display=""; box.className = (total===4) ? "c2" : "c3";
     box.innerHTML = choices.map(function(x,i){
-      return '<button class="ch'+(isWord?" word":"")+'" data-i="'+i+'" aria-label="Choix '+(i+1)+'">'+(isWord?x.m:x.e)+'</button>';
+      // la taille du texte s'adapte à la longueur du mot, sinon les plus
+      // longs (CONCOMBRE, FRAMBOISE…) débordaient de leur case
+      var cls = "ch";
+      if(isWord){
+        cls += " word";
+        var n = String(x.m||"").length;
+        if(n > 10)      cls += " tres-long";
+        else if(n > 7)  cls += " long";
+      }
+      return '<button class="'+cls+'" data-i="'+i+'" aria-label="Choix '+(i+1)+'">'+(isWord?x.m:x.e)+'</button>';
     }).join("");
     Array.prototype.forEach.call(box.querySelectorAll(".ch"), function(b){
       b.addEventListener("click", function(){ answerIntrus(+b.dataset.i, b); });

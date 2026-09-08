@@ -385,7 +385,9 @@
   #timer{ font-variant-numeric:tabular-nums; letter-spacing:.5px; background:var(--cell); padding:4px 10px; border-radius:8px; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
   main{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:4px 8px; min-height:0; }
   #board{ display:grid; gap:var(--gap); }
-  .tile.sep{ margin-left:calc(var(--tile) * 0.42); }
+  .sep-col{ width:var(--sep); }
+  /* un léger repère vertical, plus lisible qu'un simple vide */
+  #board.split .sep-col{ background:linear-gradient(var(--cell-edge),var(--cell-edge)) center/2px 55% no-repeat; }
   #penduBox.gagne #penduRow .tile{ animation:bounce .5s ease; }
   #penduRow .tile.manque{ background:var(--absent); box-shadow:none; opacity:.75; }
   #penduBox{ display:flex; flex-direction:column; align-items:center; gap:6px; }
@@ -921,21 +923,21 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.50.3"></script>
-<script src="./dico/motus-prenoms.js?v=1.50.3"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.50.3"></script>
-<script src="./dico/motus-maladies.js?v=1.50.3"></script>
-<script src="./dico/motus-maladies-info.js?v=1.50.3"></script>
-<script src="./dico/motus-villes.js?v=1.50.3"></script>
-<script src="./dico/motus-villes-info.js?v=1.50.3"></script>
-<script src="./dico/motus-persos.js?v=1.50.3"></script>
-<script src="./dico/motus-persos-info.js?v=1.50.3"></script>
-<script src="./dico/motus-persos-split.js?v=1.50.3"></script>
-<script src="./dico/motus-race.js?v=1.50.3"></script>
-<script src="./dico/motus-expert.js?v=1.50.3"></script>
-<script src="./profiles/config.js?v=1.50.3"></script>
-<script src="./profiles/profile.js?v=1.50.3"></script>
-<script src="./duel/duel.js?v=1.50.3"></script>
+<script src="./dico/motus-words.js?v=1.50.2"></script>
+<script src="./dico/motus-prenoms.js?v=1.50.2"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.50.2"></script>
+<script src="./dico/motus-maladies.js?v=1.50.2"></script>
+<script src="./dico/motus-maladies-info.js?v=1.50.2"></script>
+<script src="./dico/motus-villes.js?v=1.50.2"></script>
+<script src="./dico/motus-villes-info.js?v=1.50.2"></script>
+<script src="./dico/motus-persos.js?v=1.50.2"></script>
+<script src="./dico/motus-persos-info.js?v=1.50.2"></script>
+<script src="./dico/motus-persos-split.js?v=1.50.2"></script>
+<script src="./dico/motus-race.js?v=1.50.2"></script>
+<script src="./dico/motus-expert.js?v=1.50.2"></script>
+<script src="./profiles/config.js?v=1.50.2"></script>
+<script src="./profiles/profile.js?v=1.50.2"></script>
+<script src="./duel/duel.js?v=1.50.2"></script>
 <script>
 (() => {
   "use strict";
@@ -987,7 +989,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.50.3";
+  const VERSION = "1.50.2";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -1129,6 +1131,7 @@
         entreeADroite = !entreeADroite; store.set("motus.entreeDroite", entreeADroite);
         clavierPaint();
         buildKeyboard();                 // reconstruit dans le nouvel ordre
+        updateDashKey();                 // la touche « - » repart visible : on la remasque
         repaintKeys();                   // et on remet les couleurs déjà connues
       });
       const sb = box.querySelector("#sonBtn");
@@ -1251,6 +1254,9 @@
     tile = Math.min(tile, 58);
     if(len<=8) tile = Math.max(tile, 30);
     document.documentElement.style.setProperty("--tile", tile+"px");
+    // largeur de la colonne de séparation : exactement ce qui a été réservé
+    // ci-dessus dans le calcul de la taille des cases
+    document.documentElement.style.setProperty("--sep", Math.round(tile*0.42)+"px");
     document.documentElement.style.setProperty("--gap", gap+"px");
   }
   /* Nom en deux parties (prénom + nom) : on l'affiche sur deux sous-lignes.
@@ -1270,12 +1276,17 @@
     board.innerHTML="";
     for(let r=0;r<MAX_ROWS;r++){
       const rowEl=document.createElement("div"); rowEl.className="row"; rowEl.dataset.r=r;
-      rowEl.style.gridTemplateColumns = `repeat(${len}, var(--tile))`;
+      /* Nom composé : la séparation est une VRAIE colonne de la grille, pas
+         une marge. Une marge poussait la case à l'intérieur de sa propre
+         colonne, si bien qu'elle chevauchait la suivante. */
+      rowEl.style.gridTemplateColumns = sp
+        ? `repeat(${sp}, var(--tile)) var(--sep) repeat(${len-sp}, var(--tile))`
+        : `repeat(${len}, var(--tile))`;
       for(let c=0;c<len;c++){
+        if(sp && c===sp){
+          const vide=document.createElement("div"); vide.className="sep-col"; rowEl.appendChild(vide);
+        }
         const t=document.createElement("div"); t.className="tile"; t.dataset.c=c; t.setAttribute("role","gridcell");
-        // nom composé : tout tient sur UNE ligne, la séparation prénom/nom
-        // est marquée par un simple écart avant la première lettre du nom
-        if(sp && c===sp) t.classList.add("sep");
         t.innerHTML="<span></span>"; rowEl.appendChild(t);
       }
       board.appendChild(rowEl);
@@ -1322,6 +1333,9 @@
   let entreeADroite = store.get("motus.entreeDroite", false);
   function buildKeyboard(){
     keyboard.innerHTML=""; keyEnter=null; keyBack=null;
+    // la reconstruction recrée des touches toutes visibles : les appelants
+    // doivent enchaîner sur updateDashKey(), qui masque « - » hors des modes
+    // qui l'utilisent (et les touches inutiles au Pendu)
     AZERTY.forEach((line,i)=>{
       const kr=document.createElement("div"); kr.className="krow";
       // Entrée à gauche par défaut ; on peut permuter avec Effacer pour
