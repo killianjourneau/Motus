@@ -100,7 +100,13 @@ module.exports = async function ({ groupe, verifie, ignore, ok, egal, vide }) {
     egal(lignes.length, 6, "six tentatives");
     egal(lignes[0].querySelectorAll(".subrow").length, 0, "pas de sous-ligne");
     egal(lignes[0].querySelectorAll(".tile").length, 10, "toutes les cases sur la même ligne");
-    const sep = [...lignes[0].children].findIndex(t => t.classList.contains("sep"));
-    egal(sep, 6, "l'écart doit tomber entre le prénom et le nom");
+    /* La séparation est une VRAIE colonne de grille, pas une marge : une
+       marge poussait la case dans sa propre colonne et chevauchait la
+       suivante. */
+    egal(lignes[0].querySelectorAll(".sep-col").length, 1, "une colonne de séparation");
+    const sep = [...lignes[0].children].findIndex(t => t.classList.contains("sep-col"));
+    egal(sep, 6, "la colonne doit tomber entre le prénom et le nom");
+    ok(/var\(--sep\)/.test(lignes[0].style.gridTemplateColumns),
+       "la grille doit réserver la colonne de séparation");
   });
 };
