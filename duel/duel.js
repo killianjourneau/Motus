@@ -562,9 +562,10 @@
     /* Correction par l'administrateur avant approbation.
        Renvoie « sql-obsolete » si la base n'a pas encore la fonction : le
        client peut alors approuver sans corriger, plutôt que de tout bloquer. */
-    edit: function (suggId, name, note, theme) {
+    edit: function (suggId, name, note, theme, portee) {
       return rpc("perso_edit", {
-        p_id: me().id, p_sugg: suggId, p_name: name, p_note: note, p_theme: theme
+        p_id: me().id, p_sugg: suggId, p_name: name, p_note: note, p_theme: theme,
+        p_portee: portee || "tirable"
       }).then(function (r) { return (Array.isArray(r) ? r[0] : r) || "erreur"; })
         .catch(function (e) {
           return (String(e && e.message) === "fonctions-absentes") ? "sql-obsolete" : "erreur";

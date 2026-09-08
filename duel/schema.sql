@@ -947,3 +947,70 @@ $$;
 
 grant execute on function stats_ping(text)     to anon, authenticated;
 grant execute on function stats_read(uuid,int) to anon, authenticated;
+
+-- =====================================================================
+-- v1.51 — Portée d'un mot approuvé
+--
+-- Un mot peut entrer dans le jeu de deux façons :
+--   • « tirable »   : il peut sortir comme réponse ET être proposé ;
+--   • « accepte »   : on a seulement le droit de le taper.
+-- Utile pour les variantes et les formes composées (BOBMARLEY à côté de
+-- MARLEY) qu'on veut accepter sans jamais les tirer, faute de notice.
+-- =====================================================================
+
+alter table perso_suggestions add column if not exists portee text default 'tirable';
+update perso_suggestions set portee = 'tirable' where portee is null or btrim(portee) = '';
+
+drop function if exists perso_approved();
+create or replace function perso_approved()
+returns table (theme text, name text, note text, portee text)
+language sql security definer stable as $$
+  select s.theme, s.name, s.note, coalesce(s.portee, 'tirable')
+    from perso_suggestions s
+   where s.status = 'approved' order by s.theme, s.name;
+$$;
+
+drop function if exists perso_pending(uuid);
+create or replace function perso_pending(p_id uuid)
+returns table (id bigint, theme text, name text, note text, portee text,
+               author_pseudo text, created_at timestamptz)
+language sql security definer stable as $$
+  select s.id, s.theme, s.name, s.note, coalesce(s.portee, 'tirable'),
+         s.author_pseudo, s.created_at
+    from perso_suggestions s
+   where s.status = 'pending' and is_admin(p_id)
+   order by s.created_at
+   limit 100;
+$$;
+
+-- perso_edit gagne la portée
+drop function if exists perso_edit(uuid, bigint, text, text, text);
+create or replace function perso_edit(
+  p_id uuid, p_sugg bigint, p_name text, p_note text, p_theme text,
+  p_portee text default 'tirable'
+) returns text language plpgsql security definer as $$
+declare v_name text; v_note text; v_theme text; v_portee text;
+begin
+  if not is_admin(p_id) then return 'refuse'; end if;
+  v_theme := lower(btrim(coalesce(p_theme, 'persos')));
+  if v_theme not in ('persos','prenoms','maladies','villes') then return 'theme-invalide'; end if;
+  v_portee := lower(btrim(coalesce(p_portee, 'tirable')));
+  if v_portee not in ('tirable','accepte') then v_portee := 'tirable'; end if;
+  v_name := upper(regexp_replace(coalesce(p_name,''), '[^A-Za-z]', '', 'g'));
+  v_note := btrim(coalesce(p_note,''));
+  if length(v_name) < 4 or length(v_name) > 15 then return 'nom-invalide'; end if;
+  if length(v_note) > 300 then return 'note-invalide'; end if;
+  -- un mot seulement acceptable n'a pas besoin de notice : il ne sortira jamais
+  if v_portee = 'tirable' and v_theme in ('persos','prenoms','villes') and length(v_note) < 15 then
+    return 'note-requise';
+  end if;
+  if exists(select 1 from perso_suggestions
+             where theme = v_theme and name = v_name and status <> 'rejected'
+               and id <> p_sugg) then return 'deja-propose'; end if;
+  update perso_suggestions set theme = v_theme, name = v_name, note = v_note, portee = v_portee
+   where id = p_sugg and status = 'pending';
+  if not found then return 'introuvable'; end if;
+  return 'ok';
+end $$;
+
+grant execute on function perso_edit(uuid,bigint,text,text,text,text) to anon, authenticated;
