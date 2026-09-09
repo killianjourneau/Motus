@@ -12,9 +12,9 @@
    =================================================================== */
 window.MOTUS_RPG = {
 
-  prologue: "Le Lexique a été volé. Sans lui, les créatures oublient leur propre nom et s'effacent. Elles t'attaquent parce que tu parles encore — et chaque mot que tu prononces leur brûle la mémoire.\n\nCinq contrées te séparent du voleur. À chaque étape, choisis ta route : la plus sûre n'est pas toujours la plus riche.",
+  prologue: "Le Lexique contenait tous les mots du monde. Tant qu'il existait, les hommes, les bêtes et les peuples anciens pouvaient se parler.\n\nIl y a soixante ans, le roi des hommes s'est convaincu que le posséder, c'était régner sur tout ce qui respire. Il a brûlé la Bibliothèque oubliée, jeté ses mages aux fers, et emporté le livre.\n\nDepuis, il est seul à distribuer les mots. On obéit, ou l'on se tait à jamais.\n\nUn mage s'est échappé. Il a vécu caché dans la forêt au nom oublié, et il t'a appris ce qu'il savait. Tu es son apprenti — le dernier.\n\nCinq contrées te séparent du Lexique. À chaque étape, choisis ta route : la plus sûre n'est pas toujours la plus riche.",
 
-  epilogue: "Le Lexique retrouvé, les noms reviennent un à un. Le gobelin se souvient du sien. Le vieil arbre récite ses douze syllabes. Le monde recommence à s'appeler.",
+  epilogue: "Tu rouvres le Lexique. Les mots s'échappent des pages comme un vol d'oiseaux et retournent à ceux qui les avaient perdus.\n\nLe gobelin retrouve son nom et pleure. Le vieux chêne récite ses douze syllabes. Dans les villages, des voisins se parlent pour la première fois depuis soixante ans.\n\nTon maître ne verra pas ça. Mais quelque part dans la forêt au nom oublié, quelqu'un vient de prononcer son nom à voix haute — et la forêt s'en souvient.",
 
   /* ---------- Traits : propres à UN monstre ---------- */
   traits: {
@@ -43,8 +43,8 @@ window.MOTUS_RPG = {
 
   /* ---------- Les 5 actes ---------- */
   zones: [
-    { id:"foret", nom:"Lisière des Sans-Noms", e:"🌲", mod:"feuillesZ1", lens:[4,5],
-      intro:"Ici vivaient des bêtes ordinaires. Depuis le vol du Lexique, elles ne savent plus ce qu'elles sont.",
+    { id:"foret", nom:"La forêt au nom oublié", e:"🌲", mod:"feuillesZ1", lens:[4,5],
+      intro:"Tu as grandi sous ces arbres, à réciter des mots que personne d'autre n'avait le droit de connaître. Ton maître est mort l'hiver dernier. Les bêtes d'ici ont oublié jusqu'à leur propre nom : elles t'attaquent parce que tu parles encore.",
       etages:4,
       monstres:[
         { n:"Gobelin",   e:"🧌", trait:"esquive",  cri:"Il répète un son qui ressemblait autrefois à son nom." },
@@ -57,45 +57,45 @@ window.MOTUS_RPG = {
         { n:"Meute affamée", e:"🐾", trait:"rapide", cri:"Trois gueules, aucun nom à elles trois." },
         { n:"Ronce vivante", e:"🌿", trait:"epines", cri:"Elle pousse là où un jardin portait un nom." }
       ],
-      boss:{ n:"Ent ancien", e:"🌳", trait:"carapace",
+      boss:{ n:"Le Chêne muet", e:"🌳", trait:"carapace",
         cri:"Le plus vieil arbre de la forêt. Son nom tenait en douze syllabes ; il n'en reste aucune." } },
 
-    { id:"grotte", nom:"Grotte des Échos morts", e:"🕯️", mod:"echoZ2", lens:[5,6],
-      intro:"Les parois répétaient autrefois tout ce qu'on leur disait. Aujourd'hui elles avalent les mots sans les rendre.",
+    { id:"grotte", nom:"Les ruines de la Bibliothèque oubliée", e:"🕯️", mod:"echoZ2", lens:[5,6],
+      intro:"Soixante ans que personne n'est venu. Les rayonnages ont brûlé, mais les chaînes sont encore là, scellées au mur. Ton maître dormait ici. Quelque chose garde encore les cendres — et n'a jamais reçu l'ordre de s'arrêter.",
       etages:4,
       monstres:[
-        { n:"Chauve-souris",  e:"🦇", trait:"esquive",  cri:"Elle crie pour s'orienter, mais plus rien ne lui répond." },
-        { n:"Rat géant",      e:"🐀", trait:"voleur",   cri:"Il ronge les pages arrachées au Lexique. Il en a pris le goût." },
-        { n:"Serpent",        e:"🐍", trait:"venin",    cri:"Sa langue fourchue prononce deux mots faux à la fois." },
-        { n:"Golem de pierre",e:"🗿", trait:"carapace", cri:"On avait gravé son nom sur son front. Quelqu'un l'a effacé." },
-        { n:"Ver des roches", e:"🪱", trait:"regen",    cri:"Il digère la pierre et les syllabes avec la même indifférence." }
+        {n:"Rat des cendres",e:"🐀",trait:"rapide",cri:"Il niche dans les reliures et digère ce qu'il en reste."},
+        {n:"Chauve-souris",e:"🦇",trait:"esquive",cri:"Elle s'oriente au son. Ici, il n'y en a plus."},
+        {n:"Cendre vivante",e:"🌫️",trait:"brouillard",cri:"Tout ce qui reste d'un rayonnage entier."},
+        {n:"Gardien de pierre",e:"🗿",trait:"carapace",cri:"On lui a dit de surveiller. Personne n'est revenu lui dire d'arrêter."},
+        {n:"Ver des reliures",e:"🪱",trait:"venin",cri:"Il a mangé tant de mots qu'il en bégaie."}
       ],
       elites:[
-        { n:"Cristal hurleur", e:"💎", trait:"epines",  cri:"Chaque coup porté le fait chanter un nom qui n'est pas le sien." },
-        { n:"Ombre du puits",  e:"🕳️", trait:"muet",   cri:"Elle avale les mots avant qu'ils n'atteignent l'air." }
+        {n:"Bibliothécaire creux",e:"👤",trait:"muet",cri:"Il range encore des livres qui n'existent plus."},
+        {n:"Ombre du puits",e:"🕳️",trait:"regen",cri:"C'est là qu'on jetait les livres interdits. Ils remontent."}
       ],
-      boss:{ n:"Dragonneau", e:"🐉", trait:"furie",
+      boss:{ n:"Le Geôlier de pierre", e:"🐉", trait:"furie",
         cri:"Trop jeune pour avoir été nommé. Il ne le sera jamais." } },
 
-    { id:"marais", nom:"Marais des Serments rompus", e:"🌫️", mod:"orthoZ3", lens:[6,7],
-      intro:"On venait y jurer fidélité. Les promesses, faites de mots, ont pourri les premières.",
+    { id:"marais", nom:"Les terres soumises", e:"🌫️", mod:"orthoZ3", lens:[6,7],
+      intro:"Ici, on a choisi d'obéir. Chaque village reçoit du roi sa ration de mots : de quoi commercer, pas de quoi se plaindre. Ceux qui te reconnaissent ne te dénoncent pas — ils n'ont plus les mots pour le faire.",
       etages:5,
       monstres:[
-        { n:"Crapaud vorace", e:"🐸", trait:"vampire",    cri:"Il gobe les syllabes qui flottent au-dessus de l'eau." },
-        { n:"Sangsue",        e:"🪰", trait:"vampire",    cri:"Elle ne boit pas le sang, mais la mémoire de ceux qui parlent." },
-        { n:"Feu follet",     e:"🔥", trait:"brouillard", cri:"Une lettre unique, seule survivante d'un mot entier." },
-        { n:"Noyé sans nom",  e:"👤", trait:"muet",       cri:"Il cherche la berge où quelqu'un l'appelait encore." },
-        { n:"Héron spectral", e:"🦩", trait:"esquive",    cri:"Il pêche des mots morts dans une eau qui ne reflète rien." }
+        {n:"Milicien du roi",e:"🪖",trait:"carapace",cri:"Il ne sait pas lire l'ordre qu'il exécute. On ne le lui a pas appris."},
+        {n:"Collecteur de mots",e:"📜",trait:"voleur",cri:"Il note qui a parlé, et combien. Le roi paie à la ligne."},
+        {n:"Chien du bailli",e:"🐕",trait:"rapide",cri:"Le seul du village à qui l'on parle encore librement."},
+        {n:"Villageois muet",e:"🧑‍🌾",trait:"muet",cri:"Il veut te prévenir de quelque chose. Il n'a plus les mots pour."},
+        {n:"Délateur",e:"🗣️",trait:"esquive",cri:"Il a reçu cent mots de récompense. Il en a dépensé quatre-vingt-dix-neuf."}
       ],
       elites:[
-        { n:"Sorcière du limon", e:"🧙", trait:"muet",  cri:"Elle a vendu son nom contre un sort. Le marché était mauvais." },
-        { n:"Colosse de vase",   e:"🟤", trait:"regen", cri:"Fait de tout ce que le marais a englouti, noms compris." }
+        {n:"Sergent recruteur",e:"⚔️",trait:"furie",cri:"Il enrôle ceux qui n'ont plus de quoi refuser."},
+        {n:"Crieur public",e:"📢",trait:"venin",cri:"Seule bouche autorisée sur cent lieues. Il ne dit que ce qu'on lui donne."}
       ],
-      boss:{ n:"Hydre", e:"🐲", trait:"regen",
+      boss:{ n:"Le Bailli aux mille serments", e:"🐲", trait:"regen",
         cri:"Coupe-lui une tête : il en repousse deux, et aucune ne sait parler." } },
 
-    { id:"volcan", nom:"Forge du Premier Mot", e:"🌋", mod:"fumeeZ4", lens:[6,8],
-      intro:"C'est ici qu'on forgeait les noms, un par un, dans la roche en fusion. Les forges sont froides.",
+    { id:"volcan", nom:"La Forge des noms", e:"🌋", mod:"fumeeZ4", lens:[6,8],
+      intro:"C'est d'ici que sortent les mots que le roi distribue. On les martèle un par un, vidés de la moitié de leur sens, pour qu'ils servent sans jamais permettre de dire non. Les forgerons n'ont plus de bouche.",
       etages:5,
       monstres:[
         { n:"Salamandre",   e:"🦎", trait:"regen",       cri:"Née dans la braise d'un mot qui n'a jamais refroidi." },
@@ -108,11 +108,11 @@ window.MOTUS_RPG = {
         { n:"Braise éternelle", e:"🔥", trait:"renaissance", cri:"Elle refuse de s'éteindre, faute de savoir comment on l'appelait." },
         { n:"Enclume hurlante", e:"🛠️", trait:"epines",     cri:"Chaque coup reçu résonne comme un nom mal prononcé." }
       ],
-      boss:{ n:"Phénix", e:"🕊️", trait:"renaissance",
+      boss:{ n:"Le Maître-forgeron", e:"🕊️", trait:"renaissance",
         cri:"Il renaît de ses cendres à chaque fois. Mais sans nom, il renaît étranger à lui-même." } },
 
-    { id:"citadelle", nom:"Citadelle d'obsidienne", e:"🏰", mod:"chateauZ5", lens:[7,8],
-      intro:"Le Lexique est ici, quelque part. Les gardiens ont été payés en noms — les tiens, si tu échoues.",
+    { id:"citadelle", nom:"La citadelle d'obsidienne", e:"🏰", mod:"chateauZ5", lens:[7,8],
+      intro: "Le Lexique est au sommet, dans une pièce sans fenêtre. Le roi est vieux, maintenant. Il n'a plus parlé à personne depuis des années — à quoi bon, quand nul ne peut répondre. Il t'attend : tu es le premier depuis soixante ans à venir lui adresser la parole.",
       etages:5,
       monstres:[
         { n:"Spectre",        e:"👻", trait:"esquive",  cri:"Il cherche encore la tombe où son nom était écrit." },
@@ -126,7 +126,7 @@ window.MOTUS_RPG = {
           cri:"Elle a écrit son nom sur mille parchemins pour ne pas l'oublier. Ils ont tous brûlé." },
         { n:"Geôlier des voix", e:"🔗", trait:"vampire", cri:"Il garde une salle pleine de noms qui hurlent." }
       ],
-      boss:{ n:"Seigneur des Mots", e:"👑", trait:"renaissance",
+      boss:{ n:"Le roi des hommes", e:"👑", trait:"renaissance",
         cri:"« J'ai pris le Lexique pour être le seul à pouvoir nommer. Toi qui parles encore : tais-toi. »" } }
   ],
 
