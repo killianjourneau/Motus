@@ -115,6 +115,16 @@ module.exports = function ({ groupe, verifie, ok, egal, vide, RACINE }) {
     vide(doubles, "portent un trait ET un pouvoir");
   });
 
+  verifie("percer un secret rafraîchit l'étiquette", () => {
+    /* L'étiquette n'était dessinée qu'au début du combat : elle restait donc
+       sur « 🔎 Secret » même après le déclenchement, et le joueur croyait
+       que rien ne s'était passé. */
+    const moteur = require("fs").readFileSync(path.join(RACINE, "rpg.html"), "utf8");
+    const bloc = moteur.slice(moteur.indexOf("function revelerCache"));
+    ok(/majEtiquettes\(\)/.test(bloc.slice(0, 500)),
+       "revelerCache doit redessiner l'étiquette");
+  });
+
   verifie("chaque effet caché a son explication", () => {
     // affichée une fois le secret percé — sans elle, l'étiquette serait vide
     const moteur = require("fs").readFileSync(path.join(RACINE, "rpg.html"), "utf8");
