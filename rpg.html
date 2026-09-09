@@ -348,8 +348,8 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="./dico/motus-words.js?v=1.53.1"></script>
-<script src="./dico/motus-rpg.js?v=1.53.1"></script>
+<script src="./dico/motus-words.js?v=1.50.2"></script>
+<script src="./dico/motus-rpg.js?v=1.50.2"></script>
 <script>
 (function(){
   "use strict";
@@ -938,17 +938,7 @@
        l'ancien trait sinon. Les deux ensemble faisaient doublon.
        Les descriptions s'obtiennent en touchant l'étiquette — sur mobile,
        une infobulle au survol n'existe pas. */
-    var perce = (P.secrets||[]).indexOf(src.n) >= 0;
-    $("cTrait").innerHTML =
-        (src.pouvoir
-          ? '<span class="pouvoir" data-d="'+esc(src.pouvoir.d)+'">✦ '+src.pouvoir.n+'</span>'
-          : traitHtml(src.trait))
-      + (src.cache
-          ? (perce
-              ? '<span class="secret perce" data-d="'+esc(secretTexte(src.cache))+'">✨ Secret percé</span>'
-              : '<span class="secret" data-d="Cette créature cache quelque chose. À toi de trouver quoi.">🔎 Secret</span>')
-          : "");
-    brancherEtiquettes();
+    majEtiquettes();
     $("cMod").innerHTML = zModHtml();
     buildKeyboard();
     newWord();
@@ -1114,6 +1104,25 @@
   };
   function secretTexte(id){ return SECRETS[id] || "Secret percé."; }
 
+  /* Redessine pouvoir et secret. Appelée au début du combat ET dès qu'un
+     secret est percé : sans ce second appel, l'étiquette restait figée sur
+     « 🔎 Secret » pour tout le reste du combat. */
+  function majEtiquettes(){
+    if(!C || !C.foe) return;
+    var src = C.foe;
+    var perce = (P.secrets||[]).indexOf(src.n) >= 0 || C.cacheDit;
+    $("cTrait").innerHTML =
+        (src.pouvoir
+          ? '<span class="pouvoir" data-d="'+esc(src.pouvoir.d)+'">✦ '+src.pouvoir.n+'</span>'
+          : traitHtml(src.trait))
+      + (src.cache
+          ? (perce
+              ? '<span class="secret perce" data-d="'+esc(secretTexte(src.cache))+'">✨ Secret percé</span>'
+              : '<span class="secret" data-d="Cette créature cache quelque chose. À toi de trouver quoi.">🔎 Secret</span>')
+          : "");
+    brancherEtiquettes();
+  }
+
   /* Sur un téléphone, il n'y a pas de survol : on touche pour lire. */
   function brancherEtiquettes(){
     var els = document.querySelectorAll("#cTrait [data-d]");
@@ -1199,6 +1208,7 @@
     if(!P.secrets) P.secrets = [];
     if(C.foe && P.secrets.indexOf(C.foe.n) < 0){ P.secrets.push(C.foe.n); save(); }
     toast("🔎 "+txt, 3600);
+    majEtiquettes();          // l'étiquette passe aussitôt à « Secret percé »
   }
   /* Le combat s'achève sans passer par les dégâts : fuite, reconnaissance,
      dégoût… La récompense reste due, l'adversaire est bien écarté. */
@@ -1627,9 +1637,35 @@
   $("btnCodex").addEventListener("click", showCodex);
   $("loreGo").addEventListener("click", function(){ closeOverlays(); });
   window.addEventListener("beforeunload", function(e){ if(inAction()){ e.preventDefault(); e.returnValue=""; } });
+  /* Redessine un plateau ET y remet ce qui s'y trouvait : buildBoardFor()
+     repart d'un tableau vide, si bien qu'un simple redimensionnement de la
+     fenêtre effaçait toutes les lettres déjà jouées. */
+  function redessiner(S, boxId){
+    buildBoardFor(S, boxId);
+    for(var r=0; r<S.grid.length; r++){
+      for(var c=0; c<S.len; c++){
+        var ch = S.grid[r][c];
+        if(ch) tileOf(boxId, r, c).querySelector("span").textContent = ch;
+      }
+    }
+    // couleurs des tentatives déjà validées
+    for(var g=0; g<(S.rowStates||[]).length; g++){
+      for(var c2=0; c2<S.len; c2++){
+        var etat = S.rowStates[g][c2];
+        if(etat) tileOf(boxId, g, c2).classList.add(etat);
+      }
+    }
+    drawCursorFor(S, boxId);
+  }
+  var resizeT = null;
   window.addEventListener("resize", function(){
-    if(C && $("scFight").style.display!=="none") buildBoardFor(C,"board");
-    if(DF && $("scDefi").style.display!=="none") buildBoardFor(DF,"dfBoard");
+    // on attend la fin du redimensionnement : sur PC il émet des dizaines
+    // d'événements par seconde
+    clearTimeout(resizeT);
+    resizeT = setTimeout(function(){
+      if(C && $("scFight").style.display!=="none") redessiner(C,"board");
+      if(DF && $("scDefi").style.display!=="none") redessiner(DF,"dfBoard");
+    }, 120);
   });
 
   function montrerIntro(){

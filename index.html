@@ -923,21 +923,21 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.53.1"></script>
-<script src="./dico/motus-prenoms.js?v=1.53.1"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.53.1"></script>
-<script src="./dico/motus-maladies.js?v=1.53.1"></script>
-<script src="./dico/motus-maladies-info.js?v=1.53.1"></script>
-<script src="./dico/motus-villes.js?v=1.53.1"></script>
-<script src="./dico/motus-villes-info.js?v=1.53.1"></script>
-<script src="./dico/motus-persos.js?v=1.53.1"></script>
-<script src="./dico/motus-persos-info.js?v=1.53.1"></script>
-<script src="./dico/motus-persos-split.js?v=1.53.1"></script>
-<script src="./dico/motus-race.js?v=1.53.1"></script>
-<script src="./dico/motus-expert.js?v=1.53.1"></script>
-<script src="./profiles/config.js?v=1.53.1"></script>
-<script src="./profiles/profile.js?v=1.53.1"></script>
-<script src="./duel/duel.js?v=1.53.1"></script>
+<script src="./dico/motus-words.js?v=1.50.2"></script>
+<script src="./dico/motus-prenoms.js?v=1.50.2"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.50.2"></script>
+<script src="./dico/motus-maladies.js?v=1.50.2"></script>
+<script src="./dico/motus-maladies-info.js?v=1.50.2"></script>
+<script src="./dico/motus-villes.js?v=1.50.2"></script>
+<script src="./dico/motus-villes-info.js?v=1.50.2"></script>
+<script src="./dico/motus-persos.js?v=1.50.2"></script>
+<script src="./dico/motus-persos-info.js?v=1.50.2"></script>
+<script src="./dico/motus-persos-split.js?v=1.50.2"></script>
+<script src="./dico/motus-race.js?v=1.50.2"></script>
+<script src="./dico/motus-expert.js?v=1.50.2"></script>
+<script src="./profiles/config.js?v=1.50.2"></script>
+<script src="./profiles/profile.js?v=1.50.2"></script>
+<script src="./duel/duel.js?v=1.50.2"></script>
 <script>
 (() => {
   "use strict";
@@ -989,7 +989,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.53.1";
+  const VERSION = "1.50.2";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -2852,19 +2852,10 @@
       if(d.ready && !raceStarted){
         vibrate([12,40,12]); openOverlay("raceOverlay"); raceShowOpponent(d); return;
       }
-      if(!raceStarted && !d.ready){
-        // même angle mort qu'en duel : on distingue « personne » de « rejoint »
-        const arrive = !!(d.opp && d.opp.id);
-        if(arrive && !raceOppVu){
-          raceOppVu = true;
-          vibrate([12,40,12]); son("indice");
-          notify("🏁 Ton adversaire est là",
-                 (d.opp.pseudo || "Quelqu'un") + " a rejoint la course.", "course");
-        }
-        $("raceWait").innerHTML = arrive
-          ? "🟢 <b>" + escapeHtml(d.opp.pseudo || "Ton adversaire") + "</b> a rejoint — préparation de la course…"
-          : raceWaitMsg;
-      }
+      // Comme en duel : la liste de mots existe dès la création, donc la
+      // course passe directement de « personne » à « prête ». Il n'y a pas
+      // d'état intermédiaire à afficher.
+      if(!raceStarted && !d.ready){ $("raceWait").textContent = raceWaitMsg; }
       if(raceStarted && raceReported){
         const dl2 = d.deadline || raceDeadline;
         if((d.his && d.his.over) || (dl2 && Date.now() > dl2)) raceMaybeFinish();
@@ -2875,6 +2866,13 @@
   }
 
   function raceShowOpponent(d){
+    // seul instant où l'adversaire apparaît : c'est ici qu'on prévient
+    if(!raceOppVu){
+      raceOppVu = true;
+      vibrate([12,40,12]); son("indice");
+      notify("🏁 Ton adversaire est là",
+             ((d.opp && d.opp.pseudo) || "Quelqu'un") + " a rejoint la course.", "course");
+    }
     $("raceOppName").textContent = (d.opp && d.opp.pseudo) || "Anonyme";
     $("raceOppLevel").textContent = "Niveau " + ((d.opp && d.opp.level) || 1);
     $("raceOppBadge").textContent = (d.opp && d.opp.badge) || "🎖️";
@@ -3351,28 +3349,23 @@
       if(err || !d){ if(err) $("duelWait").textContent="Connexion perdue, nouvelle tentative…"; return; }
       duelRow=d;
       duelCheckEmote(d);
+      /* Il n'existe PAS d'état « rejoint mais cherche encore son mot » :
+         duel_join enregistre l'adversaire et son mot d'un seul coup. Tant que
+         personne n'a rejoint, on l'affiche simplement. */
       if(!duelStarted && !d.ready){
-        /* Trois situations bien différentes, qu'un message unique confondait :
-           personne n'a rejoint, l'adversaire est là mais choisit son mot, ou
-           c'est moi qui n'ai pas encore choisi. Attendre sans savoir laquelle
-           est la plus désagréable. */
-        const arrive = !!(d.opp && d.opp.id);
-        const sonMot = !!d.target;
-        if(arrive && !duelOppVu){
-          duelOppVu = true;                       // une seule fois par duel
-          vibrate([12,40,12]); son("indice");
-          notify("⚔️ Ton adversaire est là",
-                 (d.opp.pseudo || "Quelqu'un") + " a rejoint le duel.", "duel");
-        }
-        $("duelWait").innerHTML = !arrive
-          ? duelWaitMsg
-          : (sonMot
-              ? "✅ <b>" + escapeHtml(d.opp.pseudo || "Ton adversaire") + "</b> est prêt — à toi de choisir ton mot."
-              : "🟢 <b>" + escapeHtml(d.opp.pseudo || "Ton adversaire") + "</b> a rejoint et cherche son mot…");
+        $("duelWait").textContent = duelWaitMsg;
       }
       // l'adversaire a rejoint et je n'ai pas encore commencé : on affiche sa fiche
       if(d.ready && !duelStarted){
         vibrate([12,40,12]);
+        // On prévient ICI : c'est le seul instant où l'adversaire apparaît.
+        // L'attente peut durer, le téléphone est souvent posé de côté.
+        if(!duelOppVu){
+          duelOppVu = true;
+          son("indice");
+          notify("⚔️ Ton adversaire est là",
+                 ((d.opp && d.opp.pseudo) || "Quelqu'un") + " a rejoint le duel.", "duel");
+        }
         openOverlay("duelOverlay");
         duelShowOpponent(d);
         return;
