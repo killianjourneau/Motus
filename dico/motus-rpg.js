@@ -46,19 +46,42 @@ window.MOTUS_RPG = {
     { id:"foret", nom:"La forêt au nom oublié", e:"🌲", mod:"feuillesZ1", lens:[4,5],
       intro:"Tu as grandi sous ces arbres, à réciter des mots que personne d'autre n'avait le droit de connaître. Ton maître est mort l'hiver dernier. Les bêtes d'ici ont oublié jusqu'à leur propre nom : elles t'attaquent parce que tu parles encore.",
       etages:4,
-      monstres:[
-        { n:"Gobelin",   e:"🧌", trait:"esquive",  cri:"Il répète un son qui ressemblait autrefois à son nom." },
-        { n:"Loup gris", e:"🐺", trait:"furie",    cri:"La meute l'a chassé : elle ne le reconnaissait plus." },
-        { n:"Araignée",  e:"🕷️", trait:"venin",   cri:"Elle tisse des lettres au lieu de fils, sans savoir les lire." },
-        { n:"Corbeau",   e:"🐦‍⬛", trait:"voleur", cri:"Il collectionne les mots des voyageurs pour s'en faire un nom." },
-        { n:"Sanglier",  e:"🐗", trait:"rapide",   cri:"Il charge tout ce qui parle, sans distinction." }
+            monstres:[
+        {n:"Gobelin",e:"🧌",trait:"esquive",
+         cri:"Son langage ne compte que des W et des V. Personne ne lui a jamais appris le reste.",
+         pouvoir:{id:"agile",n:"Petit et agile",d:"Les lettres mal placées ne lui font aucun dégât."},
+         cache:"lache"},
+        {n:"Loup solitaire",e:"🐺",trait:"rapide",
+         cri:"Il a perdu sa meute. Il ne sait plus hurler pour la rappeler.",
+         pouvoir:{id:"blessee",n:"Bête blessée",d:"Ses dégâts doublent quand ses points de vie sont bas."},
+         cache:"beta"},
+        {n:"Araignée géante",e:"🕷️",trait:"venin",
+         cri:"Pourquoi a-t-il fallu que ça tombe sur une araignée…",
+         pouvoir:{id:"toile",n:"Toile",d:"Après chaque tentative, elle t'interdit une lettre de plus."},
+         cache:"insecte"},
+        {n:"Corbeau maudit",e:"🐦‍⬛",trait:"voleur",
+         cri:"Mon chapeau ! Maudit corbeau, maudit corbeau…",
+         pouvoir:{id:"larcin",n:"Larcin",d:"Si tu ne trouves pas le mot, il emporte une relique."},
+         cache:"cachotier"},
+        {n:"Sanglier",e:"🐗",trait:"furie",
+         cri:"Paraît-il qu'un certain Gaulois en mangeait des entiers.",
+         pouvoir:{id:"charge",n:"Charge",d:"Il ne te blesse jamais — mais rater son mot est mortel."},
+         cache:"viande"}
       ],
-      elites:[
-        { n:"Meute affamée", e:"🐾", trait:"rapide", cri:"Trois gueules, aucun nom à elles trois." },
-        { n:"Ronce vivante", e:"🌿", trait:"epines", cri:"Elle pousse là où un jardin portait un nom." }
+            elites:[
+        {n:"Meute affamée",e:"🐾",trait:"rapide",
+         cri:"Des loups ! Et pas un seul, cette fois.",
+         pouvoir:{id:"meute",n:"Meute",d:"Trois bêtes se relaient : il faut les vaincre l'une après l'autre."},
+         cache:"feu"},
+        {n:"Ronce vivante",e:"🌿",trait:"regen",
+         cri:"Elles poussent depuis cent ans, semées par une sorcière que plus personne ne nomme.",
+         pouvoir:{id:"epines",n:"Ronce",d:"Chaque lettre grise la nourrit : elle regagne 1 point de vie."},
+         cache:"degoutee"}
       ],
-      boss:{ n:"Le Chêne muet", e:"🌳", trait:"carapace",
-        cri:"Le plus vieil arbre de la forêt. Son nom tenait en douze syllabes ; il n'en reste aucune." } },
+            boss:{n:"Le Chêne muet",e:"🌳",trait:"carapace",
+         cri:"Soixante ans que nul n'a prononcé son nom de douze syllabes.",
+         pouvoir:{id:"resistance",n:"Écorce ancienne",d:"Seuls les mots entièrement trouvés l'entament. Tout le reste glisse."},
+         cache:"digne"} },
 
     { id:"grotte", nom:"Les ruines de la Bibliothèque oubliée", e:"🕯️", mod:"echoZ2", lens:[5,6],
       intro:"Soixante ans que personne n'est venu. Les rayonnages ont brûlé, mais les chaînes sont encore là, scellées au mur. Ton maître dormait ici. Quelque chose garde encore les cendres — et n'a jamais reçu l'ordre de s'arrêter.",
@@ -215,13 +238,13 @@ window.MOTUS_RPG = {
         { texte:"Aller voir", effet:{hp:-10, or:20}, suite:"Une créature apeurée s'enfuit, lâchant sa bourse." },
         { texte:"Accélérer le pas", effet:{mp:10}, suite:"Tu préfères ne pas savoir. La marche t'éclaircit les idées." }
       ] },
-    { id:"fete", e:"🎉", n:"Une fête improvisée",
+    { id:"fete", zones:[2], e:"🎉", n:"Une fête improvisée",
       texte:"Des voyageurs ont dressé un feu et partagent ce qu'il leur reste.",
       options:[
         { texte:"Te joindre à eux", effet:{or:14, hp:10}, suite:"On te nourrit et on te paie pour une histoire bien racontée." },
         { texte:"Observer de loin", effet:{xp:12}, suite:"Tu apprends en regardant." }
       ] },
-    { id:"dispute", e:"😠", n:"Une dispute entre voyageurs",
+    { id:"dispute", zones:[2], e:"😠", n:"Une dispute entre voyageurs",
       texte:"Deux marchands se disputent un chargement tombé sur le chemin.",
       options:[
         { texte:"Les départager", effet:{xp:16}, suite:"Ta décision les calme. Ils repartent, chacun un peu déçu." },
@@ -233,7 +256,7 @@ window.MOTUS_RPG = {
         { texte:"Marcher avec elle", effet:{buffAtk:5}, suite:"Ses conseils t'aideront pour le prochain affrontement." },
         { texte:"Échanger des récits", effet:{xp:13}, suite:"Ce qu'elle raconte t'apprend plus que tu ne le pensais." }
       ] },
-    { id:"meteo", e:"🌧️", n:"Un orage soudain",
+    { id:"meteo", zones:[0,2], e:"🌧️", n:"Un orage soudain",
       texte:"Le ciel se déchire sans prévenir. Le chemin devient glissant.",
       options:[
         { texte:"Chercher un abri", effet:{mp:14}, suite:"L'attente te repose plus que prévu." },
@@ -254,7 +277,7 @@ window.MOTUS_RPG = {
 
     /* ---- Dilemmes : ici, AUCUNE option n'est bonne. On choisit ce qu'on
        accepte de perdre. Marqués `amer:true` pour être tirés plus rarement. ---- */
-    { id:"peage", e:"⛓️", n:"Un péage sur le pont", amer:true,
+    { id:"peage", zones:[2], e:"⛓️", n:"Un péage sur le pont", amer:true,
       texte:"Deux silhouettes barrent le seul pont. « On passe pas gratuitement. »",
       options:[
         { texte:"Payer ce qu'ils demandent", effet:{or:-30}, suite:"Ils s'écartent en comptant tes pièces." },
@@ -266,13 +289,13 @@ window.MOTUS_RPG = {
         { texte:"Boire quand même", effet:{hp:-18}, suite:"Ça passe mal. Très mal." },
         { texte:"Continuer assoiffé", effet:{mp:-20}, suite:"La tête te tourne, tu peines à te concentrer." }
       ] },
-    { id:"sangsues", e:"🪤", n:"Un marécage infesté", amer:true,
+    { id:"sangsues", zones:[2], e:"🪤", n:"Un marécage infesté", amer:true,
       texte:"Le raccourci traverse une eau noire. Le détour prendrait des heures.",
       options:[
         { texte:"Traverser", effet:{hp:-16}, suite:"Tu en ressors couvert de morsures." },
         { texte:"Faire le détour", effet:{or:-18, mp:-10}, suite:"La nuit tombe, tu dois payer un abri." }
       ] },
-    { id:"pillards", e:"🗡️", n:"Un campement de pillards", amer:true,
+    { id:"pillards", zones:[2], e:"🗡️", n:"Un campement de pillards", amer:true,
       texte:"Ils dorment. Ton chemin passe juste à côté de leurs sacs.",
       options:[
         { texte:"Passer sans rien toucher", effet:{mp:-14}, suite:"Tu retiens ton souffle pendant une heure." },
@@ -283,7 +306,57 @@ window.MOTUS_RPG = {
       options:[
         { texte:"Donner de ton sang", effet:{hp:-24}, suite:"La stèle se fend et te laisse passer." },
         { texte:"Donner un mot de ta mémoire", effet:{xp:-30, mp:-12}, suite:"Tu oublies quelque chose. Tu ne sais plus quoi." }
-      ] }
+      ] },
+    { id:"champignons", zones:[0], e:"🍄", n:"Des champignons étranges",
+      texte:"Ils poussent en cercle, exactement à hauteur d'homme. Ton maître t'avait appris à les reconnaître — mais pas celui-ci.",
+      options:[
+        { texte:"En manger un", effet:{hp:30}, suite:"Amer, puis chaud. Tes forces reviennent." },
+        { texte:"En remplir ta besace", effet:{or:14}, suite:"Un apothicaire en donnera bien quelque chose." } ] },
+    { id:"nid", zones:[0], e:"🪺", n:"Un nid abandonné",
+      texte:"Les oisillons sont partis. Au fond, quelque chose brille sous les brindilles.",
+      options:[
+        { texte:"Fouiller le nid", effet:{or:16}, suite:"Une pièce ancienne, polie par le bec." },
+        { texte:"Le laisser intact", effet:{xp:22}, suite:"Ton maître aurait approuvé. Tu apprends quelque chose sur toi." } ] },
+    { id:"rayonnage", zones:[1], e:"📚", n:"Un rayonnage intact",
+      texte:"Le feu s'est arrêté à un mètre. Une trentaine de volumes ont survécu, serrés les uns contre les autres.",
+      options:[
+        { texte:"Lire toute la nuit", effet:{xp:40}, suite:"Tu apprends trois mots que le roi croyait avoir brûlés." },
+        { texte:"En emporter quelques-uns", effet:{or:20}, suite:"Lourds, mais un collectionneur paierait cher." } ] },
+    { id:"chaines", zones:[1], e:"⛓️", n:"Les chaînes du mur", amer:true,
+      texte:"Des noms sont gravés dans la pierre, à hauteur de main. L'un d'eux est celui de ton maître.",
+      options:[
+        { texte:"Graver le tien à côté", effet:{xp:34, hp:-8}, suite:"Tu n'es plus seulement son apprenti." },
+        { texte:"Effacer le sien et vendre la pierre", effet:{or:30, xp:-12}, suite:"Le geste te rapporte. Il te coûte davantage." } ] },
+    { id:"ration", zones:[2], e:"🍞", n:"La distribution des mots", amer:true,
+      texte:"Une file attend devant la charrette du bailli. Chacun repart avec sa ration écrite sur un billet.",
+      options:[
+        { texte:"Faire la queue comme les autres", effet:{or:-10, hp:20}, suite:"Du pain avec. Personne ne te regarde." },
+        { texte:"Parler à voix haute devant tous", effet:{xp:38, hp:-15}, suite:"Le silence se fait. Quelqu'un pleure. On te fait fuir." } ] },
+    { id:"enfant", zones:[2], e:"🧒", n:"Un enfant qui montre du doigt",
+      texte:"Il ne connaît aucun mot. Il désigne les choses, une par une, et attend que tu les nommes.",
+      options:[
+        { texte:"Lui apprendre dix mots", effet:{xp:36, mp:-8}, suite:"Il les répète toute la journée. Ça se propagera." },
+        { texte:"Passer ton chemin", effet:{hp:10}, suite:"Tu l'entends encore désigner des choses, longtemps après." } ] },
+    { id:"enclume", zones:[3], e:"⚒️", n:"Une enclume tiède", amer:true,
+      texte:"Un mot y est resté, à moitié forgé. On distingue encore ce qu'il aurait pu vouloir dire.",
+      options:[
+        { texte:"L'achever toi-même", effet:{xp:42, mp:-12}, suite:"Le mot est entier. Il te réchauffe la main." },
+        { texte:"Le briser et vendre le métal", effet:{or:26, xp:-10}, suite:"Le métal se revend. Ce qu'il disait est perdu." } ] },
+    { id:"moule", zones:[3], e:"🕳️", n:"Le moule des noms",
+      texte:"Chaque nom du royaume est passé par là. Le tien y figure peut-être déjà.",
+      options:[
+        { texte:"Chercher ton nom", effet:{xp:30}, suite:"Il n'y est pas. Le roi ne sait pas encore que tu existes." },
+        { texte:"Fondre un moule vierge", effet:{or:22, hp:-10}, suite:"Le métal brûle, mais vaut cher." } ] },
+    { id:"meurtriere", zones:[4], e:"🪟", n:"Une meurtrière",
+      texte:"D'ici on voit tout le royaume. Pas une lumière, pas une voix : soixante ans de silence, d'un seul regard.",
+      options:[
+        { texte:"Regarder longtemps", effet:{xp:44}, suite:"Tu sais désormais exactement pourquoi tu montes." },
+        { texte:"Détourner les yeux", effet:{hp:18}, suite:"Certaines choses se regardent après, pas avant." } ] },
+    { id:"cellules", zones:[4], e:"🔒", n:"Les cellules du sous-sol", amer:true,
+      texte:"Les mages y sont encore. Vieux, muets, vivants. L'un d'eux te reconnaît sans pouvoir le dire.",
+      options:[
+        { texte:"Leur donner tes mots", effet:{mp:-18, xp:46}, suite:"Ils te remercient. Le premier son depuis soixante ans." },
+        { texte:"Continuer, et revenir après", effet:{hp:14, xp:-8}, suite:"Ils comprennent. C'est bien pire." } ] }
   ],
 
   /* ---------- Interruptions courtes EN PLEIN COMBAT ---------- */
