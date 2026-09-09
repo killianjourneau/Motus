@@ -209,6 +209,13 @@
     color:var(--ink); padding:10px 16px; border-radius:12px; font-size:13.5px; font-weight:700;
     box-shadow:0 10px 26px rgba(0,0,0,.4); z-index:90; opacity:0; pointer-events:none; transition:opacity .2s; max-width:90vw; text-align:center; }
   .toast.show{ opacity:1; }
+  .mot-revele{ display:inline-block; margin-top:6px; font-size:13px; color:var(--ink-dim); letter-spacing:.5px; }
+  .mot-revele b{ color:var(--red); letter-spacing:1px; }
+  .barres{ margin-left:6px; font-size:12px; letter-spacing:-2px; }
+  .pouvoir{ display:inline-block; margin-left:6px; padding:2px 8px; border-radius:8px;
+    background:var(--cell); font-size:11px; font-weight:800; color:var(--ink); }
+  .secret{ display:inline-block; margin-left:6px; padding:2px 8px; border-radius:8px;
+    background:var(--yellow); color:#14233c; font-size:11px; font-weight:800; }
   .lore{ font-size:13.5px; line-height:1.65; color:var(--ink-dim); font-style:italic; white-space:pre-line; }
 </style>
 </head>
@@ -339,8 +346,8 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="./dico/motus-words.js?v=1.52.0"></script>
-<script src="./dico/motus-rpg.js?v=1.52.0"></script>
+<script src="./dico/motus-words.js?v=1.50.2"></script>
+<script src="./dico/motus-rpg.js?v=1.50.2"></script>
 <script>
 (function(){
   "use strict";
@@ -396,10 +403,13 @@
     if(seen.indexOf(nom)<0){ seen.push(nom); store.set("motus.rpg2.seen", seen); }
   }
   function freshPlayer(){
-    return { lvl:1, xp:0, hp:70, mana:35, or:0, zone:0, etage:0,
+    return { lvl:1, xp:0, hp:70, mana:35, or:0, zone:0, etage:0, vaincus:[],
              map:null, potions:{potion_pv:1,potion_mp:0}, relics:[], skills:["reveal"],
              up:{pv:0,mp:0,atk:0,critBonus:0,regenMot:0,manaMot:0},
-             nextBuffAtk:0, amulette:false, morts:0 };
+             nextBuffAtk:0, amulette:false, morts:0,
+             // remis à faux par freshPlayer : l'introduction se rejoue donc
+             // à chaque nouvelle aventure, mais pas à chaque rechargement
+             introVue:false };
   }
   function hasRelic(id){ return P.relics.indexOf(id)>=0; }
   function hpMax(){ return 70 + P.up.pv; }
@@ -599,9 +609,15 @@
     if(node.type==="boss")   return startFight("boss");
     if(node.type==="event"){
       // les dilemmes (aucune bonne option) restent rares : ~1 rencontre sur 5
-      var amers = EVENTS.filter(function(e){ return e.amer; });
-      var doux  = EVENTS.filter(function(e){ return !e.amer; });
-      var lot = (amers.length && Math.random()<0.2) ? amers : (doux.length ? doux : EVENTS);
+      /* Une rencontre peut être propre à un lieu : des champignons en forêt,
+         un rayonnage dans la bibliothèque. Celles sans « zones » restent
+         possibles partout. */
+      var ici = EVENTS.filter(function(e){
+        return !e.zones || e.zones.indexOf(P.zone) >= 0;
+      });
+      var amers = ici.filter(function(e){ return e.amer; });
+      var doux  = ici.filter(function(e){ return !e.amer; });
+      var lot = (amers.length && Math.random()<0.2) ? amers : (doux.length ? doux : ici);
       return showEvent(pick(lot));
     }
     if(node.type==="defi")   return startDefi(pick(DEFIS));
@@ -704,6 +720,14 @@
       { e:"⚒️", n:"S'entraîner", d:"+4 dégâts définitivement, mais aucune récupération", go:function(){
           P.up.atk += 4; toast("Tes coups portent plus fort."); } }
     ];
+    // Débloqué en vainquant le sanglier : une option qui n'existe pas sinon
+    if(P.viande){
+      opts.push({ e:"🍖", n:"Rôtir le sanglier", d:"Récupère tout, et +2 dégâts définitivement",
+        go:function(){
+          P.hp = hpMax(); P.mana = manaMax(); P.up.atk += 2; P.viande = false;
+          toast("Un vrai repas, pour la première fois depuis longtemps.");
+        } });
+    }
     opts.forEach(function(o){
       var b=document.createElement("button"); b.className="pick";
       b.innerHTML = o.e+' '+o.n+'<span class="dd">'+o.d+'</span>';
@@ -896,19 +920,34 @@
           xp:st.xp, or:st.or, trait:src.trait,
           word:"", len:0, row:0, col:0, grid:[], guesses:[], rowStates:[],
           rage:false, garde:false, over:false, revecu:false, mute:null,
-          banned:[], buffAtk:P.nextBuffAtk||0, talisman:false, tour:0 };
+          banned:[], buffAtk:P.nextBuffAtk||0, talisman:false, tour:0,
+          pouvoir:(src.pouvoir && src.pouvoir.id) || null,
+          cache:src.cache || null,
+          barres:1, barreMax:1, cacheDit:false, toile:0, grises:0, motsJoues:0 };
+    if(C.pouvoir==="meute"){ C.barres=3; C.barreMax=3; }
     P.nextBuffAtk = 0;
     markSeen(src.n);
     save();
     $("scMap").style.display="none"; $("scDefi").style.display="none"; $("scFight").style.display=""; $("kb").style.display="";
     $("cIc").textContent=src.e;
     $("cNom").textContent = src.n + (kind==="boss" ? "  👑" : kind==="elite" ? "  💀" : "");
-    $("cTrait").innerHTML = traitHtml(src.trait);
+    majBarres();
+    $("cTrait").innerHTML = traitHtml(src.trait)
+      + (src.pouvoir ? '<span class="pouvoir" title="'+src.pouvoir.d+'">✦ '+src.pouvoir.n+'</span>' : "")
+      // On PRÉVIENT qu'un secret existe, sans jamais dire lequel : c'est ce
+      // qui pousse à observer et à essayer des choses.
+      + (src.cache ? '<span class="secret" title="Cette créature cache quelque chose. À toi de trouver quoi.">🔎 Secret</span>' : "");
     $("cMod").innerHTML = zModHtml();
     buildKeyboard();
     newWord();
     renderFight();
     setMsg(src.cri || ("Propose un mot de "+C.len+" lettres."));
+    // Loup solitaire : si la meute est déjà tombée, il te reconnaît pour chef
+    if(C.cache==="beta" && (P.vaincus||[]).indexOf("Meute affamée")>=0){
+      setTimeout(function(){
+        if(C && !C.over) finirParCache("Il renifle l'odeur de la meute sur toi, baisse les oreilles et s'écarte.");
+      }, 1100);
+    }
   }
   function newWord(){
     var z=zone(), zm=zoneMod();
@@ -1002,6 +1041,15 @@
       if(!candidats.length){ toast("Tu connais déjà toutes les lettres de ce mot !"); return; }
       var c2=pick(candidats);
       setCellOf(C,"board",C.row,c2,C.word[c2]); tileOf("board",C.row,c2).classList.add("correct");
+      // Corbeau : il a tant de choses à cacher qu'une seconde lettre lui échappe
+      if(C.cache==="cachotier"){
+        var reste = candidats.filter(function(x){ return x!==c2; });
+        if(reste.length){
+          var c3 = pick(reste);
+          setCellOf(C,"board",C.row,c3,C.word[c3]); tileOf("board",C.row,c3).classList.add("correct");
+          revelerCache("Le corbeau cache tant de choses qu'une seconde lettre lui échappe.");
+        }
+      }
       C.col=firstEmpty(); drawCursorFor(C,"board");
       C.revealedThisRow=true;
       toast("🔍 "+(c2+1)+"ᵉ lettre : "+C.word[c2]);
@@ -1038,7 +1086,23 @@
     if(C.trait==="epines" && dmg>0){ P.hp-=3; floatText("-3","var(--yellow)"); }
     return dmg;
   }
+  function majBarres(){
+    var e = $("cBarres");
+    if(!e){
+      e = document.createElement("span"); e.id="cBarres"; e.className="barres";
+      var n = $("cNom"); if(n && n.parentNode) n.parentNode.insertBefore(e, n.nextSibling);
+    }
+    e.textContent = (C && C.barreMax>1) ? "❤️".repeat(C.barres) : "";
+  }
   function checkFoeDown(){
+    // Meute : trois bêtes se relaient, il faut les abattre l'une après l'autre
+    if(C.barres > 1){
+      C.barres--;
+      C.foeHp = C.foeHpMax;
+      toast("🐾 Une bête tombe — il en reste "+C.barres+" !", 2400);
+      setMsg("La suivante prend sa place.");
+      majBarres(); newWord(); renderFight(); return false;
+    }
     if(C.trait==="renaissance" && !C.revecu){
       C.revecu=true; C.foeHp=Math.round(C.foeHpMax*0.4);
       toast("🔥 Il renaît de ses cendres !",2400); setMsg("Il se relève. Il faut le vaincre une seconde fois.");
@@ -1086,6 +1150,26 @@
     attack(w);
   }
 
+  var INSECTES = ["ABEILLE","FOURMI","GUEPE","MOUCHE","PAPILLON","SAUTERELLE","CRIQUET",
+    "COCCINELLE","LIBELLULE","MOUSTIQUE","CIGALE","GRILLON","SCARABEE","HANNETON",
+    "TERMITE","PUCERON","CHENILLE","LUCIOLE","BOURDON","MANTE","PUCE","POU","CAFARD",
+    "CANCRELAT","CHARANCON","PERCE-OREILLE","TAON","FRELON","LARVE","ASTICOT"];
+
+  /* Un effet caché ne s'annonce jamais : il se révèle au moment où il se
+     déclenche. Le joueur sait seulement qu'il y en a un (badge « Secret »). */
+  function revelerCache(txt){
+    if(C.cacheDit) return;
+    C.cacheDit = true;
+    toast("🔎 "+txt, 3600);
+  }
+  /* Le combat s'achève sans passer par les dégâts : fuite, reconnaissance,
+     dégoût… La récompense reste due, l'adversaire est bien écarté. */
+  function finirParCache(txt){
+    revelerCache(txt);
+    C.foeHp = 0; C.barres = 1;
+    setTimeout(function(){ if(C && !C.over) checkFoeDown(); }, 1200);
+  }
+
   function attack(w){
     var zm = C.talisman ? null : zoneMod();
     var st = evaluate(w, C.word);
@@ -1129,9 +1213,37 @@
     }
     C.guesses.push(w); C.rowStates.push(st);
 
+    /* ---- effets cachés qui dépendent du mot proposé ---- */
+    // Araignée : nommer un insecte la fait renoncer
+    if(C.cache==="insecte" && INSECTES.indexOf(w)>=0){
+      finirParCache("Tu as nommé un insecte. L'araignée hésite, puis s'en va chasser ailleurs.");
+      renderFight(); return;
+    }
+    // Meute : écrire FEU d'affilée les disperse toutes
+    if(C.cache==="feu" && w.indexOf("FEU")>=0){
+      finirParCache("FEU. Les loups reculent tous en même temps — la meute se disperse.");
+      renderFight(); return;
+    }
+    // Chêne muet : trouver du premier coup prouve qu'on est digne
+    if(C.cache==="digne" && w===C.word && C.motsJoues===0 && C.row===0){
+      finirParCache("Du premier coup. Le chêne s'écarte : tu es digne de ta mission.");
+      renderFight(); return;
+    }
+
     var exact = (w===C.word);
+    C.motsJoues++;
+    // Gobelin : trop vif pour qu'une lettre mal placée le touche
+    if(C.pouvoir==="agile") yel = 0;
     var dmg = red*3 + yel*1 + atkBonus() + (C.buffAtk||0);
     if(exact) dmg += 15 + P.up.critBonus;
+    // Chêne muet : seul un mot entièrement trouvé entame son écorce
+    if(C.pouvoir==="resistance" && !exact) dmg = 0;
+    // Ronce : chaque lettre grise la nourrit
+    if(C.pouvoir==="epines"){
+      var gris = 0; for(var gg=0; gg<C.len; gg++) if(st[gg]==="absent") gris++;
+      C.grises += gris;
+      if(gris>0){ C.foeHp = Math.min(C.foeHpMax, C.foeHp + gris); floatText("+"+gris,"var(--yellow)"); }
+    }
     if(C.rage){ dmg*=2; C.rage=false; }
     dealDamage(dmg, false);
     vibrate([15]);
@@ -1159,6 +1271,10 @@
     if(C.trait==="regen") C.foeHp = Math.min(C.foeHpMax, C.foeHp+6);
     var back = C.atk;
     if(C.trait==="rapide" && C.tour%3===0) back = Math.round(back*2);
+    // Loup : acculé, il frappe deux fois plus fort
+    if(C.pouvoir==="blessee" && C.foeHp <= C.foeHpMax*0.35) back = Math.round(back*2);
+    // Sanglier : il ne blesse jamais… tant qu'on trouve ses mots
+    if(C.pouvoir==="charge") back = 0;
     if(C.garde){ back=0; C.garde=false; toast("🛡️ Attaque bloquée !"); }
     if(skipRip) back=0;
     if(back>0 && C.trait==="vampire") C.foeHp=Math.min(C.foeHpMax,C.foeHp+Math.round(back/2));
@@ -1167,6 +1283,14 @@
     if(back>0 && hasRelic("miroir")){ C.foeHp-=4; }
 
     C.row++; C.revealedThisRow=false;
+    if(C.pouvoir==="toile" && !exact && C.row<MAX_ROWS){
+      var libres="ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").filter(function(c){
+        return C.word.indexOf(c)<0 && C.banned.indexOf(c)<0; });
+      if(libres.length){
+        var pris = pick(libres); C.banned.push(pris); C.toile++;
+        toast("🕸️ La toile se resserre : « "+pris+" » t'est interdit.", 2000);
+      }
+    }
     var plus=0;
     if(exact){
       setMsg("🎯 Mot trouvé ! "+dmg+" dégâts.");
@@ -1175,11 +1299,38 @@
     } else if(C.row>=MAX_ROWS){
       plus = hasRelic("clepsydre") ? 0 : Math.round(C.atk*0.6);
       setMsg("Le mot était « "+C.word+" ». Le monstre en profite !");
+      if(C.pouvoir==="larcin" && P.relics.length){
+        var vole = pick(P.relics);
+        P.relics = P.relics.filter(function(x){ return x!==vole; });
+        var rr = RELICS.filter(function(x){ return x.id===vole; })[0];
+        toast("🐦‍⬛ Il emporte "+(rr?rr.e+" "+rr.n:"une relique")+" dans son bec !", 2600);
+      }
+      if(C.pouvoir==="charge"){
+        toast("🐗 Il charge. Tu n'as pas eu le mot pour l'arrêter.", 2600);
+        plus = P.hp + 999;   // rater sa charge est fatal
+      }
     } else {
       setMsg(dmg+" dégâts infligés.");
       P.mana=Math.min(manaMax(),P.mana+3);
     }
     if(back+plus>0){ P.hp-=(back+plus); floatText("-"+(back+plus),"var(--yellow)"); }
+
+    // Gobelin : quand il ne reste qu'une lettre à trouver, il déguerpit
+    if(C.cache==="lache" && !exact){
+      var connues=0;
+      for(var lc=0; lc<C.len; lc++){
+        for(var lr=0; lr<C.rowStates.length; lr++){ if(C.rowStates[lr][lc]==="correct"){ connues++; break; } }
+      }
+      if(connues >= C.len-1){
+        finirParCache("Il ne te manque qu'une lettre — le gobelin n'attend pas la suite et détale.");
+        save(); renderFight(); return;
+      }
+    }
+    // Ronce : six tentatives sans une seule bonne lettre, elle se lasse
+    if(C.cache==="degoutee" && C.row>=MAX_ROWS && C.grises === C.len*MAX_ROWS){
+      finirParCache("Pas une seule lettre juste. La ronce te juge immangeable et se rétracte.");
+      save(); renderFight(); return;
+    }
 
     if(C.foeHp<=0){ if(checkFoeDown()) return; }
     if(P.hp<=0){ if(handleDeath()) return; }
@@ -1204,6 +1355,14 @@
     if(C.garde){ back=0; C.garde=false; }
     if(C.trait==="venin") back+=3;
     C.row++; C.revealedThisRow=false;
+    if(C.pouvoir==="toile" && !exact && C.row<MAX_ROWS){
+      var libres="ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").filter(function(c){
+        return C.word.indexOf(c)<0 && C.banned.indexOf(c)<0; });
+      if(libres.length){
+        var pris = pick(libres); C.banned.push(pris); C.toile++;
+        toast("🕸️ La toile se resserre : « "+pris+" » t'est interdit.", 2000);
+      }
+    }
     var plus=0;
     if(C.row>=MAX_ROWS){ plus = hasRelic("clepsydre")?0:Math.round(C.atk*0.6); setMsg("Le mot était « "+C.word+" »."); }
     else setMsg("Tentative perdue.");
@@ -1234,12 +1393,22 @@
     // est mathématiquement perdue — vérifié par simulation.
     var soin = Math.round(hpMax()*0.15);
     P.hp = Math.min(hpMax(), P.hp + soin);
+    if(!P.vaincus) P.vaincus = [];
+    if(P.vaincus.indexOf(C.foe.n) < 0) P.vaincus.push(C.foe.n);
+    // Sanglier : sa viande se garde pour le prochain campement
+    if(C.cache==="viande" && !P.viande){
+      P.viande = true;
+      toast("🔎 Tu emportes un quartier de sanglier. Le prochain repos sera meilleur.", 3400);
+    }
     var up = gainXp(C.xp);
     var boss = (C.kind==="boss"), elite = (C.kind==="elite");
     save();
     $("rIc").textContent = boss ? "👑" : elite ? "💀" : "🎉";
     $("rTit").textContent = boss ? "Gardien vaincu !" : elite ? "Élite terrassée !" : "Victoire !";
-    $("rSub").textContent = C.foe.n + " est vaincu.";
+    // le mot est souvent trouvé partiellement : on le montre en entier,
+    // comme au Pendu — sinon on ne sait jamais ce qu'on cherchait
+    $("rSub").innerHTML = C.foe.n + " est vaincu.<br><span class=\"mot-revele\">"
+      + "Le mot était <b>" + C.word + "</b></span>";
     $("rGain").innerHTML = "<span>+"+C.xp+" XP</span><span>+"+orGain+" 🪙</span><span>+"+soin+" ❤️</span>" + (up ? "<span>🎖️ Niveau "+P.lvl+"</span>" : "");
     $("rLoot").innerHTML = "";
     $("rNext").textContent = "Continuer";
@@ -1255,6 +1424,7 @@
     openOverlay("ovRes");
   }
   function loseFight(){
+    if(C && C.word) C.motRevele = C.word;
     C.over = true; $("kb").style.display="none";
     P.morts = (P.morts||0)+1;
     var orLost = Math.min(P.or, 10 + P.lvl*3);
@@ -1265,8 +1435,9 @@
     save();
     $("rIc").textContent="💀";
     $("rTit").textContent="Tu es tombé…";
-    $("rSub").textContent = "Tu reprends l'acte depuis son entrée. Ton niveau, tes reliques et tes compétences te suivent"
-      + (orLost>0 ? ", mais tu as perdu "+orLost+" 🪙 dans ta fuite." : ".");
+    $("rSub").innerHTML = "Tu reprends l'acte depuis son entrée. Ton niveau, tes reliques et tes compétences te suivent"
+      + (orLost>0 ? ", mais tu as perdu "+orLost+" 🪙 dans ta fuite." : ".")
+      + (C && C.motRevele ? '<br><span class="mot-revele">Le mot était <b>'+C.motRevele+'</b></span>' : "");
     $("rGain").innerHTML = "<span>Niveau "+P.lvl+" conservé</span>";
     $("rLoot").innerHTML = "";
     $("rNext").textContent="Repartir";
@@ -1423,15 +1594,19 @@
     if(DF && $("scDefi").style.display!=="none") buildBoardFor(DF,"dfBoard");
   });
 
+  function montrerIntro(){
+    $("loreTxt").textContent = DATA.prologue || "";
+    openOverlay("ovLore");
+    P.introVue = true; save();
+  }
+
   /* ---------- démarrage ---------- */
   load();
   buildKeyboard();
   showMap();
-  if(!store.get("motus.rpg2.lu", false)){
-    $("loreTxt").textContent = DATA.prologue || "";
-    openOverlay("ovLore");
-    store.set("motus.rpg2.lu", true);
-  }
+  // L'introduction se rejoue au début de CHAQUE aventure : elle plante le
+  // décor, et une partie longue peut être reprise des semaines plus tard.
+  if(!P.introVue){ montrerIntro(); }
 })();
 </script>
 </body>
