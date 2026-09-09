@@ -103,6 +103,28 @@ module.exports = function ({ groupe, verifie, ok, egal, vide, RACINE }) {
     vide(manquants, "déclarés mais absents du moteur");
   });
 
+  verifie("un adversaire n'a jamais deux pouvoirs à la fois", () => {
+    /* Un ancien trait ET un nouveau pouvoir faisaient doublon à l'écran,
+       et se cumulaient mécaniquement. */
+    const doubles = [];
+    D.zones.forEach((z, i) => {
+      [].concat(z.monstres, z.elites, [z.boss]).forEach(m => {
+        if (m.pouvoir && m.trait) doubles.push("acte " + (i+1) + " " + m.n);
+      });
+    });
+    vide(doubles, "portent un trait ET un pouvoir");
+  });
+
+  verifie("chaque effet caché a son explication", () => {
+    // affichée une fois le secret percé — sans elle, l'étiquette serait vide
+    const moteur = require("fs").readFileSync(path.join(RACINE, "rpg.html"), "utf8");
+    const sans = [];
+    D.zones.forEach(z => [].concat(z.monstres, z.elites, [z.boss]).forEach(m => {
+      if (m.cache && !new RegExp(m.cache + "\\s*:").test(moteur)) sans.push(m.n);
+    }));
+    vide(sans, "effets cachés sans texte d'explication");
+  });
+
   verifie("un adversaire à pouvoir annonce qu'il cache quelque chose", () => {
     // le joueur doit savoir qu'un secret existe, sans savoir lequel
     const moteur = require("fs").readFileSync(path.join(RACINE, "rpg.html"), "utf8");
