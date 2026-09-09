@@ -87,6 +87,49 @@ module.exports = function ({ groupe, verifie, ok, egal, vide, RACINE }) {
     vide(soucis, "un dilemme doit forcer un arbitrage");
   });
 
+  verifie("chaque pouvoir et effet caché est bien implémenté", () => {
+    /* Un effet déclaré dans les données mais absent du moteur ne se
+       déclencherait jamais — invisible, donc jamais signalé par un joueur. */
+    const moteur = require("fs").readFileSync(path.join(RACINE, "rpg.html"), "utf8");
+    const manquants = [];
+    D.zones.forEach((z, i) => {
+      [].concat(z.monstres, z.elites, [z.boss]).forEach(m => {
+        if (m.pouvoir && !moteur.includes('"' + m.pouvoir.id + '"'))
+          manquants.push("acte " + (i+1) + " " + m.n + " : pouvoir " + m.pouvoir.id);
+        if (m.cache && !moteur.includes('"' + m.cache + '"'))
+          manquants.push("acte " + (i+1) + " " + m.n + " : effet caché " + m.cache);
+      });
+    });
+    vide(manquants, "déclarés mais absents du moteur");
+  });
+
+  verifie("un adversaire à pouvoir annonce qu'il cache quelque chose", () => {
+    // le joueur doit savoir qu'un secret existe, sans savoir lequel
+    const moteur = require("fs").readFileSync(path.join(RACINE, "rpg.html"), "utf8");
+    ok(/class="secret"/.test(moteur), "aucun indicateur de secret dans l'interface");
+    ok(!/cache==="lache"[\s\S]{0,200}cTrait/.test(moteur), "le secret ne doit pas être annoncé d'avance");
+  });
+
+  verifie("chaque acte dispose d'assez de rencontres", () => {
+    /* Une rencontre peut être réservée à un lieu (« zones »). Si un acte se
+       retrouve avec trop peu d'options, on reverrait toujours les mêmes. */
+    const soucis = [];
+    for (let z = 0; z < 5; z++) {
+      const ici = (D.events || []).filter(e => !e.zones || e.zones.indexOf(z) >= 0);
+      const doux = ici.filter(e => !e.amer);
+      if (doux.length < 6) soucis.push("acte " + (z+1) + " : " + doux.length + " rencontres neutres");
+      if (!ici.some(e => e.amer)) soucis.push("acte " + (z+1) + " : aucun dilemme");
+    }
+    vide(soucis);
+  });
+
+  verifie("les rencontres de lieu visent un acte qui existe", () => {
+    const mauvais = (D.events || [])
+      .filter(e => e.zones && e.zones.some(z => z < 0 || z >= D.zones.length))
+      .map(e => e.id);
+    vide(mauvais, "zones hors des cinq actes");
+  });
+
   verifie("les compétences et améliorations sont bien formées", () => {
     const soucis = [];
     (D.skills || []).forEach(s => { if (!s.id || !s.n || typeof s.cout !== "number") soucis.push("compétence " + (s.id||"?")); });
