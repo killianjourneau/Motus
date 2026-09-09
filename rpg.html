@@ -212,10 +212,12 @@
   .mot-revele{ display:inline-block; margin-top:6px; font-size:13px; color:var(--ink-dim); letter-spacing:.5px; }
   .mot-revele b{ color:var(--red); letter-spacing:1px; }
   .barres{ margin-left:6px; font-size:12px; letter-spacing:-2px; }
-  .pouvoir{ display:inline-block; margin-left:6px; padding:2px 8px; border-radius:8px;
-    background:var(--cell); font-size:11px; font-weight:800; color:var(--ink); }
-  .secret{ display:inline-block; margin-left:6px; padding:2px 8px; border-radius:8px;
-    background:var(--yellow); color:#14233c; font-size:11px; font-weight:800; }
+  .pouvoir{ display:inline-block; margin-left:6px; padding:3px 9px; border-radius:8px;
+    background:var(--cell); font-size:11px; font-weight:800; color:var(--ink); cursor:pointer; }
+  .secret{ display:inline-block; margin-left:6px; padding:3px 9px; border-radius:8px;
+    background:var(--yellow); color:#14233c; font-size:11px; font-weight:800; cursor:pointer; }
+  .secret.perce{ background:var(--ok,#0f8a58); color:#fff; }
+  .pouvoir:active, .secret:active{ transform:scale(.95); }
   .lore{ font-size:13.5px; line-height:1.65; color:var(--ink-dim); font-style:italic; white-space:pre-line; }
 </style>
 </head>
@@ -346,8 +348,8 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="./dico/motus-words.js?v=1.53.0"></script>
-<script src="./dico/motus-rpg.js?v=1.53.0"></script>
+<script src="./dico/motus-words.js?v=1.50.2"></script>
+<script src="./dico/motus-rpg.js?v=1.50.2"></script>
 <script>
 (function(){
   "use strict";
@@ -403,7 +405,7 @@
     if(seen.indexOf(nom)<0){ seen.push(nom); store.set("motus.rpg2.seen", seen); }
   }
   function freshPlayer(){
-    return { lvl:1, xp:0, hp:70, mana:35, or:0, zone:0, etage:0, vaincus:[],
+    return { lvl:1, xp:0, hp:70, mana:35, or:0, zone:0, etage:0, vaincus:[], secrets:[],
              map:null, potions:{potion_pv:1,potion_mp:0}, relics:[], skills:["reveal"],
              up:{pv:0,mp:0,atk:0,critBonus:0,regenMot:0,manaMot:0},
              nextBuffAtk:0, amulette:false, morts:0,
@@ -932,11 +934,21 @@
     $("cIc").textContent=src.e;
     $("cNom").textContent = src.n + (kind==="boss" ? "  👑" : kind==="elite" ? "  💀" : "");
     majBarres();
-    $("cTrait").innerHTML = traitHtml(src.trait)
-      + (src.pouvoir ? '<span class="pouvoir" title="'+src.pouvoir.d+'">✦ '+src.pouvoir.n+'</span>' : "")
-      // On PRÉVIENT qu'un secret existe, sans jamais dire lequel : c'est ce
-      // qui pousse à observer et à essayer des choses.
-      + (src.cache ? '<span class="secret" title="Cette créature cache quelque chose. À toi de trouver quoi.">🔎 Secret</span>' : "");
+    /* Un adversaire n'affiche qu'UN pouvoir : le nouveau s'il en a un,
+       l'ancien trait sinon. Les deux ensemble faisaient doublon.
+       Les descriptions s'obtiennent en touchant l'étiquette — sur mobile,
+       une infobulle au survol n'existe pas. */
+    var perce = (P.secrets||[]).indexOf(src.n) >= 0;
+    $("cTrait").innerHTML =
+        (src.pouvoir
+          ? '<span class="pouvoir" data-d="'+esc(src.pouvoir.d)+'">✦ '+src.pouvoir.n+'</span>'
+          : traitHtml(src.trait))
+      + (src.cache
+          ? (perce
+              ? '<span class="secret perce" data-d="'+esc(secretTexte(src.cache))+'">✨ Secret percé</span>'
+              : '<span class="secret" data-d="Cette créature cache quelque chose. À toi de trouver quoi.">🔎 Secret</span>')
+          : "");
+    brancherEtiquettes();
     $("cMod").innerHTML = zModHtml();
     buildKeyboard();
     newWord();
@@ -1086,6 +1098,30 @@
     if(C.trait==="epines" && dmg>0){ P.hp-=3; floatText("-3","var(--yellow)"); }
     return dmg;
   }
+  function esc(t){ return String(t==null?"":t).replace(/[&<>"']/g, function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+
+  /* Ce que le secret faisait, une fois découvert — pour le bestiaire. */
+  var SECRETS = {
+    lache:     "Il détale dès qu'il ne reste qu'une lettre à trouver.",
+    beta:      "Vaincs d'abord la meute : il te reconnaîtra pour chef.",
+    insecte:   "Nomme un insecte et elle renonce.",
+    cachotier: "Ton indice lui arrache deux lettres au lieu d'une.",
+    viande:    "Sa viande améliore le campement suivant.",
+    feu:       "Écris FEU dans un mot et la meute se disperse.",
+    degoutee:  "Six tentatives sans une seule bonne lettre la dégoûtent.",
+    digne:     "Trouve son mot du premier coup et il s'écarte."
+  };
+  function secretTexte(id){ return SECRETS[id] || "Secret percé."; }
+
+  /* Sur un téléphone, il n'y a pas de survol : on touche pour lire. */
+  function brancherEtiquettes(){
+    var els = document.querySelectorAll("#cTrait [data-d]");
+    Array.prototype.forEach.call(els, function(e){
+      e.onclick = function(){ toast(e.textContent.trim()+" — "+e.dataset.d, 3600); };
+    });
+  }
+
   function majBarres(){
     var e = $("cBarres");
     if(!e){
@@ -1160,6 +1196,8 @@
   function revelerCache(txt){
     if(C.cacheDit) return;
     C.cacheDit = true;
+    if(!P.secrets) P.secrets = [];
+    if(C.foe && P.secrets.indexOf(C.foe.n) < 0){ P.secrets.push(C.foe.n); save(); }
     toast("🔎 "+txt, 3600);
   }
   /* Le combat s'achève sans passer par les dégâts : fuite, reconnaissance,
