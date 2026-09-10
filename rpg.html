@@ -209,6 +209,8 @@
     color:var(--ink); padding:10px 16px; border-radius:12px; font-size:13.5px; font-weight:700;
     box-shadow:0 10px 26px rgba(0,0,0,.4); z-index:90; opacity:0; pointer-events:none; transition:opacity .2s; max-width:90vw; text-align:center; }
   .toast.show{ opacity:1; }
+  .secret-msg{ display:inline-block; padding:3px 10px; border-radius:9px;
+    background:var(--yellow); color:#14233c; font-size:12.5px; font-weight:800; }
   .mot-revele{ display:inline-block; margin-top:6px; font-size:13px; color:var(--ink-dim); letter-spacing:.5px; }
   .mot-revele b{ color:var(--red); letter-spacing:1px; }
   .cx-l{ display:block; font-size:11.5px; color:var(--ink-dim); font-weight:700; font-style:italic; margin-top:2px; }
@@ -353,8 +355,8 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="./dico/motus-words.js?v=1.50.3"></script>
-<script src="./dico/motus-rpg.js?v=1.50.3"></script>
+<script src="./dico/motus-words.js?v=1.50.2"></script>
+<script src="./dico/motus-rpg.js?v=1.50.2"></script>
 <script>
 (function(){
   "use strict";
@@ -920,7 +922,11 @@
     }
   }
   function tileOf(boxId,r,c){ return $(boxId).children[r].children[c]; }
-  function setCellOf(S,boxId,r,c,ch){ S.grid[r][c]=ch; tileOf(boxId,r,c).querySelector("span").textContent=ch; }
+  function setCellOf(S,boxId,r,c,ch){
+    // toute frappe réveille le golem : son secret exige l'immobilité totale
+    if(S===C && C && C.dodo && ch){ clearTimeout(C.dodo); C.dodo=null; }
+    S.grid[r][c]=ch; tileOf(boxId,r,c).querySelector("span").textContent=ch;
+  }
   function drawCursorFor(S,boxId){
     for(var r=0;r<S.grid.length;r++) for(var c=0;c<S.len;c++) tileOf(boxId,r,c).classList.remove("cur");
     if(S.row < S.grid.length) for(var c2=0;c2<S.len;c2++) tileOf(boxId,S.row,c2).classList.toggle("cur", c2===S.col);
@@ -956,7 +962,8 @@
           pouvoir:(src.pouvoir && src.pouvoir.id) || null,
           cache:src.cache || null,
           barres:1, barreMax:1, cacheDit:false, toile:0, grises:0, motsJoues:0,
-          oublies:[], skillsUtilises:0 };
+          oublies:[], skillsUtilises:0, maxRows:MAX_ROWS, secretTxt:null };
+    if(src.pouvoir && src.pouvoir.id==="insignifiant") C.maxRows = 4;
     if(C.pouvoir==="meute"){ C.barres=3; C.barreMax=3; }
     P.nextBuffAtk = 0;
     markSeen(src.n);
@@ -975,6 +982,17 @@
     newWord();
     renderFight();
     setMsg(src.cri || ("Propose un mot de "+C.len+" lettres."));
+    /* Golem : sa vision est basée sur le mouvement. Ne rien taper pendant une
+       minute le rendort — le seul secret qui demande de ne RIEN faire. */
+    if(C.cache==="immobile"){
+      clearTimeout(C.dodo);
+      C.dodo = setTimeout(function(){
+        if(C && !C.over && C.row===0 && C.grid[0].every(function(x){ return !x; })){
+          finirParCache("Une minute sans le moindre mouvement. Le golem se rendort.");
+          renderFight();
+        }
+      }, 60000);
+    }
     // Loup solitaire : si la meute est déjà tombée, il te reconnaît pour chef
     if(C.cache==="beta" && (P.vaincus||[]).indexOf("Meute affamée")>=0){
       setTimeout(function(){
@@ -986,7 +1004,7 @@
     var z=zone(), zm=zoneMod();
     C.word = pickWord(z.lens); C.len = C.word.length;
     C.row=0; C.col=0; C.guesses=[]; C.rowStates=[]; C.grid=[];
-    for(var r=0;r<MAX_ROWS;r++) C.grid.push(new Array(C.len).fill(""));
+    for(var r=0;r<(C.maxRows||MAX_ROWS);r++) C.grid.push(new Array(C.len).fill(""));
     if(C.trait==="muet"){
       var dispo = SKILLS.filter(function(s){ return P.skills.indexOf(s.id)>=0; });
       C.mute = dispo.length ? pick(dispo).id : null;
@@ -1054,8 +1072,8 @@
   }
   function useSkill(s){
     var cost = skillCost(s);
-    // Bibliothécaire : ici, parler coûte le double
-    if(C.pouvoir==="silence") cost *= 2;
+    // Esprit : ici, aucune formule n'est tolérée
+    if(C.pouvoir==="interdit"){ toast("🤫 TAISEZ-VOUS. Aucune compétence ici."); return; }
     // Geôlier : une seule compétence pour tout le combat
     if(C.pouvoir==="chaines" && C.skillsUtilises >= 1){
       toast("⛓️ Les chaînes te retiennent : une seule compétence par combat."); return;
@@ -1144,9 +1162,12 @@
     eau:       "Nomme quelque chose d'humide et elle retombe.",
     ordre:     "Donne-lui enfin l'ordre d'arrêter.",
     double:    "Une lettre doublée : il se croit reconnu.",
-    livre:     "Nomme-lui ce qu'il range depuis toujours.",
+    livre:     "Nomme un livre : c'est tout ce qui l'intéresse.",
     maindue:   "Vaincs-la sans employer une seule compétence.",
-    clef:      "Nomme ce qu'il n'a jamais eu : de quoi ouvrir."
+    clef:      "Nomme ce qu'il n'a jamais eu : de quoi ouvrir.",
+    toutjaune: "Une tentative entièrement jaune brouille son écho.",
+    sifflement:"Deux S d'affilée : il te croit des siens.",
+    immobile:  "Ne touche à rien pendant une minute : il se rendort."
   };
   function secretTexte(id){ return SECRETS[id] || "Secret percé."; }
 
@@ -1266,10 +1287,16 @@
   }
   /* Le combat s'achève sans passer par les dégâts : fuite, reconnaissance,
      dégoût… La récompense reste due, l'adversaire est bien écarté. */
+  /* Un combat gagné par un secret doit s'EXPLIQUER : sinon le joueur voit
+     l'adversaire tomber sans comprendre ce qu'il a fait. On l'affiche dans
+     la zone de message, on laisse le temps de lire, et on le répète sur
+     l'écran de victoire. */
   function finirParCache(txt){
     revelerCache(txt);
+    C.secretTxt = txt;
+    setMsg('<span class="secret-msg">🔎 Secret percé !</span><br>' + txt);
     C.foeHp = 0; C.barres = 1;
-    setTimeout(function(){ if(C && !C.over) checkFoeDown(); }, 1200);
+    setTimeout(function(){ if(C && !C.over) checkFoeDown(); }, 2600);
   }
 
   function attack(w){
@@ -1326,19 +1353,20 @@
       finirParCache("FEU. Les loups reculent tous en même temps — la meute se disperse.");
       renderFight(); return;
     }
-    // Rat : nommer de la vraie nourriture le détourne du papier
-    if(C.cache==="repas" && MOTS_REPAS.indexOf(w)>=0){
-      finirParCache("Un vrai repas. Le rat lâche ses pages et file dans ce sens-là.");
-      renderFight(); return;
-    }
-    // Chauve-souris : une lettre répétée lui rend son écho
-    if(C.cache==="echo" && /([A-Z])\1|([A-Z])[A-Z]*\2/.test(w)){
-      finirParCache("Une lettre qui résonne deux fois : elle retrouve ses repères et s'envole.");
+
+    // Ver de papier : deux S d'affilée, c'est son sifflement
+    if(C.cache==="sifflement" && w.indexOf("SS")>=0){
+      finirParCache("Ssss. Il te prend pour l'un des siens et se détourne.");
       renderFight(); return;
     }
     // Cendre : ce qui est humide la disperse
     if(C.cache==="eau" && MOTS_EAU.indexOf(w)>=0){
       finirParCache("L'humidité du mot suffit : la cendre retombe et ne se relève pas.");
+      renderFight(); return;
+    }
+    // Chauve-souris : tout en jaune, son écho ne lui renvoie plus rien
+    if(C.cache==="toutjaune" && yel===C.len){
+      finirParCache("Toutes les lettres présentes, aucune à sa place : son écho se brouille et elle fuit.");
       renderFight(); return;
     }
     // Gardien : personne ne lui a jamais donné l'ordre de s'arrêter
@@ -1353,7 +1381,13 @@
     }
     // Bibliothécaire : nomme-lui ce qu'il cherche depuis toujours
     if(C.cache==="livre" && MOTS_LIVRE.indexOf(w)>=0){
-      finirParCache("Il répète le mot, hoche la tête, et te laisse passer vers son rayon.");
+      // la souris repart avec son butin et te laisse une récompense
+      if(C.foe && C.foe.n.indexOf("Souris")>=0){
+        P.or += 18; 
+        finirParCache("Elle file avec le mot sous la patte, et laisse tomber sa réserve : +18 🪙.");
+      } else {
+        finirParCache("Il répète le mot, hoche la tête, et te laisse passer vers son rayon.");
+      }
       renderFight(); return;
     }
     // Geôlier : il n'a jamais eu la clef
@@ -1375,10 +1409,8 @@
     if(exact) dmg += 15 + P.up.critBonus;
     // Chêne muet : seul un mot entièrement trouvé entame son écorce
     if(C.pouvoir==="resistance" && !exact) dmg = 0;
-    // Chauve-souris : un coup sur deux ne l'atteint qu'à moitié
-    if(C.pouvoir==="erratique" && C.row%2===1) dmg = Math.round(dmg/2);
-    // Gardien : en dessous de trois bonnes lettres, la consigne tient
-    if(C.pouvoir==="consigne" && red < 3 && !exact) dmg = 0;
+    // Golem : les bonus glissent sur la pierre, seules les lettres comptent
+    if(C.pouvoir==="durpierre") dmg = red*3 + yel*1;
     // Ronce : chaque lettre grise la nourrit
     if(C.pouvoir==="epines"){
       var gris = 0; for(var gg=0; gg<C.len; gg++) if(st[gg]==="absent") gris++;
@@ -1418,6 +1450,8 @@
     if(C.pouvoir==="charge") back = 0;
     // Ombre du puits : chaque tentative ratée l'enhardit
     if(C.pouvoir==="fond") back = Math.round(back * (1 + 0.25*C.row));
+    // Chauve-souris : son écho te blesse à chaque lettre mal placée
+    if(C.pouvoir==="echoloc") back += yel;
     if(C.garde){ back=0; C.garde=false; toast("🛡️ Attaque bloquée !"); }
     if(skipRip) back=0;
     if(back>0 && C.trait==="vampire") C.foeHp=Math.min(C.foeHpMax,C.foeHp+Math.round(back/2));
@@ -1426,7 +1460,7 @@
     if(back>0 && hasRelic("miroir")){ C.foeHp-=4; }
 
     // Rat et Cendre : ils reprennent une lettre que tu croyais acquise
-    if((C.pouvoir==="grignote" || C.pouvoir==="poussiere") && !exact && C.row+1<MAX_ROWS){
+    if((C.pouvoir==="devoreur" || C.pouvoir==="poussiere") && !exact && C.row+1<(C.maxRows||MAX_ROWS)){
       var acquises=[];
       for(var ac=0; ac<C.len; ac++){
         for(var ar=0; ar<C.rowStates.length; ar++){
@@ -1435,13 +1469,13 @@
       }
       if(acquises.length){
         var perdue = pick(acquises); C.oublies.push(perdue);
-        toast((C.pouvoir==="grignote" ? "🐀 Il grignote la " : "🌫️ La poussière avale la ")
+        toast((C.pouvoir==="devoreur" ? "🪱 Il dévore la " : "🌫️ La poussière avale la ")
               + (perdue+1) + "ᵉ lettre.", 2200);
         appliquerOublis();
       }
     }
     C.row++; C.revealedThisRow=false;
-    if(C.pouvoir==="toile" && !exact && C.row<MAX_ROWS){
+    if(C.pouvoir==="toile" && !exact && C.row<(C.maxRows||MAX_ROWS)){
       var libres="ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").filter(function(c){
         return C.word.indexOf(c)<0 && C.banned.indexOf(c)<0; });
       if(libres.length){
@@ -1454,7 +1488,7 @@
       setMsg("🎯 Mot trouvé ! "+dmg+" dégâts.");
       P.mana=Math.min(manaMax(),P.mana+6+P.up.manaMot);
       if(P.up.regenMot) P.hp=Math.min(hpMax(),P.hp+P.up.regenMot);
-    } else if(C.row>=MAX_ROWS){
+    } else if(C.row>=(C.maxRows||MAX_ROWS)){
       plus = hasRelic("clepsydre") ? 0 : Math.round(C.atk*0.6);
       setMsg("Le mot était « "+C.word+" ». Le monstre en profite !");
       if(C.pouvoir==="larcin" && P.relics.length){
@@ -1485,7 +1519,7 @@
       }
     }
     // Ronce : six tentatives sans une seule bonne lettre, elle se lasse
-    if(C.cache==="degoutee" && C.row>=MAX_ROWS && C.grises === C.len*MAX_ROWS){
+    if(C.cache==="degoutee" && C.row>=(C.maxRows||MAX_ROWS) && C.grises === C.len*(C.maxRows||MAX_ROWS)){
       finirParCache("Pas une seule lettre juste. La ronce te juge immangeable et se rétracte.");
       save(); renderFight(); return;
     }
@@ -1512,23 +1546,8 @@
     var back=C.atk;
     if(C.garde){ back=0; C.garde=false; }
     if(C.trait==="venin") back+=3;
-    // Rat et Cendre : ils reprennent une lettre que tu croyais acquise
-    if((C.pouvoir==="grignote" || C.pouvoir==="poussiere") && !exact && C.row+1<MAX_ROWS){
-      var acquises=[];
-      for(var ac=0; ac<C.len; ac++){
-        for(var ar=0; ar<C.rowStates.length; ar++){
-          if(C.rowStates[ar][ac]==="correct" && C.oublies.indexOf(ac)<0){ acquises.push(ac); break; }
-        }
-      }
-      if(acquises.length){
-        var perdue = pick(acquises); C.oublies.push(perdue);
-        toast((C.pouvoir==="grignote" ? "🐀 Il grignote la " : "🌫️ La poussière avale la ")
-              + (perdue+1) + "ᵉ lettre.", 2200);
-        appliquerOublis();
-      }
-    }
     C.row++; C.revealedThisRow=false;
-    if(C.pouvoir==="toile" && !exact && C.row<MAX_ROWS){
+    if(C.pouvoir==="toile" && !exact && C.row<(C.maxRows||MAX_ROWS)){
       var libres="ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").filter(function(c){
         return C.word.indexOf(c)<0 && C.banned.indexOf(c)<0; });
       if(libres.length){
@@ -1537,11 +1556,11 @@
       }
     }
     var plus=0;
-    if(C.row>=MAX_ROWS){ plus = hasRelic("clepsydre")?0:Math.round(C.atk*0.6); setMsg("Le mot était « "+C.word+" »."); }
+    if(C.row>=(C.maxRows||MAX_ROWS)){ plus = hasRelic("clepsydre")?0:Math.round(C.atk*0.6); setMsg("Le mot était « "+C.word+" »."); }
     else setMsg("Tentative perdue.");
     if(back+plus>0){ P.hp-=(back+plus); floatText("-"+(back+plus),"var(--yellow)"); }
     if(P.hp<=0){ if(handleDeath()) return; }
-    if(C.row>=MAX_ROWS){ setTimeout(function(){ if(C && !C.over){ newWord(); renderFight(); } },900); }
+    if(C.row>=(C.maxRows||MAX_ROWS)){ setTimeout(function(){ if(C && !C.over){ newWord(); renderFight(); } },900); }
     else { C.col=0; drawCursorFor(C,"board"); applyBannedKeys(); }
     save(); renderFight();
   }
@@ -1586,8 +1605,12 @@
     $("rTit").textContent = boss ? "Gardien vaincu !" : elite ? "Élite terrassée !" : "Victoire !";
     // le mot est souvent trouvé partiellement : on le montre en entier,
     // comme au Pendu — sinon on ne sait jamais ce qu'on cherchait
-    $("rSub").innerHTML = C.foe.n + " est vaincu.<br><span class=\"mot-revele\">"
-      + "Le mot était <b>" + C.word + "</b></span>";
+    $("rSub").innerHTML = C.foe.n + " est vaincu."
+      + (C.secretTxt
+          ? '<br><span class="secret-msg">🔎 Secret percé</span><br><span class="mot-revele">'
+            + C.secretTxt + '</span>'
+          : "")
+      + "<br><span class=\"mot-revele\">Le mot était <b>" + C.word + "</b></span>";
     $("rGain").innerHTML = "<span>+"+C.xp+" XP</span><span>+"+orGain+" 🪙</span><span>+"+soin+" ❤️</span>" + (up ? "<span>🎖️ Niveau "+P.lvl+"</span>" : "");
     $("rLoot").innerHTML = "";
     $("rNext").textContent = "Continuer";
