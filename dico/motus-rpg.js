@@ -86,19 +86,42 @@ window.MOTUS_RPG = {
     { id:"grotte", nom:"Les ruines de la Bibliothèque oubliée", e:"🕯️", mod:"echoZ2", lens:[5,6],
       intro:"Soixante ans que personne n'est venu. Les rayonnages ont brûlé, mais les chaînes sont encore là, scellées au mur. Ton maître dormait ici. Quelque chose garde encore les cendres — et n'a jamais reçu l'ordre de s'arrêter.",
       etages:4,
-      monstres:[
-        {n:"Rat des cendres",e:"🐀",trait:"rapide",cri:"Il niche dans les reliures et digère ce qu'il en reste."},
-        {n:"Chauve-souris",e:"🦇",trait:"esquive",cri:"Elle s'oriente au son. Ici, il n'y en a plus."},
-        {n:"Cendre vivante",e:"🌫️",trait:"brouillard",cri:"Tout ce qui reste d'un rayonnage entier."},
-        {n:"Gardien de pierre",e:"🗿",trait:"carapace",cri:"On lui a dit de surveiller. Personne n'est revenu lui dire d'arrêter."},
-        {n:"Ver des reliures",e:"🪱",trait:"venin",cri:"Il a mangé tant de mots qu'il en bégaie."}
+            monstres:[
+        {n:"Rat des cendres",e:"🐀",
+         cri:"Il ne mange que du papier depuis soixante ans. Il rêve d'autre chose.",
+         pouvoir:{id:"grignote",n:"Grignoteur",d:"À chaque riposte, il efface une lettre que tu avais trouvée."},
+         cache:"repas"},
+        {n:"Chauve-souris",e:"🦇",
+         cri:"Elle s'oriente au son. Ici, plus rien ne résonne — sauf ce qui se répète.",
+         pouvoir:{id:"erratique",n:"Vol erratique",d:"Un coup sur deux ne l'atteint qu'à moitié."},
+         cache:"echo"},
+        {n:"Cendre vivante",e:"🌫️",
+         cri:"Tout ce qui reste d'un rayonnage entier. Un souffle humide la disperserait.",
+         pouvoir:{id:"poussiere",n:"Poussière",d:"Après chaque tentative, une case déjà trouvée redevient illisible."},
+         cache:"eau"},
+        {n:"Gardien de pierre",e:"🗿",
+         cri:"On lui a dit de surveiller. Personne n'est jamais revenu lui dire d'arrêter.",
+         pouvoir:{id:"consigne",n:"Consigne",d:"Une tentative à moins de trois bonnes lettres ne lui fait rien."},
+         cache:"ordre"},
+        {n:"Ver des reliures",e:"🪱",
+         cri:"Il a mangé tant de mots qu'il en bé-bé-bégaie.",
+         pouvoir:{id:"rongee",n:"Reliure rongée",d:"Il dévore la première lettre : elle ne t'est pas offerte."},
+         cache:"double"}
       ],
-      elites:[
-        {n:"Bibliothécaire creux",e:"👤",trait:"muet",cri:"Il range encore des livres qui n'existent plus."},
-        {n:"Ombre du puits",e:"🕳️",trait:"regen",cri:"C'est là qu'on jetait les livres interdits. Ils remontent."}
+            elites:[
+        {n:"Bibliothécaire creux",e:"👤",
+         cri:"Il range encore des ouvrages qui n'existent plus. Nomme-lui ce qu'il cherche.",
+         pouvoir:{id:"silence",n:"Silence exigé",d:"Ici, chaque compétence coûte le double."},
+         cache:"livre"},
+        {n:"Ombre du puits",e:"🕳️",
+         cri:"On y jetait les livres interdits. Ils remontent, et ils ont appris la patience.",
+         pouvoir:{id:"fond",n:"Fond du puits",d:"Chaque tentative ratée la rend plus dangereuse."},
+         cache:"maindue"}
       ],
-      boss:{ n:"Le Geôlier de pierre", e:"🐉", trait:"furie",
-        cri:"Trop jeune pour avoir été nommé. Il ne le sera jamais." } },
+            boss:{n:"Le Geôlier de pierre",e:"⛓️",
+         cri:"Il garde des cellules vides depuis soixante ans. Il n'a jamais eu la clef.",
+         pouvoir:{id:"chaines",n:"Chaînes",d:"Une seule compétence pour tout le combat."},
+         cache:"clef"} },
 
     { id:"marais", nom:"Les terres soumises", e:"🌫️", mod:"orthoZ3", lens:[6,7],
       intro:"Ici, on a choisi d'obéir. Chaque village reçoit du roi sa ration de mots : de quoi commercer, pas de quoi se plaindre. Ceux qui te reconnaissent ne te dénoncent pas — ils n'ont plus les mots pour le faire.",
