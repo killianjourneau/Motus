@@ -39,6 +39,7 @@
              mC:0, mN:0, mL:0, mP:0, mPe:0, mM:0, mV:0, mX:0, xRare:0, xClean:0, xStreak:0, xBest:0,
              modes:[], streak:0, best:0,
              dist:[0,0,0,0,0,0], lost:0, msSum:0, msCount:0,   // stats personnelles (v1.47)
+             qActes:0, qFins:0, qSecrets:0, qMonstres:0, qNiveau:0, qSansMort:0,
              hyph:0, night:0, dawn:0, wknd:0, days:[], dayBest:0,
              defiFast:0, dailyOne:0, allDiff:0, longFast:0, comeback:0, noYellow:0,
              villeCap:0, villeMonde:0,
@@ -108,6 +109,14 @@
     {id:"v50",   e:"🗺️", n:"Géographe",          d:"50 villes trouvées",            c:"Modes", t:function(b){return b.mV>=50;}, p:[function(b){return b.mV;},50]},
     {id:"vcap",  e:"🏛️", n:"Tour du monde",      d:"10 capitales trouvées",         c:"Modes", t:function(b){return b.villeCap>=10;}, p:[function(b){return b.villeCap;},10]},
     {id:"vmonde",e:"🌍", n:"Globe-trotteur",     d:"15 villes étrangères trouvées", c:"Modes", t:function(b){return b.villeMonde>=15;}, p:[function(b){return b.villeMonde;},15]},
+    {id:"q1",    e:"🗺️", n:"Premier pas",        d:"Terminer le 1ᵉʳ acte de la Quête",      c:"Modes", t:function(b){return b.qActes>=1;}, p:[function(b){return b.qActes;},1]},
+    {id:"q3",    e:"🧭", n:"Longue route",        d:"Terminer 3 actes de la Quête",          c:"Modes", t:function(b){return b.qActes>=3;}, p:[function(b){return b.qActes;},3]},
+    {id:"qfin",  e:"📕", n:"Le Lexique",          d:"Terminer l'aventure entière",           c:"Modes", t:function(b){return b.qFins>=1;}, p:[function(b){return b.qFins;},1]},
+    {id:"qpur",  e:"🕊️", n:"Sans une chute",      d:"Terminer l'aventure sans mourir",       c:"Défis", t:function(b){return b.qSansMort>=1;}, p:[function(b){return b.qSansMort;},1]},
+    {id:"qsec1", e:"🔎", n:"Curieux",             d:"Percer 1 secret de créature",           c:"Défis", t:function(b){return b.qSecrets>=1;}, p:[function(b){return b.qSecrets;},1]},
+    {id:"qsec8", e:"🕵️", n:"Fin limier",          d:"Percer 8 secrets de créatures",         c:"Défis", t:function(b){return b.qSecrets>=8;}, p:[function(b){return b.qSecrets;},8]},
+    {id:"qbest", e:"📖", n:"Bestiaire nourri",    d:"Rencontrer 20 créatures différentes",   c:"Modes", t:function(b){return b.qMonstres>=20;}, p:[function(b){return b.qMonstres;},20]},
+    {id:"qlvl",  e:"⚔️", n:"Apprenti confirmé",   d:"Atteindre le niveau 10 en Quête",       c:"Modes", t:function(b){return b.qNiveau>=10;}, p:[function(b){return b.qNiveau;},10]},
     {id:"pe10",  e:"🎭", n:"Physionomiste",      d:"10 personnages trouvés",        c:"Modes", t:function(b){return b.mPe>=10;}, p:[function(b){return b.mPe;},10]},
     {id:"pe50",  e:"🌟", n:"Biographe",          d:"50 personnages trouvés",        c:"Modes", t:function(b){return b.mPe>=50;}, p:[function(b){return b.mPe;},50]},
     {id:"x1",    e:"🎓", n:"Rigoureux",          d:"Trouver un mot en Expert",       c:"Modes", t:function(b){return b.mX>=1;}},
@@ -1164,6 +1173,17 @@
         Object.keys(grants).forEach(function (k) { if (!lg[k]) lg[k] = grants[k]; });
       }
       saveLocal(); pushDebounced();
+    },
+
+    /* Avancement de Motus Quête. Le jeu vit dans une autre page : il nous
+       envoie ses compteurs, on ne garde que le meilleur atteint. */
+    questProgress: function (o) {
+      o = o || {};
+      var b = state.b;
+      ["qActes","qFins","qSecrets","qMonstres","qNiveau","qSansMort"].forEach(function (k) {
+        if (typeof o[k] === "number") b[k] = Math.max(b[k] || 0, o[k]);
+      });
+      saveLocal(); checkBadges(); pushDebounced(); refreshOpen();
     },
 
     submitDaily: function (o) {
