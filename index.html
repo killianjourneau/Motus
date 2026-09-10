@@ -923,21 +923,21 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.50.3"></script>
-<script src="./dico/motus-prenoms.js?v=1.50.3"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.50.3"></script>
-<script src="./dico/motus-maladies.js?v=1.50.3"></script>
-<script src="./dico/motus-maladies-info.js?v=1.50.3"></script>
-<script src="./dico/motus-villes.js?v=1.50.3"></script>
-<script src="./dico/motus-villes-info.js?v=1.50.3"></script>
-<script src="./dico/motus-persos.js?v=1.50.3"></script>
-<script src="./dico/motus-persos-info.js?v=1.50.3"></script>
-<script src="./dico/motus-persos-split.js?v=1.50.3"></script>
-<script src="./dico/motus-race.js?v=1.50.3"></script>
-<script src="./dico/motus-expert.js?v=1.50.3"></script>
-<script src="./profiles/config.js?v=1.50.3"></script>
-<script src="./profiles/profile.js?v=1.50.3"></script>
-<script src="./duel/duel.js?v=1.50.3"></script>
+<script src="./dico/motus-words.js?v=1.50.2"></script>
+<script src="./dico/motus-prenoms.js?v=1.50.2"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.50.2"></script>
+<script src="./dico/motus-maladies.js?v=1.50.2"></script>
+<script src="./dico/motus-maladies-info.js?v=1.50.2"></script>
+<script src="./dico/motus-villes.js?v=1.50.2"></script>
+<script src="./dico/motus-villes-info.js?v=1.50.2"></script>
+<script src="./dico/motus-persos.js?v=1.50.2"></script>
+<script src="./dico/motus-persos-info.js?v=1.50.2"></script>
+<script src="./dico/motus-persos-split.js?v=1.50.2"></script>
+<script src="./dico/motus-race.js?v=1.50.2"></script>
+<script src="./dico/motus-expert.js?v=1.50.2"></script>
+<script src="./profiles/config.js?v=1.50.2"></script>
+<script src="./profiles/profile.js?v=1.50.2"></script>
+<script src="./duel/duel.js?v=1.50.2"></script>
 <script>
 (() => {
   "use strict";
@@ -989,7 +989,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.50.3";
+  const VERSION = "1.50.2";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -4395,6 +4395,14 @@
   defCheckOnLaunch();
   setTimeout(mesureDemarrage, 1500);   // sans retarder l'affichage
   setTimeout(adminDetecter, 1800);
+  // Motus Quête vit dans une autre page et n'a pas accès au profil : elle
+  // dépose son avancement, on le transmet aux badges au démarrage.
+  setTimeout(()=>{
+    try{
+      const pr = store.get("motus.rpg2.progress", null);
+      if(pr && window.Profile && Profile.questProgress) Profile.questProgress(pr);
+    }catch(e){}
+  }, 2000);
   setTimeout(notifDaily, 2500);   // après l'installation de l'écran
   persoLoadApproved();
   const last = store.get("motus.last","free");

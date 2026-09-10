@@ -211,6 +211,11 @@
   .toast.show{ opacity:1; }
   .mot-revele{ display:inline-block; margin-top:6px; font-size:13px; color:var(--ink-dim); letter-spacing:.5px; }
   .mot-revele b{ color:var(--red); letter-spacing:1px; }
+  .cx-l{ display:block; font-size:11.5px; color:var(--ink-dim); font-weight:700; font-style:italic; margin-top:2px; }
+  .cx-p{ display:block; font-size:11.5px; color:var(--ink); font-weight:700; margin-top:3px; }
+  .cx-sec{ display:inline-block; margin-top:5px; padding:2px 8px; border-radius:8px;
+    background:var(--cell); font-size:11px; font-weight:800; color:var(--ink-dim); }
+  .cx-sec.perce{ background:var(--ok,#0f8a58); color:#fff; }
   .barres{ margin-left:6px; font-size:12px; letter-spacing:-2px; }
   .pouvoir{ display:inline-block; margin-left:6px; padding:3px 9px; border-radius:8px;
     background:var(--cell); font-size:11px; font-weight:800; color:var(--ink); cursor:pointer; }
@@ -348,8 +353,8 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="./dico/motus-words.js?v=1.50.3"></script>
-<script src="./dico/motus-rpg.js?v=1.50.3"></script>
+<script src="./dico/motus-words.js?v=1.50.2"></script>
+<script src="./dico/motus-rpg.js?v=1.50.2"></script>
 <script>
 (function(){
   "use strict";
@@ -401,8 +406,33 @@
      recommencement ni par freshPlayer(). */
   var seen = store.get("motus.rpg2.seen", []) || [];
   if(!Array.isArray(seen)) seen = [];
+  /* Les secrets percés font partie de la COLLECTION, pas de la partie : ils
+     survivent aux nouvelles aventures, comme les créatures rencontrées. */
+  var secrets = store.get("motus.rpg2.secrets", []) || [];
+  if(!Array.isArray(secrets)) secrets = [];
+  /* La page Quête ne charge pas le profil (module lourd, inutile ici) :
+     elle dépose son avancement dans le stockage partagé, et le jeu principal
+     le transmet aux badges à sa prochaine ouverture. */
+  function pousserAvancement(){
+    try{
+      var tousMonstres = 0;
+      ZONES.forEach(function(z){ tousMonstres += z.monstres.length + z.elites.length + 1; });
+      store.set("motus.rpg2.progress", {
+        qActes:    Math.max(store.get("motus.rpg2.progress",{}).qActes || 0, P.zone),
+        qFins:     store.get("motus.rpg2.progress",{}).qFins || 0,
+        qSecrets:  secrets.length,
+        qMonstres: seen.length,
+        qNiveau:   P.lvl,
+        qSansMort: store.get("motus.rpg2.progress",{}).qSansMort || 0
+      });
+    }catch(e){}
+  }
+  function markSecret(nom){
+    if(secrets.indexOf(nom)<0){ secrets.push(nom); store.set("motus.rpg2.secrets", secrets); pousserAvancement(); }
+  }
+  function secretPerce(nom){ return secrets.indexOf(nom)>=0; }
   function markSeen(nom){
-    if(seen.indexOf(nom)<0){ seen.push(nom); store.set("motus.rpg2.seen", seen); }
+    if(seen.indexOf(nom)<0){ seen.push(nom); store.set("motus.rpg2.seen", seen); pousserAvancement(); }
   }
   function freshPlayer(){
     return { lvl:1, xp:0, hp:70, mana:35, or:0, zone:0, etage:0, vaincus:[], secrets:[],
@@ -925,7 +955,8 @@
           banned:[], buffAtk:P.nextBuffAtk||0, talisman:false, tour:0,
           pouvoir:(src.pouvoir && src.pouvoir.id) || null,
           cache:src.cache || null,
-          barres:1, barreMax:1, cacheDit:false, toile:0, grises:0, motsJoues:0 };
+          barres:1, barreMax:1, cacheDit:false, toile:0, grises:0, motsJoues:0,
+          oublies:[], skillsUtilises:0 };
     if(C.pouvoir==="meute"){ C.barres=3; C.barreMax=3; }
     P.nextBuffAtk = 0;
     markSeen(src.n);
@@ -970,7 +1001,7 @@
     loadDico(C.len);
     buildBoardFor(C,"board"); resetKeyColors(); applyBannedKeys();
     if(hasRelic("boussole")){
-      setCellOf(C,"board",0,0,C.word[0]);
+      if(C.pouvoir!=="rongee") setCellOf(C,"board",0,0,C.word[0]);
       tileOf("board",0,0).classList.add("correct");
       C.col = firstEmpty();
     }
@@ -1023,8 +1054,15 @@
   }
   function useSkill(s){
     var cost = skillCost(s);
+    // Bibliothécaire : ici, parler coûte le double
+    if(C.pouvoir==="silence") cost *= 2;
+    // Geôlier : une seule compétence pour tout le combat
+    if(C.pouvoir==="chaines" && C.skillsUtilises >= 1){
+      toast("⛓️ Les chaînes te retiennent : une seule compétence par combat."); return;
+    }
     if(C.over || P.mana<cost) return;
     if(C.mute===s.id){ toast("🤐 Cette compétence est réduite au silence"); return; }
+    C.skillsUtilises++;
     if(s.id==="reveal"){
       var zmR = C.talisman ? null : zoneMod();
       if(zmR && zmR.n==="Écho"){ toast("🔔 Impossible ici : la Grotte brouille déjà les indices, un de plus ne changerait rien."); return; }
@@ -1100,7 +1138,15 @@
     viande:    "Sa viande améliore le campement suivant.",
     feu:       "Écris FEU dans un mot et la meute se disperse.",
     degoutee:  "Six tentatives sans une seule bonne lettre la dégoûtent.",
-    digne:     "Trouve son mot du premier coup et il s'écarte."
+    digne:     "Trouve son mot du premier coup et il s'écarte.",
+    repas:     "Nomme un vrai repas : il lâche son papier.",
+    echo:      "Un mot où une lettre revient lui rend son écho.",
+    eau:       "Nomme quelque chose d'humide et elle retombe.",
+    ordre:     "Donne-lui enfin l'ordre d'arrêter.",
+    double:    "Une lettre doublée : il se croit reconnu.",
+    livre:     "Nomme-lui ce qu'il range depuis toujours.",
+    maindue:   "Vaincs-la sans employer une seule compétence.",
+    clef:      "Nomme ce qu'il n'a jamais eu : de quoi ouvrir."
   };
   function secretTexte(id){ return SECRETS[id] || "Secret percé."; }
 
@@ -1110,7 +1156,7 @@
   function majEtiquettes(){
     if(!C || !C.foe) return;
     var src = C.foe;
-    var perce = (P.secrets||[]).indexOf(src.n) >= 0 || C.cacheDit;
+    var perce = secretPerce(src.n) || C.cacheDit;
     $("cTrait").innerHTML =
         (src.pouvoir
           ? '<span class="pouvoir" data-d="'+esc(src.pouvoir.d)+'">✦ '+src.pouvoir.n+'</span>'
@@ -1195,6 +1241,15 @@
     attack(w);
   }
 
+  var MOTS_REPAS = ["PAIN","FROMAGE","GATEAU","POMME","VIANDE","SOUPE","TARTE","MIEL","NOIX",
+    "GRAIN","BLE","FRUIT","LARD","JAMBON","BEURRE","GALETTE","BOUILLIE","REPAS","FESTIN"];
+  var MOTS_EAU = ["EAU","PLUIE","RIVIERE","FLEUVE","ONDEE","AVERSE","TORRENT","SOURCE","MARE",
+    "ETANG","OCEAN","VAGUE","ORAGE","BRUME","ROSEE","DELUGE","FONTAINE","RUISSEAU"];
+  var MOTS_ORDRE = ["HALTE","STOP","REPOS","FINI","ASSEZ","CESSE","ARRET","LIBRE","PAUSE","RELEVE"];
+  var MOTS_LIVRE = ["LIVRE","TOME","PAGE","RECUEIL","VOLUME","GRIMOIRE","CODEX","MANUEL",
+    "ATLAS","LEXIQUE","REGISTRE","CAHIER","ROMAN","TRAITE"];
+  var MOTS_CLEF = ["CLEF","CLE","SERRURE","VERROU","OUVRIR","LIBRE","GRACE","PARDON","EVASION"];
+
   var INSECTES = ["ABEILLE","FOURMI","GUEPE","MOUCHE","PAPILLON","SAUTERELLE","CRIQUET",
     "COCCINELLE","LIBELLULE","MOUSTIQUE","CIGALE","GRILLON","SCARABEE","HANNETON",
     "TERMITE","PUCERON","CHENILLE","LUCIOLE","BOURDON","MANTE","PUCE","POU","CAFARD",
@@ -1205,8 +1260,7 @@
   function revelerCache(txt){
     if(C.cacheDit) return;
     C.cacheDit = true;
-    if(!P.secrets) P.secrets = [];
-    if(C.foe && P.secrets.indexOf(C.foe.n) < 0){ P.secrets.push(C.foe.n); save(); }
+    if(C.foe) markSecret(C.foe.n);
     toast("🔎 "+txt, 3600);
     majEtiquettes();          // l'étiquette passe aussitôt à « Secret percé »
   }
@@ -1272,6 +1326,41 @@
       finirParCache("FEU. Les loups reculent tous en même temps — la meute se disperse.");
       renderFight(); return;
     }
+    // Rat : nommer de la vraie nourriture le détourne du papier
+    if(C.cache==="repas" && MOTS_REPAS.indexOf(w)>=0){
+      finirParCache("Un vrai repas. Le rat lâche ses pages et file dans ce sens-là.");
+      renderFight(); return;
+    }
+    // Chauve-souris : une lettre répétée lui rend son écho
+    if(C.cache==="echo" && /([A-Z])\1|([A-Z])[A-Z]*\2/.test(w)){
+      finirParCache("Une lettre qui résonne deux fois : elle retrouve ses repères et s'envole.");
+      renderFight(); return;
+    }
+    // Cendre : ce qui est humide la disperse
+    if(C.cache==="eau" && MOTS_EAU.indexOf(w)>=0){
+      finirParCache("L'humidité du mot suffit : la cendre retombe et ne se relève pas.");
+      renderFight(); return;
+    }
+    // Gardien : personne ne lui a jamais donné l'ordre de s'arrêter
+    if(C.cache==="ordre" && MOTS_ORDRE.indexOf(w)>=0){
+      finirParCache("Soixante ans qu'il attendait cet ordre. Il repose sa hallebarde.");
+      renderFight(); return;
+    }
+    // Ver : il bégaie, une lettre doublée le met en confiance
+    if(C.cache==="double" && /([A-Z])\1/.test(w)){
+      finirParCache("Il t'entend bégayer comme lui, se croit reconnu, et s'écarte poliment.");
+      renderFight(); return;
+    }
+    // Bibliothécaire : nomme-lui ce qu'il cherche depuis toujours
+    if(C.cache==="livre" && MOTS_LIVRE.indexOf(w)>=0){
+      finirParCache("Il répète le mot, hoche la tête, et te laisse passer vers son rayon.");
+      renderFight(); return;
+    }
+    // Geôlier : il n'a jamais eu la clef
+    if(C.cache==="clef" && MOTS_CLEF.indexOf(w)>=0){
+      finirParCache("Il regarde ses chaînes, puis toi. Il s'écarte de la porte.");
+      renderFight(); return;
+    }
     // Chêne muet : trouver du premier coup prouve qu'on est digne
     if(C.cache==="digne" && w===C.word && C.motsJoues===0 && C.row===0){
       finirParCache("Du premier coup. Le chêne s'écarte : tu es digne de ta mission.");
@@ -1286,6 +1375,10 @@
     if(exact) dmg += 15 + P.up.critBonus;
     // Chêne muet : seul un mot entièrement trouvé entame son écorce
     if(C.pouvoir==="resistance" && !exact) dmg = 0;
+    // Chauve-souris : un coup sur deux ne l'atteint qu'à moitié
+    if(C.pouvoir==="erratique" && C.row%2===1) dmg = Math.round(dmg/2);
+    // Gardien : en dessous de trois bonnes lettres, la consigne tient
+    if(C.pouvoir==="consigne" && red < 3 && !exact) dmg = 0;
     // Ronce : chaque lettre grise la nourrit
     if(C.pouvoir==="epines"){
       var gris = 0; for(var gg=0; gg<C.len; gg++) if(st[gg]==="absent") gris++;
@@ -1323,6 +1416,8 @@
     if(C.pouvoir==="blessee" && C.foeHp <= C.foeHpMax*0.35) back = Math.round(back*2);
     // Sanglier : il ne blesse jamais… tant qu'on trouve ses mots
     if(C.pouvoir==="charge") back = 0;
+    // Ombre du puits : chaque tentative ratée l'enhardit
+    if(C.pouvoir==="fond") back = Math.round(back * (1 + 0.25*C.row));
     if(C.garde){ back=0; C.garde=false; toast("🛡️ Attaque bloquée !"); }
     if(skipRip) back=0;
     if(back>0 && C.trait==="vampire") C.foeHp=Math.min(C.foeHpMax,C.foeHp+Math.round(back/2));
@@ -1330,6 +1425,21 @@
     if(C.trait==="venin") back+=3;
     if(back>0 && hasRelic("miroir")){ C.foeHp-=4; }
 
+    // Rat et Cendre : ils reprennent une lettre que tu croyais acquise
+    if((C.pouvoir==="grignote" || C.pouvoir==="poussiere") && !exact && C.row+1<MAX_ROWS){
+      var acquises=[];
+      for(var ac=0; ac<C.len; ac++){
+        for(var ar=0; ar<C.rowStates.length; ar++){
+          if(C.rowStates[ar][ac]==="correct" && C.oublies.indexOf(ac)<0){ acquises.push(ac); break; }
+        }
+      }
+      if(acquises.length){
+        var perdue = pick(acquises); C.oublies.push(perdue);
+        toast((C.pouvoir==="grignote" ? "🐀 Il grignote la " : "🌫️ La poussière avale la ")
+              + (perdue+1) + "ᵉ lettre.", 2200);
+        appliquerOublis();
+      }
+    }
     C.row++; C.revealedThisRow=false;
     if(C.pouvoir==="toile" && !exact && C.row<MAX_ROWS){
       var libres="ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").filter(function(c){
@@ -1402,6 +1512,21 @@
     var back=C.atk;
     if(C.garde){ back=0; C.garde=false; }
     if(C.trait==="venin") back+=3;
+    // Rat et Cendre : ils reprennent une lettre que tu croyais acquise
+    if((C.pouvoir==="grignote" || C.pouvoir==="poussiere") && !exact && C.row+1<MAX_ROWS){
+      var acquises=[];
+      for(var ac=0; ac<C.len; ac++){
+        for(var ar=0; ar<C.rowStates.length; ar++){
+          if(C.rowStates[ar][ac]==="correct" && C.oublies.indexOf(ac)<0){ acquises.push(ac); break; }
+        }
+      }
+      if(acquises.length){
+        var perdue = pick(acquises); C.oublies.push(perdue);
+        toast((C.pouvoir==="grignote" ? "🐀 Il grignote la " : "🌫️ La poussière avale la ")
+              + (perdue+1) + "ᵉ lettre.", 2200);
+        appliquerOublis();
+      }
+    }
     C.row++; C.revealedThisRow=false;
     if(C.pouvoir==="toile" && !exact && C.row<MAX_ROWS){
       var libres="ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").filter(function(c){
@@ -1441,6 +1566,12 @@
     // est mathématiquement perdue — vérifié par simulation.
     var soin = Math.round(hpMax()*0.15);
     P.hp = Math.min(hpMax(), P.hp + soin);
+    // Ombre du puits : elle guettait ta magie ; ne rien lui donner la prive
+    if(C.cache==="maindue" && C.skillsUtilises===0){
+      revelerCache("Tu n'as pas employé une seule compétence. L'ombre n'a rien eu à saisir.");
+      P.mana = manaMax();
+      toast("🕳️ Ton mana revient d'un coup.", 2600);
+    }
     if(!P.vaincus) P.vaincus = [];
     if(P.vaincus.indexOf(C.foe.n) < 0) P.vaincus.push(C.foe.n);
     // Sanglier : sa viande se garde pour le prochain campement
@@ -1498,6 +1629,17 @@
 
   /* ---------- fin de l'aventure ---------- */
   function showEnd(){
+    // aventure terminée : on enregistre l'exploit pour les badges
+    try{
+      var pr = store.get("motus.rpg2.progress", {}) || {};
+      pr.qActes    = 5;
+      pr.qFins     = (pr.qFins || 0) + 1;
+      if(!P.morts) pr.qSansMort = (pr.qSansMort || 0) + 1;
+      pr.qSecrets  = secrets.length;
+      pr.qMonstres = seen.length;
+      pr.qNiveau   = Math.max(pr.qNiveau || 0, P.lvl);
+      store.set("motus.rpg2.progress", pr);
+    }catch(e){}
     $("scFight").style.display="none"; $("scDefi").style.display="none"; $("kb").style.display="none";
     $("scMap").style.display="";
     renderHud();
@@ -1526,13 +1668,27 @@
     ZONES.forEach(function(z){
       var all = z.monstres.concat(z.elites).concat([z.boss]);
       var vus = all.filter(function(m){ return seen.indexOf(m.n)>=0; });
-      html += '<div class="zone-t" style="margin-top:10px">'+z.e+' '+z.nom+' — '+vus.length+'/'+all.length+'</div>';
+      var avecSecret = all.filter(function(m){ return m.cache; });
+      var perces = avecSecret.filter(function(m){ return secretPerce(m.n); });
+      html += '<div class="zone-t" style="margin-top:10px">'+z.e+' '+z.nom
+        + ' — '+vus.length+'/'+all.length+' rencontrés'
+        + (avecSecret.length ? ' · 🔎 '+perces.length+'/'+avecSecret.length+' secrets' : "")
+        + '</div>';
       html += all.map(function(m){
         var vu = seen.indexOf(m.n)>=0;
         if(!vu) return '<div class="loot-row" style="opacity:.35">❔ <span>Jamais rencontré</span></div>';
         var t=(DATA.traits||{})[m.trait];
+        var pouv = m.pouvoir ? '✦ '+m.pouvoir.n+' — '+m.pouvoir.d : (t ? t.e+" "+t.n+" — "+t.d : "");
+        // Le secret ne se lit QUE s'il a été percé : sinon il reste à trouver
+        var perce = secretPerce(m.n);
+        var sec = !m.cache ? ""
+          : (perce
+              ? '<span class="cx-sec perce">✨ '+esc(secretTexte(m.cache))+'</span>'
+              : '<span class="cx-sec">🔎 Secret non percé</span>');
         return '<div class="shop-it"><span class="e">'+m.e+'</span><span class="n">'+m.n
-          + '<span style="display:block;font-size:11.5px;color:var(--ink-dim);font-weight:700">'+(t?t.e+" "+t.n:"")+' — '+m.cri+'</span></span></div>';
+          + '<span class="cx-l">'+esc(m.cri)+'</span>'
+          + '<span class="cx-p">'+esc(pouv)+'</span>'
+          + sec + '</span></div>';
       }).join("");
     });
     $("cxList").innerHTML = html;
@@ -1640,6 +1796,16 @@
   /* Redessine un plateau ET y remet ce qui s'y trouvait : buildBoardFor()
      repart d'un tableau vide, si bien qu'un simple redimensionnement de la
      fenêtre effaçait toutes les lettres déjà jouées. */
+  /* Une lettre « oubliée » (rat, cendre) est effacée de l'affichage : on la
+     retire des tentatives passées pour qu'elle redevienne à trouver. */
+  function appliquerOublis(){
+    if(!C || !C.oublies || !C.oublies.length) return;
+    C.oublies.forEach(function(c){
+      for(var r=0; r<C.rowStates.length; r++){
+        if(C.rowStates[r][c]==="correct"){ C.rowStates[r][c]="absent"; }
+      }
+    });
+  }
   function redessiner(S, boxId){
     buildBoardFor(S, boxId);
     for(var r=0; r<S.grid.length; r++){
