@@ -103,6 +103,38 @@ module.exports = function ({ groupe, verifie, ok, egal, vide, RACINE }) {
     vide(manquants, "déclarés mais absents du moteur");
   });
 
+  verifie("les actes retravaillés ont pouvoir, phrase et secret partout", () => {
+    const soucis = [];
+    [0, 1].forEach(z => {
+      const zone = D.zones[z];
+      [].concat(zone.monstres, zone.elites, [zone.boss]).forEach(m => {
+        if (!m.pouvoir) soucis.push("acte " + (z+1) + " " + m.n + " : pas de pouvoir");
+        if (!m.cri)     soucis.push("acte " + (z+1) + " " + m.n + " : pas de phrase");
+        if (!m.cache)   soucis.push("acte " + (z+1) + " " + m.n + " : pas de secret");
+      });
+    });
+    vide(soucis);
+  });
+
+  verifie("les secrets percés survivent à une nouvelle aventure", () => {
+    /* Ils appartiennent à la COLLECTION, pas à la partie : les ranger dans P
+       les aurait effacés au premier recommencement. */
+    const moteur = require("fs").readFileSync(path.join(RACINE, "rpg.html"), "utf8");
+    ok(/motus\.rpg2\.secrets/.test(moteur), "les secrets doivent avoir leur propre stockage");
+    ok(!/P\.secrets/.test(moteur), "les secrets ne doivent pas vivre dans la partie");
+  });
+
+  verifie("l'avancement de la Quête alimente les badges", () => {
+    const moteur = require("fs").readFileSync(path.join(RACINE, "rpg.html"), "utf8");
+    const profil = require("fs").readFileSync(path.join(RACINE, "profiles", "profile.js"), "utf8");
+    const jeu    = require("fs").readFileSync(path.join(RACINE, "index.html"), "utf8");
+    ok(/motus\.rpg2\.progress/.test(moteur), "la Quête doit déposer son avancement");
+    ok(/questProgress/.test(profil), "le profil doit savoir le recevoir");
+    ok(/questProgress/.test(jeu),    "le jeu principal doit le relayer");
+    vide(["qActes","qFins","qSecrets","qMonstres","qNiveau","qSansMort"]
+      .filter(k => !profil.includes(k)), "compteurs absents du profil");
+  });
+
   verifie("un adversaire n'a jamais deux pouvoirs à la fois", () => {
     /* Un ancien trait ET un nouveau pouvoir faisaient doublon à l'écran,
        et se cumulaient mécaniquement. */
