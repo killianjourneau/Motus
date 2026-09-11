@@ -923,21 +923,21 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.51.0"></script>
-<script src="./dico/motus-prenoms.js?v=1.51.0"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.51.0"></script>
-<script src="./dico/motus-maladies.js?v=1.51.0"></script>
-<script src="./dico/motus-maladies-info.js?v=1.51.0"></script>
-<script src="./dico/motus-villes.js?v=1.51.0"></script>
-<script src="./dico/motus-villes-info.js?v=1.51.0"></script>
-<script src="./dico/motus-persos.js?v=1.51.0"></script>
-<script src="./dico/motus-persos-info.js?v=1.51.0"></script>
-<script src="./dico/motus-persos-split.js?v=1.51.0"></script>
-<script src="./dico/motus-race.js?v=1.51.0"></script>
-<script src="./dico/motus-expert.js?v=1.51.0"></script>
-<script src="./profiles/config.js?v=1.51.0"></script>
-<script src="./profiles/profile.js?v=1.51.0"></script>
-<script src="./duel/duel.js?v=1.51.0"></script>
+<script src="./dico/motus-words.js?v=1.50.2"></script>
+<script src="./dico/motus-prenoms.js?v=1.50.2"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.50.2"></script>
+<script src="./dico/motus-maladies.js?v=1.50.2"></script>
+<script src="./dico/motus-maladies-info.js?v=1.50.2"></script>
+<script src="./dico/motus-villes.js?v=1.50.2"></script>
+<script src="./dico/motus-villes-info.js?v=1.50.2"></script>
+<script src="./dico/motus-persos.js?v=1.50.2"></script>
+<script src="./dico/motus-persos-info.js?v=1.50.2"></script>
+<script src="./dico/motus-persos-split.js?v=1.50.2"></script>
+<script src="./dico/motus-race.js?v=1.50.2"></script>
+<script src="./dico/motus-expert.js?v=1.50.2"></script>
+<script src="./profiles/config.js?v=1.50.2"></script>
+<script src="./profiles/profile.js?v=1.50.2"></script>
+<script src="./duel/duel.js?v=1.50.2"></script>
 <script>
 (() => {
   "use strict";
@@ -989,7 +989,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.51.0";
+  const VERSION = "1.50.2";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -3335,6 +3335,21 @@
   }
 
   // force le chargement d'un dictionnaire même hors mode normal
+  /* On prévient l'hôte dès qu'un code valide est saisi : il attendait
+     jusqu'ici sans savoir si quelqu'un était en train de le rejoindre. */
+  let knockT = null, knockDone = "";
+  function duelKnock(){
+    const code = ($("duelCode").value||"").trim().toUpperCase();
+    clearTimeout(knockT);
+    if(code.length < 4 || code === knockDone) return;
+    knockT = setTimeout(()=>{
+      knockDone = code;
+      if(window.Duel && Duel.knock) Duel.knock(code);
+    }, 600);   // on attend la fin de la saisie
+  }
+
+  $("duelCode").addEventListener("input", duelKnock);
+
   function loadDicoForce(l){
     if(dicoByLen[l] !== undefined) return;
     const pd=String(l).padStart(2,"0");
@@ -3353,7 +3368,18 @@
          duel_join enregistre l'adversaire et son mot d'un seul coup. Tant que
          personne n'a rejoint, on l'affiche simplement. */
       if(!duelStarted && !d.ready){
-        $("duelWait").textContent = duelWaitMsg;
+        /* Trois états, désormais distincts : personne, quelqu'un est là et
+           choisit son mot, ou la partie est prête. */
+        const frais = d.knock && (Date.now() - new Date(d.knock.at).getTime() < 90000);
+        if(frais && !duelOppVu){
+          duelOppVu = true;
+          vibrate([12,40,12]); son("indice");
+          notify("⚔️ Quelqu'un est là",
+                 (d.knock.pseudo || "Un joueur") + " a saisi ton code.", "duel");
+        }
+        $("duelWait").innerHTML = frais
+          ? "🟢 <b>" + escapeHtml(d.knock.pseudo || "Quelqu'un") + "</b> a saisi ton code et choisit son mot…"
+          : duelWaitMsg;
       }
       // l'adversaire a rejoint et je n'ai pas encore commencé : on affiche sa fiche
       if(d.ready && !duelStarted){

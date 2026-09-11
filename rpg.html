@@ -213,6 +213,8 @@
     background:var(--yellow); color:#14233c; font-size:12.5px; font-weight:800; }
   .mot-revele{ display:inline-block; margin-top:6px; font-size:13px; color:var(--ink-dim); letter-spacing:.5px; }
   .mot-revele b{ color:var(--red); letter-spacing:1px; }
+  .cx-st{ display:block; font-size:11.5px; color:var(--ink); font-weight:800; margin-top:3px;
+    letter-spacing:.3px; font-variant-numeric:tabular-nums; }
   .cx-l{ display:block; font-size:11.5px; color:var(--ink-dim); font-weight:700; font-style:italic; margin-top:2px; }
   .cx-p{ display:block; font-size:11.5px; color:var(--ink); font-weight:700; margin-top:3px; }
   .cx-sec{ display:inline-block; margin-top:5px; padding:2px 8px; border-radius:8px;
@@ -355,8 +357,8 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="./dico/motus-words.js?v=1.51.0"></script>
-<script src="./dico/motus-rpg.js?v=1.51.0"></script>
+<script src="./dico/motus-words.js?v=1.50.2"></script>
+<script src="./dico/motus-rpg.js?v=1.50.2"></script>
 <script>
 (function(){
   "use strict";
@@ -1409,8 +1411,10 @@
     if(exact) dmg += 15 + P.up.critBonus;
     // Chêne muet : seul un mot entièrement trouvé entame son écorce
     if(C.pouvoir==="resistance" && !exact) dmg = 0;
-    // Golem : les bonus glissent sur la pierre, seules les lettres comptent
-    if(C.pouvoir==="durpierre") dmg = red*3 + yel*1;
+    /* Golem : la pierre absorbe les BONUS (critique, rage, buffs), mais pas
+       la force acquise. Tout ignorer en faisait un monstre ordinaire aussi
+       coûteux qu'un boss : 9 tours et la moitié de la vie du joueur. */
+    if(C.pouvoir==="durpierre") dmg = red*3 + yel*1 + atkBonus();
     // Ronce : chaque lettre grise la nourrit
     if(C.pouvoir==="epines"){
       var gris = 0; for(var gg=0; gg<C.len; gg++) if(st[gg]==="absent") gris++;
@@ -1688,7 +1692,7 @@
   /* ---------- bestiaire ---------- */
   function showCodex(){
     var html="";
-    ZONES.forEach(function(z){
+    ZONES.forEach(function(z, zi){
       var all = z.monstres.concat(z.elites).concat([z.boss]);
       var vus = all.filter(function(m){ return seen.indexOf(m.n)>=0; });
       var avecSecret = all.filter(function(m){ return m.cache; });
@@ -1708,7 +1712,14 @@
           : (perce
               ? '<span class="cx-sec perce">✨ '+esc(secretTexte(m.cache))+'</span>'
               : '<span class="cx-sec">🔎 Secret non percé</span>');
+        // On ne montre les chiffres que des créatures RENCONTRÉES : c'est
+        // une récompense d'exploration, pas une fiche technique donnée d'avance.
+        var kind = (z.boss===m) ? "boss" : (z.elites.indexOf(m)>=0 ? "elite" : "combat");
+        var stt = foeStats(kind, zi);
+        var chiffres = '<span class="cx-st">❤️ '+stt.pv+'  ⚔️ '+stt.atk
+          + '  ✨ '+stt.xp+'  🪙 '+stt.or+'</span>';
         return '<div class="shop-it"><span class="e">'+m.e+'</span><span class="n">'+m.n
+          + chiffres
           + '<span class="cx-l">'+esc(m.cri)+'</span>'
           + '<span class="cx-p">'+esc(pouv)+'</span>'
           + sec + '</span></div>';
