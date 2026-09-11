@@ -124,6 +124,14 @@
       });
     },
 
+    /* Signale « quelqu'un regarde ce duel » : appelé dès qu'un code valide
+       est saisi, avant le choix du mot. Silencieux en cas d'échec. */
+    knock: function (code) {
+      if (!configured) return Promise.resolve(null);
+      return rpc("duel_knock", { p_code: String(code || "").toUpperCase(), p_pseudo: me().pseudo })
+        .catch(function () { return null; });
+    },
+
     fetch: function (code) {
       return rpc("duel_get", { p_code: String(code || "").toUpperCase() }).then(function (row) {
         if (!row || !row.id) throw new Error("introuvable");
@@ -196,6 +204,9 @@
       d.rematch = d.rematch_code || "";
       d.isPublic = !!d.is_public;
       d.ready = !!(d.status === "playing" && d.target);
+      // quelqu'un a saisi le code sans avoir encore validé son mot
+      d.knock = (row.knock_at && !row.p2_id)
+        ? { at: row.knock_at, pseudo: row.knock_pseudo || "" } : null;
       d.deadline = d.started_at ? (new Date(d.started_at).getTime() + LIMIT_MS) : 0;
       return d;
     },
@@ -319,6 +330,14 @@
         if (!row || !row.id) throw new Error("revanche-impossible");
         return R.parse(row);
       });
+    },
+
+    /* Signale « quelqu'un regarde ce duel » : appelé dès qu'un code valide
+       est saisi, avant le choix du mot. Silencieux en cas d'échec. */
+    knock: function (code) {
+      if (!configured) return Promise.resolve(null);
+      return rpc("duel_knock", { p_code: String(code || "").toUpperCase(), p_pseudo: me().pseudo })
+        .catch(function () { return null; });
     },
 
     fetch: function (code) {

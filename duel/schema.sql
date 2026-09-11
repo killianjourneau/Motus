@@ -1014,3 +1014,27 @@ begin
 end $$;
 
 grant execute on function perso_edit(uuid,bigint,text,text,text,text) to anon, authenticated;
+
+-- =====================================================================
+-- v1.51 — Présence avant le choix du mot (duel)
+--
+-- Celui qui rejoint saisit le code ET son mot dans le même formulaire :
+-- tant qu'il n'a pas validé, le créateur ne voit rien et attend à l'aveugle.
+-- On enregistre donc le simple fait que quelqu'un a saisi un code valide.
+-- =====================================================================
+
+alter table duels add column if not exists knock_at     timestamptz;
+alter table duels add column if not exists knock_pseudo text;
+
+-- Appelé dès qu'un code valide est saisi, avant même le choix du mot.
+create or replace function duel_knock(p_code text, p_pseudo text)
+returns void language plpgsql security definer as $$
+begin
+  update duels
+     set knock_at = now(), knock_pseudo = left(coalesce(p_pseudo,''), 24)
+   where id = upper(btrim(p_code))
+     and status = 'waiting'          -- inutile si la partie a déjà commencé
+     and p2_id is null;
+end $$;
+
+grant execute on function duel_knock(text,text) to anon, authenticated;
