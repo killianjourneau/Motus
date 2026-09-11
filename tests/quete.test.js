@@ -274,6 +274,24 @@ module.exports = function ({ groupe, verifie, ok, egal, vide, RACINE }) {
        "niveau " + r.niveau + " atteint pour " + requis + " requis : une compétence resterait inaccessible");
   });
 
+  verifie("aucun pouvoir ne rend un monstre ordinaire aussi coûteux qu'un boss", () => {
+    /* Le Golem ignorait TOUS les bonus de dégâts : 9 tours et la moitié de la
+       vie du joueur, pour un simple monstre de couloir. */
+    const moteur = require("fs").readFileSync(path.join(RACINE, "rpg.html"), "utf8");
+    const m = moteur.match(/durpierre"\)\s*dmg\s*=\s*([^;]+);/);
+    ok(m, "le pouvoir du golem est introuvable");
+    ok(/atkBonus\(\)/.test(m[1]),
+       "un monstre ordinaire doit rester sensible à la force acquise du joueur");
+  });
+
+  verifie("les statistiques du bestiaire viennent de la vraie formule", () => {
+    // sinon elles mentiraient au joueur dès le premier ajustement d'équilibrage
+    const moteur = require("fs").readFileSync(path.join(RACINE, "rpg.html"), "utf8");
+    const bloc = moteur.slice(moteur.indexOf("function showCodex"));
+    ok(/foeStats\(/.test(bloc.slice(0, 1800)),
+       "le bestiaire doit appeler foeStats, pas recopier des chiffres");
+  });
+
   verifie("le boss final est battable sans être une formalité", () => {
     const niveau = 11, pvMax = 70 + 90, att = (niveau-1)*3 + 15;
     const pvBoss = Math.round((34 + 4*30) * 2.2), atkBoss = Math.round(Math.round(4 + 4*2) * 1.6);
