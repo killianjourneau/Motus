@@ -205,8 +205,8 @@
       d.isPublic = !!d.is_public;
       d.ready = !!(d.status === "playing" && d.target);
       // quelqu'un a saisi le code sans avoir encore validé son mot
-      d.knock = (row.knock_at && !row.p2_id)
-        ? { at: row.knock_at, pseudo: row.knock_pseudo || "" } : null;
+      d.knock = (d.knock_at && !d.p2_id)
+        ? { at: d.knock_at, pseudo: d.knock_pseudo || "" } : null;
       d.deadline = d.started_at ? (new Date(d.started_at).getTime() + LIMIT_MS) : 0;
       return d;
     },
