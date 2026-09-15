@@ -488,13 +488,24 @@
         });
     },
 
+    /* Le résultat d'une attaque n'a qu'une chance d'être transmis : un
+       souci réseau au mauvais moment (connexion coupée, onglet fermé) et
+       "broken" ne serait JAMAIS positionné côté serveur — l'attaquant croit
+       avoir percé, le défenseur n'en sait jamais rien, sans que personne ne
+       le voie puisque cet appel était jusque-là avalé en silence. Deux
+       tentatives avant d'abandonner. */
     report: function (targetId, version, o) {
       var m = me();
       o = o || {};
-      return rpc("defense_report", {
+      var params = {
         p_id: m.id, p_target: targetId, p_version: version,
         p_tries: o.tries || 0, p_won: !!o.won
-      }).catch(function () { return null; });
+      };
+      return rpc("defense_report", params).catch(function () {
+        return new Promise(function (resolve) { setTimeout(resolve, 900); })
+          .then(function () { return rpc("defense_report", params); })
+          .catch(function () { return null; });
+      });
     },
 
     /* Journal des attaques subies (les plus récentes d'abord). */
@@ -548,6 +559,27 @@
      un compteur du jour, rien de plus. Les échecs sont silencieux —
      une mesure ne doit jamais gêner une partie.
      --------------------------------------------------------------- */
+  /* ---------------------------------------------------------------
+     Mode Mémorisation : classement des records.
+     Le record est le temps d'affichage le plus BAS atteint.
+     --------------------------------------------------------------- */
+  window.Memo = {
+    configured: function () { return configured; },
+    record: function (secondes, reussites) {
+      if (!configured) return Promise.resolve(null);
+      var m = me();
+      return rpc("memo_record", {
+        p_id: m.id, p_pseudo: m.pseudo,
+        p_sec: secondes, p_reussites: reussites || 0
+      }).catch(function () { return null; });
+    },
+    top: function (limit) {
+      if (!configured) return Promise.resolve([]);
+      return rpcList("memo_top", { p_limit: limit || 20 })
+        .catch(function () { return []; });
+    }
+  };
+
   window.Audience = {
     configured: function () { return configured; },
     ping: function (cle) {

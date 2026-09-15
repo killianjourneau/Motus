@@ -1060,3 +1060,68 @@ begin
 end $$;
 
 grant execute on function stats_ping(text) to anon, authenticated;
+
+-- =====================================================================
+-- v1.52.1 — Rattrapage ponctuel
+-- Si un rapport d'attaque a échoué silencieusement (connexion coupée au
+-- mauvais moment), une attaque marquée gagnée dans defense_attacks pouvait
+-- ne jamais avoir fait passer "broken" à vrai sur la défense visée.
+-- Sans risque à rejouer : ne touche que les incohérences réelles.
+-- =====================================================================
+update defenses d
+   set broken = true
+  from defense_attacks a
+ where a.defender_id = d.player_id
+   and a.version = d.version
+   and a.won = true
+   and a.done = true
+   and d.broken = false;
+
+-- =====================================================================
+-- v1.53 — Mode Mémorisation : classement des records
+--
+-- Le record est le temps d'affichage LE PLUS BAS atteint : plus il est
+-- petit, plus le joueur a mémorisé vite. Une seule ligne par joueur, on
+-- ne garde que son meilleur.
+-- =====================================================================
+
+create table if not exists memo_records (
+  player_id uuid primary key,
+  pseudo    text,
+  secondes  int not null,          -- temps d'affichage atteint (2 = parfait)
+  reussites int default 0,
+  at        timestamptz default now()
+);
+alter table memo_records enable row level security;
+drop policy if exists "lecture memo" on memo_records;
+create policy "lecture memo" on memo_records for select using (true);
+
+-- Enregistre un record. Ne remplace que si le nouveau temps est MEILLEUR
+-- (donc plus petit) : on ne perd jamais son meilleur score en rejouant.
+create or replace function memo_record(
+  p_id uuid, p_pseudo text, p_sec int, p_reussites int
+) returns void language plpgsql security definer as $$
+begin
+  if p_sec is null or p_sec < 2 or p_sec > 60 then return; end if;
+  insert into memo_records (player_id, pseudo, secondes, reussites, at)
+  values (p_id, left(coalesce(p_pseudo,'Anonyme'), 24), p_sec, greatest(0, coalesce(p_reussites,0)), now())
+  on conflict (player_id) do update
+    set pseudo    = excluded.pseudo,
+        secondes  = least(memo_records.secondes, excluded.secondes),
+        reussites = greatest(memo_records.reussites, excluded.reussites),
+        at        = now();
+end $$;
+
+-- Classement : les plus bas temps d'abord, départagés par le nombre de
+-- réussites puis par l'ancienneté du record.
+create or replace function memo_top(p_limit int default 20)
+returns table (pseudo text, secondes int, reussites int, at timestamptz)
+language sql security definer stable as $$
+  select m.pseudo, m.secondes, m.reussites, m.at
+    from memo_records m
+   order by m.secondes asc, m.reussites desc, m.at asc
+   limit greatest(1, least(coalesce(p_limit, 20), 50));
+$$;
+
+grant execute on function memo_record(uuid,text,int,int) to anon, authenticated;
+grant execute on function memo_top(int)                  to anon, authenticated;
