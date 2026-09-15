@@ -1038,3 +1038,25 @@ begin
 end $$;
 
 grant execute on function duel_knock(text,text) to anon, authenticated;
+
+-- =====================================================================
+-- v1.51 — Distinction débutant / habitué dans la mesure d'audience
+-- Aucun niveau ni nombre de parties n'est transmis : seulement lequel des
+-- deux compartiments la visite du jour rejoint (même seuil que l'invitation
+-- à sauvegarder son compte).
+-- =====================================================================
+drop function if exists stats_ping(text);
+create or replace function stats_ping(p_cle text)
+returns void language plpgsql security definer as $$
+declare v_cle text;
+begin
+  v_cle := lower(btrim(coalesce(p_cle, '')));
+  if v_cle !~ '^(visite|nouveau|fidele|installe|habitue|debutant|partie:[a-z]{1,12}|gagne:[a-z]{1,12}|mode:[a-z]{1,12})$'
+    then return; end if;
+
+  insert into stats_daily (jour, cle, valeur)
+  values (current_date, v_cle, 1)
+  on conflict (jour, cle) do update set valeur = stats_daily.valeur + 1;
+end $$;
+
+grant execute on function stats_ping(text) to anon, authenticated;
