@@ -149,6 +149,36 @@
     width:15px; height:15px; border-radius:50%; background:var(--accent); color:#fff;
     font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center; }
   /* Défense : aucun mot posé — bordure en pointillés, rien à protéger. */
+  /* Mention « Nouveau » : temporaire, à retirer quand le mode ne l'est plus. */
+  .mode-item.nouveau::before{ content:"NOUVEAU"; position:absolute; top:-6px; left:50%;
+    transform:translateX(-50%); background:var(--red); color:#fff; font-size:8.5px;
+    font-weight:800; letter-spacing:.6px; padding:2px 7px; border-radius:7px; }
+
+  /* --- Mémorisation --- */
+  #memoBox{ display:flex; flex-direction:column; gap:10px; padding:4px 2px; }
+  .memo-tete{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .memo-tete #memoPhase{ font-size:15px; font-weight:800; }
+  .memo-chrono{ font-size:20px; font-weight:800; font-variant-numeric:tabular-nums; color:var(--red); }
+  .memo-liste{ display:flex; flex-direction:column; gap:7px; }
+  .memo-mot{ display:flex; align-items:center; gap:9px; background:var(--cell); border-radius:11px;
+    padding:11px 13px; font-size:19px; font-weight:800; letter-spacing:2.5px; }
+  .memo-mot .n, .memo-ligne .n, .memo-corr .n{ min-width:19px; font-size:11px; font-weight:800;
+    color:var(--ink-dim); letter-spacing:0; }
+  .memo-ligne{ display:flex; align-items:center; gap:4px; padding:5px 8px; border-radius:11px; }
+  .memo-ligne.actif{ background:var(--cell); box-shadow:inset 0 0 0 2px var(--accent); }
+  .memo-c{ width:23px; height:29px; border-radius:5px; background:var(--bg-2); display:flex;
+    align-items:center; justify-content:center; font-size:15px; font-weight:800;
+    box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
+  .memo-c.plein{ background:var(--cell); }
+  .memo-c.cur{ box-shadow:inset 0 0 0 2px var(--accent); }
+  .memo-corr{ display:flex; align-items:center; gap:9px; background:var(--cell); border-radius:11px;
+    padding:9px 12px; font-size:15px; letter-spacing:1.5px; }
+  .memo-corr.ok{ box-shadow:inset 0 0 0 2px var(--ok,#0f8a58); }
+  .memo-corr.ko{ box-shadow:inset 0 0 0 2px var(--absent); }
+  .memo-corr .v{ margin-left:auto; color:var(--ok,#0f8a58); font-weight:800; }
+  .memo-corr .f{ margin-left:auto; color:var(--ink-dim); font-size:12.5px; letter-spacing:1px; }
+  .memo-pied{ text-align:center; }
+  .memo-info{ display:block; font-size:12px; color:var(--ink-dim); line-height:1.5; margin-bottom:8px; }
   .mode-item.vide{ box-shadow:inset 0 0 0 2px var(--ink-dim); }
   .mode-item.vide i{ color:var(--red); font-weight:700; }
   /* Défense percée : rouge, distinct du vert « fait » — c'est une alerte,
@@ -527,6 +557,16 @@
     <button id="modeBtn"><span id="modeBtnLabel">Normal</span><span class="chev">▾</span></button>
   </div>
 
+  <!-- Mémorisation : affichage des mots, puis saisie de mémoire -->
+  <div id="memoBox" style="display:none">
+    <div class="memo-tete">
+      <span id="memoPhase">Mémorise !</span>
+      <span class="memo-chrono" id="memoChrono"></span>
+    </div>
+    <div class="memo-liste" id="memoListe"></div>
+    <div class="memo-pied" id="memoPied"></div>
+  </div>
+
   <!-- Panneau de choix du mode -->
   <div class="overlay" id="modeOverlay">
     <div class="modal">
@@ -543,6 +583,7 @@
         <button class="mode-item" data-mode="normal"><span class="mi">🎯</span><b>Normal</b><i>6-8 lettres</i></button>
         <button class="mode-item" data-mode="long"><span class="mi">🐘</span><b>Long</b><i>10-15 lettres</i></button>
         <button class="mode-item" data-mode="expert"><span class="mi">🎓</span><b>Expert</b><i>Règles strictes</i></button>
+        <button class="mode-item nouveau" data-mode="memo"><span class="mi">🧠</span><b>Mémorisation</b><i>6 mots à retenir</i></button>
         <button class="mode-item" data-mode="pendu"><span class="mi">🪢</span><b>Le Pendu</b><i>Devine lettre à lettre</i></button>
       </div>
       <div class="mode-cat">Multijoueur</div>
@@ -942,21 +983,21 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.52.0"></script>
-<script src="./dico/motus-prenoms.js?v=1.52.0"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.52.0"></script>
-<script src="./dico/motus-maladies.js?v=1.52.0"></script>
-<script src="./dico/motus-maladies-info.js?v=1.52.0"></script>
-<script src="./dico/motus-villes.js?v=1.52.0"></script>
-<script src="./dico/motus-villes-info.js?v=1.52.0"></script>
-<script src="./dico/motus-persos.js?v=1.52.0"></script>
-<script src="./dico/motus-persos-info.js?v=1.52.0"></script>
-<script src="./dico/motus-persos-split.js?v=1.52.0"></script>
-<script src="./dico/motus-race.js?v=1.52.0"></script>
-<script src="./dico/motus-expert.js?v=1.52.0"></script>
-<script src="./profiles/config.js?v=1.52.0"></script>
-<script src="./profiles/profile.js?v=1.52.0"></script>
-<script src="./duel/duel.js?v=1.52.0"></script>
+<script src="./dico/motus-words.js?v=1.50.2"></script>
+<script src="./dico/motus-prenoms.js?v=1.50.2"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.50.2"></script>
+<script src="./dico/motus-maladies.js?v=1.50.2"></script>
+<script src="./dico/motus-maladies-info.js?v=1.50.2"></script>
+<script src="./dico/motus-villes.js?v=1.50.2"></script>
+<script src="./dico/motus-villes-info.js?v=1.50.2"></script>
+<script src="./dico/motus-persos.js?v=1.50.2"></script>
+<script src="./dico/motus-persos-info.js?v=1.50.2"></script>
+<script src="./dico/motus-persos-split.js?v=1.50.2"></script>
+<script src="./dico/motus-race.js?v=1.50.2"></script>
+<script src="./dico/motus-expert.js?v=1.50.2"></script>
+<script src="./profiles/config.js?v=1.50.2"></script>
+<script src="./profiles/profile.js?v=1.50.2"></script>
+<script src="./duel/duel.js?v=1.50.2"></script>
 <script>
 (() => {
   "use strict";
@@ -1008,7 +1049,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.52.0";
+  const VERSION = "1.50.2";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -1072,7 +1113,7 @@
   };
   let gaveUp = false;   // vrai uniquement en cas d'abandon volontaire, jamais après 6 essais épuisés
   let hintCols = [], hintsThisGame = 0;
-  const HINT_MODES = ["court","normal","long","prenoms","maladies","villes","persos","daily","defi","pendu"];
+  const HINT_MODES = ["court","normal","long","prenoms","maladies","villes","persos","daily","defi","pendu","memo"];
   const HINT_MAX_PER_WORD = 2;
   // duel
   // course à l'écriture
@@ -1224,9 +1265,15 @@
     const fait = $("modeDaily");
     if(fait) fait.classList.toggle("fait", !!(d && d.day===jour && d.done));
 
+    /* « over » a longtemps été mal écrit sur un défi perdu sans dépasser le
+       délai (corrigé, voir defiAdvance) — mais le correctif ne répare rien
+       dans ce qu'un appareil avait déjà enregistré avant la mise à jour.
+       « failed », lui, a TOUJOURS été fiable dans tous les cas d'échec : on
+       s'appuie sur les deux pour que les défis déjà en mémoire s'affichent
+       correctement, sans attendre d'en rejouer un nouveau. */
     const f = store.get("motus.defi", null);
     const defi = $("modeDefi");
-    if(defi) defi.classList.toggle("fait", !!(f && f.day===jour && f.over));
+    if(defi) defi.classList.toggle("fait", !!(f && f.day===jour && (f.over || f.failed)));
   }
   function markPersonalizeSel(){
     clavierPaint(); sonPaint(); notifPaint();
@@ -1454,6 +1501,12 @@
     if(over) return;
     if(mode==="pendu"){
       if(/^[A-Z]$/.test(a)) penduGuess(a);
+      return;
+    }
+    if(mode==="memo"){
+      if(a==="back")  return memoEfface();
+      if(a==="enter") return memoValide();
+      if(/^[A-Z]$/.test(a)) return memoTape(a);
       return;
     }
     if(mode==="race"){
@@ -3821,6 +3874,19 @@
   function useHint(){
     if(!hintEligible() || over || ended) return;
     if(hintBalance()<=0){ toast("Aucun jeton d'indice — réussis le mot du jour ou le défi pour en gagner"); return; }
+    /* Mémorisation : l'indice complète le mot en cours de saisie. C'est la
+       seule aide possible ici — on ne devine pas des lettres, on se souvient
+       d'un mot entier. */
+    if(mode==="memo"){
+      if(memoPhase !== "saisie"){ toast("L'indice ne sert que pendant la saisie."); return; }
+      const attendu = memoMots[memoIdx];
+      if(memoSaisie[memoIdx] === attendu){ toast("Ce mot est déjà complet !"); return; }
+      memoSaisie[memoIdx] = attendu;
+      hintsThisGame++; hintSpendOne(); son("indice");
+      toast("🔍 Mot " + (memoIdx+1) + " révélé : " + attendu, 2400);
+      memoDessine(); refreshHintUI();
+      return;
+    }
     if(mode==="pendu"){
       const missing = penduAnswer.split("").filter((c,i,arr)=>arr.indexOf(c)===i && penduGuessed.indexOf(c)<0);
       if(!missing.length) return;
@@ -4102,11 +4168,155 @@
   /* ---------- Démarrage d'une partie ---------- */
   function startFree(m){
     if(m==="pendu"){ penduStart(); return; }
+    if(m==="memo"){ memoStart(); return; }
     mode=m; over=false; ended=false; won=false; guesses=[]; rowStates=[];
     const pool = (m==="expert") ? expertPool() : POOLS[m];
     answer=pool[Math.floor(Math.random()*pool.length)];
     setupBoardForAnswer(); loadDico(len); setActiveSeg(m);
     timerReset(); updateHud(); save();
+  }
+
+  /* ---------------------------------------------------------------
+     MODE MÉMORISATION
+     Six mots s'affichent un temps limité, puis il faut les retaper dans
+     l'ordre, sans faute. Réussi : le temps baisse de 2 s pour la fois
+     suivante. Raté : il remonte de 2 s. Le record est donc le temps le
+     plus BAS atteint — plus il est petit, mieux on mémorise.
+     --------------------------------------------------------------- */
+  const MEMO_NB = 6, MEMO_MIN = 2, MEMO_MAX = 60, MEMO_PAS = 2;
+  let memoMots = [], memoSaisie = [], memoIdx = 0, memoPhase = "", memoTick = null;
+  let memoSec = store.get("motus.memo.sec", 30);
+  let memoReussites = store.get("motus.memo.reussites", 0);
+  let memoBest = store.get("motus.memo.best", 60);
+
+  function memoStart(){
+    mode = "memo"; over = false; ended = false; won = false;
+    guesses = []; rowStates = [];
+    setActiveSeg("memo");
+    // six mots distincts de taille « normale »
+    const pool = POOLS.normal;
+    const pris = new Set(); memoMots = [];
+    let garde = 0;
+    while(memoMots.length < MEMO_NB && garde++ < 500){
+      const m = pool[Math.floor(Math.random()*pool.length)];
+      if(!pris.has(m)){ pris.add(m); memoMots.push(m); }
+    }
+    memoSaisie = memoMots.map(()=> "");
+    memoIdx = 0;
+    board.style.display = "none";
+    $("penduBox").style.display = "none";
+    $("memoBox").style.display = "";
+    memoAffiche();
+    save();
+  }
+
+  /* Phase 1 : les mots sont lisibles, le chrono descend. */
+  function memoAffiche(){
+    memoPhase = "lecture";
+    keyboard.style.display = "none";
+    $("memoPhase").textContent = "Mémorise ces " + MEMO_NB + " mots";
+    $("memoPied").innerHTML = '<span class="memo-info">Ils disparaîtront à la fin du compte à rebours.</span>';
+    $("memoListe").innerHTML = memoMots
+      .map((m,i)=>'<div class="memo-mot"><span class="n">'+(i+1)+'</span>'+m+'</div>').join("");
+    let reste = memoSec;
+    $("memoChrono").textContent = reste + " s";
+    clearInterval(memoTick);
+    memoTick = setInterval(()=>{
+      reste--;
+      $("memoChrono").textContent = Math.max(0, reste) + " s";
+      if(reste <= 0){ clearInterval(memoTick); memoSaisir(); }
+    }, 1000);
+  }
+
+  /* Phase 2 : les mots sont masqués, on les retape dans l'ordre. */
+  function memoSaisir(){
+    memoPhase = "saisie";
+    keyboard.style.display = "";
+    $("memoChrono").textContent = "";
+    $("memoPhase").textContent = "Retape-les dans l'ordre";
+    memoDessine();
+    refreshHintUI();
+  }
+
+  function memoDessine(){
+    $("memoListe").innerHTML = memoMots.map((m,i)=>{
+      const saisi = memoSaisie[i] || "";
+      const actif = (i === memoIdx) ? " actif" : "";
+      // une case par lettre, pour que la longueur attendue reste visible
+      const cases = Array.from({length:m.length}, (_,c)=>
+        '<span class="memo-c'+(saisi[c] ? " plein" : "")
+        + (actif && c === saisi.length ? " cur" : "") + '">'
+        + (saisi[c] || "") + '</span>').join("");
+      return '<div class="memo-ligne'+actif+'"><span class="n">'+(i+1)+'</span>'+cases+'</div>';
+    }).join("");
+    $("memoPied").innerHTML = '<span class="memo-info">Mot ' + (memoIdx+1) + ' sur ' + MEMO_NB
+      + ' · Entrée pour valider</span>';
+  }
+
+  function memoTape(ch){
+    if(memoPhase !== "saisie" || over) return;
+    const attendu = memoMots[memoIdx];
+    if(memoSaisie[memoIdx].length >= attendu.length) return;
+    memoSaisie[memoIdx] += ch; son("touche"); memoDessine();
+  }
+  function memoEfface(){
+    if(memoPhase !== "saisie" || over) return;
+    const cur = memoSaisie[memoIdx];
+    if(cur.length){ memoSaisie[memoIdx] = cur.slice(0, -1); son("efface"); memoDessine(); }
+    else if(memoIdx > 0){ memoIdx--; memoDessine(); }   // revenir au mot précédent
+  }
+  function memoValide(){
+    if(memoPhase !== "saisie" || over) return;
+    if(memoSaisie[memoIdx].length !== memoMots[memoIdx].length){
+      toast("Ce mot fait " + memoMots[memoIdx].length + " lettres."); son("refuse"); return;
+    }
+    if(memoIdx < MEMO_NB - 1){ memoIdx++; memoDessine(); son("correct", memoIdx); return; }
+    memoFin();
+  }
+
+  function memoFin(){
+    over = true; ended = true;
+    memoPhase = "fin";
+    keyboard.style.display = "none";
+    const justes = memoSaisie.filter((s,i)=> s === memoMots[i]).length;
+    const gagne = (justes === MEMO_NB);
+    won = gagne;
+
+    // le temps s'ajuste pour la partie suivante
+    const avant = memoSec;
+    memoSec = gagne
+      ? Math.max(MEMO_MIN, memoSec - MEMO_PAS)
+      : Math.min(MEMO_MAX, memoSec + MEMO_PAS);
+    store.set("motus.memo.sec", memoSec);
+    if(gagne){
+      memoReussites++; store.set("motus.memo.reussites", memoReussites);
+      if(memoSec < memoBest){ memoBest = memoSec; store.set("motus.memo.best", memoBest); }
+      if(window.Memo && Memo.configured()) Memo.record(memoBest, memoReussites);
+    }
+    if(window.Profile && Profile.memoDone){
+      Profile.memoDone({ won:gagne, sec:memoSec, best:memoBest, reussites:memoReussites });
+    }
+    mesure("partie:memo"); if(gagne) mesure("gagne:memo");
+    recordResult(gagne, gagne ? 1 : 6);
+    son(gagne ? "gagne" : "perdu");
+
+    // correction visible : ce qu'on a tapé face à ce qu'il fallait
+    $("memoPhase").textContent = gagne ? "Tout juste !" : justes + " sur " + MEMO_NB;
+    $("memoListe").innerHTML = memoMots.map((m,i)=>{
+      const s2 = memoSaisie[i] || "";
+      const ok = (s2 === m);
+      return '<div class="memo-corr '+(ok ? "ok" : "ko")+'">'
+        + '<span class="n">'+(i+1)+'</span><b>'+m+'</b>'
+        + (ok ? '<span class="v">✓</span>'
+              : '<span class="f">'+(s2 || "—")+'</span>') + '</div>';
+    }).join("");
+    $("memoPied").innerHTML = '<span class="memo-info">'
+      + (gagne ? "Prochain essai : <b>"+memoSec+" s</b> (−"+MEMO_PAS+")"
+               : "Prochain essai : <b>"+memoSec+" s</b> (+"+MEMO_PAS+")")
+      + ' · Record : <b>'+memoBest+' s</b></span>'
+      + '<button class="btn" id="memoRejouer">Recommencer</button>';
+    $("memoRejouer").addEventListener("click", memoStart);
+    save();
   }
 
   /* ---------- Défi du jour : 3 mots (court, moyen, long) ---------- */
@@ -4182,6 +4392,10 @@
     if(d.done) showEnd(d.won, true);
   }
   function setupBoardForAnswer(){
+    // en quittant la Mémorisation, on rend le plateau et on coupe son chrono
+    clearInterval(memoTick);
+    const mb = $("memoBox"); if(mb) mb.style.display = "none";
+    keyboard.style.display = "";
     len=answer.length; row=0; col=1;
     hintCols=[]; hintsThisGame=0; gaveUp=false;
     grid=Array.from({length:MAX_ROWS},()=>Array(len).fill(""));
