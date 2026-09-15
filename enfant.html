@@ -275,7 +275,7 @@
     </div>
   </div>
 
-<script src="./dico/motus-enfant.js?v=1.52.0"></script>
+<script src="./dico/motus-enfant.js?v=1.50.2"></script>
 <script>
 (function(){
   "use strict";
@@ -305,6 +305,16 @@
      jouent naturellement à un jeu de société. */
   var AVATARS = ["🐰", "🦊"];
   var joueurs = store.get("motus.enfant.joueurs", 1);
+
+  /* Compteurs cumulés du mode Junior — poussés au profil par le même pont
+     que l'avancement de Motus Quête (stockage partagé, relayé au démarrage
+     du jeu principal). */
+  var stats = store.get("motus.enfant.stats", {
+    total:0, parJeu:{intrus:0,compter:0,memo:0,lettre:0},
+    duo:0, joursJoues:[], meilleurSerieDuo:0, serieDuoEnCours:0
+  }) || {};
+  if(!stats.parJeu) stats.parJeu = {intrus:0,compter:0,memo:0,lettre:0};
+  if(!Array.isArray(stats.joursJoues)) stats.joursJoues = [];
   var tour = 0;
   var pts  = [0, 0];
   var vies = [LIVES, LIVES];
@@ -744,6 +754,8 @@
   }
 
   function endRun(missed, title){
+    mesureJour("partie:" + ({intrus:"jrintrus",compter:"jrnombre",memo:"jrmemo",lettre:"jrlettre"}[game] || "jr"));
+    majStats();
     if(duo()){
       var g = pts[0] > pts[1] ? 0 : (pts[1] > pts[0] ? 1 : -1);
       $("endTitle").textContent = g < 0 ? "Égalité !" : "Bravo " + AVATARS[g] + " !";
@@ -782,6 +794,32 @@
   }
 
   /* ---------- changement de jeu ou de niveau ---------- */
+  /* Alimente les compteurs cumulés, puis les dépose pour le profil — même
+     mécanisme que l'avancement de Motus Quête. */
+  function majStats(){
+    stats.total++;
+    if(stats.parJeu[game] !== undefined) stats.parJeu[game]++;
+    var jour = new Date().toISOString().slice(0,10);
+    if(stats.joursJoues.indexOf(jour) < 0) stats.joursJoues.push(jour);
+    if(duo()){
+      stats.duo++;
+      stats.serieDuoEnCours++;
+      if(stats.serieDuoEnCours > stats.meilleurSerieDuo) stats.meilleurSerieDuo = stats.serieDuoEnCours;
+    } else {
+      stats.serieDuoEnCours = 0;
+    }
+    store.set("motus.enfant.stats", stats);
+    try{
+      store.set("motus.enfant.progress", {
+        jrTotal: stats.total,
+        jrTousJeux: Object.keys(stats.parJeu).filter(function(k){ return stats.parJeu[k] > 0; }).length,
+        jrDuo: stats.duo,
+        jrSerieDuo: stats.meilleurSerieDuo,
+        jrJours: stats.joursJoues.length
+      });
+    }catch(e){}
+  }
+
   function hasProgress(){ return duo() ? (pts[0]>0 || pts[1]>0 || vies[0]<LIVES || vies[1]<LIVES) : (stars>0 || lives<LIVES); }
   function askSwitch(apply){
     if(!hasProgress()){ apply(); return; }
@@ -874,6 +912,28 @@
   $("btnHelp").addEventListener("click", function(){ fillHelp(); $("helpOverlay").classList.add("open"); });
   $("btnHelpOk").addEventListener("click", function(){ $("helpOverlay").classList.remove("open"); });
   window.addEventListener("resize", function(){ if(game==="lettre" && target) sizeTiles(target.m.length); });
+
+  /* ---------------------------------------------------------------
+     MESURE D'AUDIENCE (v1.51)
+     Cette page n'a pas accès au serveur : on dépose une file d'attente
+     dans le stockage partagé, et le jeu principal l'envoie à sa prochaine
+     ouverture. Même mécanisme que l'avancement de Motus Quête.
+     --------------------------------------------------------------- */
+  function mesure(cle){
+    try{
+      const q = store.get("motus.mesureEnAttente", []) || [];
+      q.push(cle); store.set("motus.mesureEnAttente", q.slice(-40));
+    }catch(e){}
+  }
+  function mesureJour(cle){
+    try{
+      const vu = store.get("motus.mesure", {}) || {};
+      const jour = new Date().toISOString().slice(0,10);
+      if(vu[cle] === jour) return;
+      vu[cle] = jour; store.set("motus.mesure", vu);
+      mesure(cle);
+    }catch(e){}
+  }
 
   /* ---------- démarrage ---------- */
   applyTheme();

@@ -357,8 +357,8 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="./dico/motus-words.js?v=1.52.0"></script>
-<script src="./dico/motus-rpg.js?v=1.52.0"></script>
+<script src="./dico/motus-words.js?v=1.50.2"></script>
+<script src="./dico/motus-rpg.js?v=1.50.2"></script>
 <script>
 (function(){
   "use strict";
@@ -1582,6 +1582,7 @@
   /* ---------- fin de combat ---------- */
   var resultAfter = null;
   function winFight(){
+    mesureJour("partie:rpg");
     C.over = true; $("kb").style.display="none";
     var orGain = Math.round(C.or * (hasRelic("bourse")?1.5:1));
     P.or += orGain;
@@ -1656,6 +1657,7 @@
 
   /* ---------- fin de l'aventure ---------- */
   function showEnd(){
+    mesureJour("gagne:rpg");   // aventure entièrement terminée
     // aventure terminée : on enregistre l'exploit pour les badges
     try{
       var pr = store.get("motus.rpg2.progress", {}) || {};
@@ -1872,6 +1874,19 @@
     $("loreTxt").textContent = DATA.prologue || "";
     openOverlay("ovLore");
     P.introVue = true; save();
+  }
+
+  /* Même mécanisme que Junior : cette page dépose sa mesure dans le
+     stockage partagé, le jeu principal l'envoie à l'ouverture. */
+  function mesureJour(cle){
+    try{
+      const vu = store.get("motus.mesure", {}) || {};
+      const jour = new Date().toISOString().slice(0,10);
+      if(vu[cle] === jour) return;
+      vu[cle] = jour; store.set("motus.mesure", vu);
+      const q = store.get("motus.mesureEnAttente", []) || [];
+      q.push(cle); store.set("motus.mesureEnAttente", q.slice(-40));
+    }catch(e){}
   }
 
   /* ---------- démarrage ---------- */
