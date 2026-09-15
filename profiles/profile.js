@@ -40,6 +40,7 @@
              modes:[], streak:0, best:0,
              dist:[0,0,0,0,0,0], lost:0, msSum:0, msCount:0,   // stats personnelles (v1.47)
              qActes:0, qFins:0, qSecrets:0, qMonstres:0, qNiveau:0, qSansMort:0,
+             jrTotal:0, jrTousJeux:0, jrDuo:0, jrSerieDuo:0, jrJours:0,
              hyph:0, night:0, dawn:0, wknd:0, days:[], dayBest:0,
              defiFast:0, dailyOne:0, allDiff:0, longFast:0, comeback:0, noYellow:0,
              villeCap:0, villeMonde:0,
@@ -117,6 +118,13 @@
     {id:"qsec8", e:"🕵️", n:"Fin limier",          d:"Percer 8 secrets de créatures",         c:"Quête", t:function(b){return b.qSecrets>=8;}, p:[function(b){return b.qSecrets;},8]},
     {id:"qbest", e:"📖", n:"Bestiaire nourri",    d:"Rencontrer 20 créatures différentes",   c:"Quête", t:function(b){return b.qMonstres>=20;}, p:[function(b){return b.qMonstres;},20]},
     {id:"qlvl",  e:"⚔️", n:"Apprenti confirmé",   d:"Atteindre le niveau 10 en Quête",       c:"Quête", t:function(b){return b.qNiveau>=10;}, p:[function(b){return b.qNiveau;},10]},
+    {id:"jr1",   e:"🧸", n:"Premières lettres",   d:"Jouer 1 partie en mode Junior",         c:"Junior", t:function(b){return b.jrTotal>=1;}, p:[function(b){return b.jrTotal;},1]},
+    {id:"jr25",  e:"🌟", n:"Petit habitué",        d:"Jouer 25 parties en mode Junior",       c:"Junior", t:function(b){return b.jrTotal>=25;}, p:[function(b){return b.jrTotal;},25]},
+    {id:"jr100", e:"🏅", n:"Champion junior",       d:"Jouer 100 parties en mode Junior",      c:"Junior", t:function(b){return b.jrTotal>=100;}, p:[function(b){return b.jrTotal;},100]},
+    {id:"jrall", e:"🎨", n:"Touche-à-tout",        d:"Essayer les 4 jeux du mode Junior",     c:"Junior", t:function(b){return b.jrTousJeux>=4;}, p:[function(b){return b.jrTousJeux;},4]},
+    {id:"jrduo", e:"👯", n:"À deux, c'est mieux",  d:"Jouer 10 parties à deux en Junior",     c:"Junior", t:function(b){return b.jrDuo>=10;}, p:[function(b){return b.jrDuo;},10]},
+    {id:"jrser", e:"🤝", n:"Complices",            d:"5 parties à deux d'affilée en Junior",  c:"Junior", t:function(b){return b.jrSerieDuo>=5;}, p:[function(b){return b.jrSerieDuo;},5]},
+    {id:"jrjour",e:"📅", n:"Habitude prise",       d:"Jouer en Junior sur 7 jours différents",c:"Junior", t:function(b){return b.jrJours>=7;}, p:[function(b){return b.jrJours;},7]},
     {id:"pe10",  e:"🎭", n:"Physionomiste",      d:"10 personnages trouvés",        c:"Modes", t:function(b){return b.mPe>=10;}, p:[function(b){return b.mPe;},10]},
     {id:"pe50",  e:"🌟", n:"Biographe",          d:"50 personnages trouvés",        c:"Modes", t:function(b){return b.mPe>=50;}, p:[function(b){return b.mPe;},50]},
     {id:"x1",    e:"🎓", n:"Rigoureux",          d:"Trouver un mot en Expert",       c:"Modes", t:function(b){return b.mX>=1;}},
@@ -1177,6 +1185,17 @@
 
     /* Avancement de Motus Quête. Le jeu vit dans une autre page : il nous
        envoie ses compteurs, on ne garde que le meilleur atteint. */
+    /* Compteurs cumulés de Motus Junior — même principe que la Quête :
+       cette page n'a pas accès au profil, elle nous envoie ses chiffres. */
+    juniorProgress: function (o) {
+      o = o || {};
+      var b = state.b;
+      ["jrTotal","jrTousJeux","jrDuo","jrSerieDuo","jrJours"].forEach(function (k) {
+        if (typeof o[k] === "number") b[k] = Math.max(b[k] || 0, o[k]);
+      });
+      saveLocal(); checkBadges(); pushDebounced(); refreshOpen();
+    },
+
     questProgress: function (o) {
       o = o || {};
       var b = state.b;
