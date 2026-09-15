@@ -557,16 +557,6 @@
     <button id="modeBtn"><span id="modeBtnLabel">Normal</span><span class="chev">▾</span></button>
   </div>
 
-  <!-- Mémorisation : affichage des mots, puis saisie de mémoire -->
-  <div id="memoBox" style="display:none">
-    <div class="memo-tete">
-      <span id="memoPhase">Mémorise !</span>
-      <span class="memo-chrono" id="memoChrono"></span>
-    </div>
-    <div class="memo-liste" id="memoListe"></div>
-    <div class="memo-pied" id="memoPied"></div>
-  </div>
-
   <!-- Panneau de choix du mode -->
   <div class="overlay" id="modeOverlay">
     <div class="modal">
@@ -607,6 +597,15 @@
   <button id="giveUpBtn" aria-label="Abandonner la partie">Abandonner</button>
 
   <main><div id="board" role="grid" aria-label="Grille de jeu"></div>
+  <!-- Mémorisation : affichage des mots, puis saisie de mémoire -->
+  <div id="memoBox" style="display:none">
+    <div class="memo-tete">
+      <span id="memoPhase">Mémorise !</span>
+      <span class="memo-chrono" id="memoChrono"></span>
+    </div>
+    <div class="memo-liste" id="memoListe"></div>
+    <div class="memo-pied" id="memoPied"></div>
+  </div>
     <div id="penduBox" style="display:none">
       <svg id="penduSvg" viewBox="0 0 120 150" width="150" height="188" aria-hidden="true">
         <line x1="8" y1="140" x2="72" y2="140" stroke="var(--ink-dim)" stroke-width="4" stroke-linecap="round"/>
@@ -3932,7 +3931,7 @@
   }
 
   /* ---------- Abandon ---------- */
-  const GIVEUP_MODES = HINT_MODES.concat(["expert"]);   // "pendu" déjà inclus via HINT_MODES
+  const GIVEUP_MODES = HINT_MODES.concat(["expert"]);   // "pendu" et "memo" déjà inclus via HINT_MODES
   function refreshGiveUpUI(){
     const b=$("giveUpBtn"); if(!b) return;
     b.classList.toggle("show", GIVEUP_MODES.indexOf(mode)>=0 && !over && !ended && rowHasInput());
@@ -3945,6 +3944,7 @@
     gaveUp=true;
     if(window.Profile && Profile.giveUp) Profile.giveUp();
     if(mode==="pendu"){ penduGiveUp(); return; }
+    if(mode==="memo"){ clearInterval(memoTick); memoFin(); return; }
     over=true; ended=true; timerStop();
     recordResult(false); awardXp(false);
     if(mode==="defi"){ save(); defiAdvance(false); return; }
@@ -4122,6 +4122,9 @@
   // fonctionne aussi avec la saisie libre en tapant sur une case)
   function rowHasInput(){
     if(mode==="pendu") return penduGuessed.length>0;
+    // Mémorisation : abandonner a un sens dès qu'on a commencé à REGARDER
+    // les mots — pas seulement une fois la saisie entamée.
+    if(mode==="memo") return memoPhase==="saisie" || memoPhase==="lecture";
     return guesses.length>0 || (grid[row]||[]).slice(1).some(ch=>ch);
   }
   // remet le chrono à zéro SANS le démarrer : utilisé à l'ouverture d'un mot neuf
@@ -4133,7 +4136,7 @@
   }
   function timerValue(){ return tTimer ? tElapsed + (Date.now()-tStart) : tElapsed; }
   function updateHud(){
-    const names={court:"Court",normal:"Normal",long:"Long",expert:"Expert",daily:"Mot du jour",defi:"Défi du jour",prenoms:"Prénoms",maladies:"Maladies",villes:"Villes",duel:"Duel",race:"Course",defense:"Défense",pendu:"Le Pendu"};
+    const names={court:"Court",normal:"Normal",long:"Long",expert:"Expert",daily:"Mot du jour",defi:"Défi du jour",prenoms:"Prénoms",maladies:"Maladies",villes:"Villes",duel:"Duel",race:"Course",defense:"Défense",pendu:"Le Pendu",memo:"Mémorisation"};
     let label = names[mode]||"";
     if(mode==="race") label = "Course · " + raceThemeName(raceTheme);
     if(mode==="expert") label = "Expert" + (expertRare ? " · mots rares" : "");
@@ -4187,12 +4190,18 @@
   let memoMots = [], memoSaisie = [], memoIdx = 0, memoPhase = "", memoTick = null;
   let memoSec = store.get("motus.memo.sec", 30);
   let memoReussites = store.get("motus.memo.reussites", 0);
-  let memoBest = store.get("motus.memo.best", 60);
+  // null tant qu'aucune grille n'a été réussie : 60 ressemblait à un vrai
+  // record obtenu, alors que ce n'était que la valeur de départ du chrono
+  let memoBest = store.get("motus.memo.best", null);
 
   function memoStart(){
     mode = "memo"; over = false; ended = false; won = false;
-    guesses = []; rowStates = [];
+    guesses = []; rowStates = []; hintCols = [];
+    resetKeyboardColors();          // sinon les couleurs du mode précédent restent affichées
+    if(typeof applyBannedKeys==="function") applyBannedKeys();
     setActiveSeg("memo");
+    updateHud();                    // sans cet appel, le HUD garde l'ancien mode ET son ancien chrono
+    timerReset();
     // six mots distincts de taille « normale »
     const pool = POOLS.normal;
     const pris = new Set(); memoMots = [];
@@ -4290,7 +4299,7 @@
     store.set("motus.memo.sec", memoSec);
     if(gagne){
       memoReussites++; store.set("motus.memo.reussites", memoReussites);
-      if(memoSec < memoBest){ memoBest = memoSec; store.set("motus.memo.best", memoBest); }
+      if(memoBest === null || memoSec < memoBest){ memoBest = memoSec; store.set("motus.memo.best", memoBest); }
       if(window.Memo && Memo.configured()) Memo.record(memoBest, memoReussites);
     }
     if(window.Profile && Profile.memoDone){
@@ -4313,7 +4322,7 @@
     $("memoPied").innerHTML = '<span class="memo-info">'
       + (gagne ? "Prochain essai : <b>"+memoSec+" s</b> (−"+MEMO_PAS+")"
                : "Prochain essai : <b>"+memoSec+" s</b> (+"+MEMO_PAS+")")
-      + ' · Record : <b>'+memoBest+' s</b></span>'
+      + ' · Record : <b>'+(memoBest===null ? "—" : memoBest+" s")+'</b></span>'
       + '<button class="btn" id="memoRejouer">Recommencer</button>';
     $("memoRejouer").addEventListener("click", memoStart);
     save();
@@ -4418,7 +4427,7 @@
     else timerReset();                                        // mot pas encore entamé
   }
 
-  const MODE_LABELS={daily:"📅 Mot du jour",defi:"🔥 Défi du jour",court:"🐤 Court",normal:"🎯 Normal",long:"🐘 Long",expert:"🎓 Expert",prenoms:"👶 Prénoms",maladies:"🩺 Maladies",villes:"🏙️ Villes",duel:"⚔️ Duel",race:"⌨️ Course",defense:"🛡️ Défense",pendu:"🪢 Le Pendu"};
+  const MODE_LABELS={daily:"📅 Mot du jour",defi:"🔥 Défi du jour",court:"🐤 Court",normal:"🎯 Normal",long:"🐘 Long",expert:"🎓 Expert",prenoms:"👶 Prénoms",maladies:"🩺 Maladies",villes:"🏙️ Villes",duel:"⚔️ Duel",race:"⌨️ Course",defense:"🛡️ Défense",pendu:"🪢 Le Pendu",memo:"🧠 Mémorisation"};
   function setActiveSeg(m){
     $("modeBtnLabel").textContent = MODE_LABELS[m] || m;
     document.querySelectorAll(".mode-item").forEach(b=>b.classList.toggle("active", b.dataset.mode===m));
