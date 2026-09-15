@@ -141,7 +141,23 @@
   #modeBtn .chev{ color:var(--ink-dim); font-size:13px; }
   .mode-cat{ font-size:11px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.6px; font-weight:800; margin:12px 0 7px; }
   .mode-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-  .mode-item{ border:none; border-radius:12px; background:var(--cell); box-shadow:inset 0 0 0 1.5px var(--cell-edge); color:var(--ink); padding:10px 8px 9px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:2px; transition:.12s; }
+  .mode-item{ border:none; border-radius:12px; background:var(--cell); box-shadow:inset 0 0 0 1.5px var(--cell-edge); color:var(--ink); padding:10px 8px 9px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:2px; transition:.12s; position:relative; }
+  /* Fait aujourd'hui : contour et coche, pour repérer d'un coup d'œil sans
+     avoir à relancer le mode. */
+  .mode-item.fait{ box-shadow:inset 0 0 0 2px var(--accent); }
+  .mode-item.fait::after{ content:"✓"; position:absolute; top:4px; right:6px;
+    width:15px; height:15px; border-radius:50%; background:var(--accent); color:#fff;
+    font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center; }
+  /* Défense : aucun mot posé — bordure en pointillés, rien à protéger. */
+  .mode-item.vide{ box-shadow:inset 0 0 0 2px var(--ink-dim); }
+  .mode-item.vide i{ color:var(--red); font-weight:700; }
+  /* Défense percée : rouge, distinct du vert « fait » — c'est une alerte,
+     pas une réussite. */
+  .mode-item.perce{ box-shadow:inset 0 0 0 2px var(--red); animation:pulse 1.6s ease-in-out infinite; }
+  .mode-item.perce::after{ content:"!"; position:absolute; top:4px; right:6px;
+    width:15px; height:15px; border-radius:50%; background:var(--red); color:#fff;
+    font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; }
+  .mode-item.perce i{ color:var(--red); font-weight:700; }
   .mode-item:active{ transform:scale(.97); }
   .mode-item .mi{ font-size:22px; }
   .mode-item b{ font-size:14px; }
@@ -518,8 +534,8 @@
       <h2>Mode de jeu</h2>
       <div class="mode-cat">Quotidien</div>
       <div class="mode-grid">
-        <button class="mode-item" data-mode="daily"><span class="mi">📅</span><b>Mot du jour</b><i>Le même pour tous</i></button>
-        <button class="mode-item" data-mode="defi"><span class="mi">🔥</span><b>Défi du jour</b><i>3 mots · 15 min</i></button>
+        <button class="mode-item" data-mode="daily" id="modeDaily"><span class="mi">📅</span><b>Mot du jour</b><i>Le même pour tous</i></button>
+        <button class="mode-item" data-mode="defi" id="modeDefi"><span class="mi">🔥</span><b>Défi du jour</b><i>3 mots · 15 min</i></button>
       </div>
       <div class="mode-cat">Classique</div>
       <div class="mode-grid">
@@ -533,7 +549,7 @@
       <div class="mode-grid">
         <button class="mode-item" data-mode="duel"><span class="mi">⚔️</span><b>Duel</b><i>Contre un ami</i></button>
         <button class="mode-item" data-mode="race"><span class="mi">⌨️</span><b>Course</b><i>Vitesse d'écriture</i></button>
-        <button class="mode-item" data-mode="defense"><span class="mi">🛡️</span><b>Défense</b><i>Protège ton mot</i></button>
+        <button class="mode-item" data-mode="defense" id="modeDefense"><span class="mi">🛡️</span><b>Défense</b><i id="modeDefenseSub">Protège ton mot</i></button>
       </div>
       <div class="mode-cat">Thèmes</div>
       <div class="mode-grid">
@@ -926,21 +942,21 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.51.0"></script>
-<script src="./dico/motus-prenoms.js?v=1.51.0"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.51.0"></script>
-<script src="./dico/motus-maladies.js?v=1.51.0"></script>
-<script src="./dico/motus-maladies-info.js?v=1.51.0"></script>
-<script src="./dico/motus-villes.js?v=1.51.0"></script>
-<script src="./dico/motus-villes-info.js?v=1.51.0"></script>
-<script src="./dico/motus-persos.js?v=1.51.0"></script>
-<script src="./dico/motus-persos-info.js?v=1.51.0"></script>
-<script src="./dico/motus-persos-split.js?v=1.51.0"></script>
-<script src="./dico/motus-race.js?v=1.51.0"></script>
-<script src="./dico/motus-expert.js?v=1.51.0"></script>
-<script src="./profiles/config.js?v=1.51.0"></script>
-<script src="./profiles/profile.js?v=1.51.0"></script>
-<script src="./duel/duel.js?v=1.51.0"></script>
+<script src="./dico/motus-words.js?v=1.50.2"></script>
+<script src="./dico/motus-prenoms.js?v=1.50.2"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.50.2"></script>
+<script src="./dico/motus-maladies.js?v=1.50.2"></script>
+<script src="./dico/motus-maladies-info.js?v=1.50.2"></script>
+<script src="./dico/motus-villes.js?v=1.50.2"></script>
+<script src="./dico/motus-villes-info.js?v=1.50.2"></script>
+<script src="./dico/motus-persos.js?v=1.50.2"></script>
+<script src="./dico/motus-persos-info.js?v=1.50.2"></script>
+<script src="./dico/motus-persos-split.js?v=1.50.2"></script>
+<script src="./dico/motus-race.js?v=1.50.2"></script>
+<script src="./dico/motus-expert.js?v=1.50.2"></script>
+<script src="./profiles/config.js?v=1.50.2"></script>
+<script src="./profiles/profile.js?v=1.50.2"></script>
+<script src="./duel/duel.js?v=1.50.2"></script>
 <script>
 (() => {
   "use strict";
@@ -992,7 +1008,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.51.0";
+  const VERSION = "1.50.2";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -1181,6 +1197,36 @@
       ? "Autorise Mot en Six dans les réglages de ton navigateur pour les réactiver."
       : et==="absent" ? "Ce navigateur ne propose pas les notifications."
       : "Te prévient quand ta défense est attaquée ou quand le mot du jour t'attend — seulement si le jeu n'est pas au premier plan.";
+  }
+  /* Marque le mot du jour et le défi comme faits sur le menu des modes :
+     un repère visuel, sans avoir à relancer le mode pour le savoir. */
+  /* Défense : deux alertes que rien ne signalait sans ouvrir le panneau —
+     l'absence de mot posé, et une défense tombée depuis la dernière visite. */
+  function majPastilleDefense(){
+    const b = $("modeDefense"); if(!b || !defAvailable()) return;
+    Defense.mine().then(d=>{
+      b.classList.remove("vide","perce");
+      const sub = $("modeDefenseSub");
+      if(!d || !d.id){
+        b.classList.add("vide");
+        if(sub) sub.textContent = "Pose un mot !";
+      } else if(d.broken){
+        b.classList.add("perce");
+        if(sub) sub.textContent = "Ton mot est tombé";
+      } else if(sub){
+        sub.textContent = "Protège ton mot";
+      }
+    }).catch(()=>{});
+  }
+  function majPastillesDuJour(){
+    const jour = todayKey();
+    const d = store.get("motus.daily", null);
+    const fait = $("modeDaily");
+    if(fait) fait.classList.toggle("fait", !!(d && d.day===jour && d.done));
+
+    const f = store.get("motus.defi", null);
+    const defi = $("modeDefi");
+    if(defi) defi.classList.toggle("fait", !!(f && f.day===jour && f.over));
   }
   function markPersonalizeSel(){
     clavierPaint(); sonPaint(); notifPaint();
@@ -1666,13 +1712,25 @@
           }).join("") : '<div class="def-none">Personne ne t\'a encore attaqué.</div>');
       box.classList.add("show");
       if(unseen.length){
-        const fresh = unseen.slice().reverse();
-        fresh.forEach(r=>defLogAdd({ dir:"def", who:(r.attacker_pseudo||"Anonyme"),
-                                     won:!!r.won, tries:r.tries||0, at: Date.now() }));
-        if(window.Profile && Profile.defenseFeedNew) Profile.defenseFeedNew(fresh);
+        /* markSeen() confirme au serveur de façon asynchrone : si defRefresh()
+           est rappelée avant cette confirmation (double ouverture rapide du
+           panneau, ou après une attaque qui rafraîchit aussitôt), la même
+           ligne repasserait par ici deux fois. On déduplique localement par
+           horodatage, seul repère stable que le serveur fournit. */
+        const vus = defJournalVus();
+        const neuves = unseen.filter(r=>!vus.has(""+r.created_at));
+        if(neuves.length){
+          const fresh = neuves.slice().reverse();
+          fresh.forEach(r=>{
+            defLogAdd({ dir:"def", who:(r.attacker_pseudo||"Anonyme"),
+                        won:!!r.won, tries:r.tries||0, at: Date.now(), src: ""+r.created_at });
+          });
+          if(window.Profile && Profile.defenseFeedNew) Profile.defenseFeedNew(fresh);
+          defShowAlert(neuves);
+          notifDefense(neuves);
+          majPastilleDefense();
+        }
         Defense.markSeen();
-        defShowAlert(unseen);
-        notifDefense(unseen);
       }
     });
   }
@@ -2455,14 +2513,19 @@
       Defense.feed(15).then(rows=>{
         const unseen = (rows||[]).filter(r=>!r.seen);
         if(!unseen.length) return;
-        unseen.slice().reverse().forEach(r=>defLogAdd({
+        // même précaution que defDrawFeed() : éviter un doublon si les deux
+        // vérifications se chevauchent (lancement + ouverture manuelle)
+        const vus = defJournalVus();
+        const neuves = unseen.filter(r=>!vus.has(""+r.created_at));
+        if(!neuves.length){ Defense.markSeen(); return; }
+        neuves.slice().reverse().forEach(r=>defLogAdd({
           dir:"def", who:(r.attacker_pseudo||"Anonyme"),
-          won:!!r.won, tries:r.tries||0, at: Date.now()
+          won:!!r.won, tries:r.tries||0, at: Date.now(), src: ""+r.created_at
         }));
-        if(window.Profile && Profile.defenseFeedNew) Profile.defenseFeedNew(unseen.slice().reverse());
+        if(window.Profile && Profile.defenseFeedNew) Profile.defenseFeedNew(neuves.slice().reverse());
         Defense.markSeen();
-        defShowAlert(unseen);
-        notifDefense(unseen);
+        defShowAlert(neuves);
+        notifDefense(neuves);
       }).catch(()=>{});
     }, 1200);   // on laisse l'écran de jeu s'installer avant d'interrompre
   }
@@ -2499,6 +2562,11 @@
   }
 
   function defLogGet(){ const l = store.get("motus.defLog", []); return Array.isArray(l) ? l : []; }
+  /* Horodatages serveur déjà présents dans le journal local : sert à ne
+     jamais dupliquer une attaque subie qu'on aurait vue deux fois. */
+  function defJournalVus(){
+    return new Set(defLogGet().filter(e=>e.dir==="def" && e.src).map(e=>e.src));
+  }
   function defLogAdd(e){
     const l = defLogGet(); l.unshift(e);
     store.set("motus.defLog", l.slice(0, 60));
@@ -4188,9 +4256,15 @@
       ? `Trouvé en ${guesses.length} essai${guesses.length>1?"s":""} · <b>${fmtTime(timerValue())}</b>`
       : `Le mot était <b>${answer}</b>.`) + cityNote();
     $("btnShare").style.display = daily ? "block" : "none";
-    // En mode Jour, le mot est unique : le bouton lance une partie libre au lieu de « rejouer ».
-    $("btnAgain").textContent = daily ? "Jouer un mot au hasard" : "Rejouer";
-    endAgainMode = daily ? "normal" : mode;
+    /* Trois modes où la tentative est unique et ne peut jamais se rejouer
+       à l'identique : le bouton doit alors proposer autre chose plutôt que
+       de relancer le même mode — sinon, en Défense, on rejouerait une
+       attaque déjà comptée côté serveur. */
+    // Le Pendu n'a pas ce problème (aucun coût côté serveur) : seule la
+    // Défense l'exige, une tentative y étant déjà comptée.
+    const unique = daily || mode==="defense";
+    $("btnAgain").textContent = unique ? "Jouer un mot au hasard" : "Rejouer";
+    endAgainMode = unique ? "normal" : mode;
     openOverlay("endOverlay");
   }
 
@@ -4381,7 +4455,7 @@
   $("confirmYes").addEventListener("click", ()=>{ closeOverlays(); const a=pendingAction; pendingAction=null; if(a) a(); });
   $("confirmNo").addEventListener("click", closeOverlays);
 
-  $("modeBtn").addEventListener("click", ()=>openOverlay("modeOverlay"));
+  $("modeBtn").addEventListener("click", ()=>{ majPastillesDuJour(); majPastilleDefense(); openOverlay("modeOverlay"); });
   document.querySelectorAll(".mode-item").forEach(b=>b.addEventListener("click", ()=>{
     // « Proposer un personnage » partage l'apparence des modes mais n'en est
     // pas un : sans ce garde-fou il lancerait une partie en mode undefined.
@@ -4463,6 +4537,8 @@
   openInvite();
   buildKeyboard();
   refreshStats();
+  majPastillesDuJour();
+  setTimeout(majPastilleDefense, 1400);
   hintSyncPush();        // un appareil déjà pourvu envoie son état dès le départ
   defCheckOnLaunch();
   setTimeout(mesureDemarrage, 1500);   // sans retarder l'affichage
