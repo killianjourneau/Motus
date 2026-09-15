@@ -942,21 +942,21 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=1.52.0"></script>
-<script src="./dico/motus-prenoms.js?v=1.52.0"></script>
-<script src="./dico/motus-prenoms-info.js?v=1.52.0"></script>
-<script src="./dico/motus-maladies.js?v=1.52.0"></script>
-<script src="./dico/motus-maladies-info.js?v=1.52.0"></script>
-<script src="./dico/motus-villes.js?v=1.52.0"></script>
-<script src="./dico/motus-villes-info.js?v=1.52.0"></script>
-<script src="./dico/motus-persos.js?v=1.52.0"></script>
-<script src="./dico/motus-persos-info.js?v=1.52.0"></script>
-<script src="./dico/motus-persos-split.js?v=1.52.0"></script>
-<script src="./dico/motus-race.js?v=1.52.0"></script>
-<script src="./dico/motus-expert.js?v=1.52.0"></script>
-<script src="./profiles/config.js?v=1.52.0"></script>
-<script src="./profiles/profile.js?v=1.52.0"></script>
-<script src="./duel/duel.js?v=1.52.0"></script>
+<script src="./dico/motus-words.js?v=1.50.2"></script>
+<script src="./dico/motus-prenoms.js?v=1.50.2"></script>
+<script src="./dico/motus-prenoms-info.js?v=1.50.2"></script>
+<script src="./dico/motus-maladies.js?v=1.50.2"></script>
+<script src="./dico/motus-maladies-info.js?v=1.50.2"></script>
+<script src="./dico/motus-villes.js?v=1.50.2"></script>
+<script src="./dico/motus-villes-info.js?v=1.50.2"></script>
+<script src="./dico/motus-persos.js?v=1.50.2"></script>
+<script src="./dico/motus-persos-info.js?v=1.50.2"></script>
+<script src="./dico/motus-persos-split.js?v=1.50.2"></script>
+<script src="./dico/motus-race.js?v=1.50.2"></script>
+<script src="./dico/motus-expert.js?v=1.50.2"></script>
+<script src="./profiles/config.js?v=1.50.2"></script>
+<script src="./profiles/profile.js?v=1.50.2"></script>
+<script src="./duel/duel.js?v=1.50.2"></script>
 <script>
 (() => {
   "use strict";
@@ -1008,7 +1008,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "1.52.0";
+  const VERSION = "1.50.2";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -3907,12 +3907,17 @@
     defiTries.push(win ? guesses.length : 0);
     if(!win) defiFailed = true;
     defiStep++;
+    /* Le défi est terminé dès que les trois mots sont joués — qu'il soit
+       réussi ou raté. « over » doit refléter cette fin ici, pas seulement
+       au délai écoulé : sinon la pastille « fait aujourd'hui » du menu
+       restait invisible sur un défi perdu sans dépasser les 15 minutes. */
+    const fini = defiStep>=DEFI_STEPS.length;
     const d = store.get("motus.defi",{});
-    d.day=defiKey; d.step=defiStep; d.guesses=[]; d.over=false; d.won=false; d.ms=0;
+    d.day=defiKey; d.step=defiStep; d.guesses=[]; d.over=fini; d.won=false; d.ms=0;
     d.times=defiTimes; d.tries=defiTries; d.failed=defiFailed;
     store.set("motus.defi", d);
 
-    if(defiStep>=DEFI_STEPS.length){
+    if(fini){
       if(window.Profile) Profile.defiDone({ success:!defiFailed, ms:defiTimes.reduce((a,b)=>a+b,0) });
       if(!defiFailed) grantHintOnce("defi", defiKey);
       showDefiEnd(); return;
