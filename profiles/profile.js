@@ -41,6 +41,7 @@
              dist:[0,0,0,0,0,0], lost:0, msSum:0, msCount:0,   // stats personnelles (v1.47)
              qActes:0, qFins:0, qSecrets:0, qMonstres:0, qNiveau:0, qSansMort:0,
              jrTotal:0, jrTousJeux:0, jrDuo:0, jrSerieDuo:0, jrJours:0,
+             memoTotal:0, memoReussites:0, memoBest:60, memoSerie:0, memoBestSerie:0,
              hyph:0, night:0, dawn:0, wknd:0, days:[], dayBest:0,
              defiFast:0, dailyOne:0, allDiff:0, longFast:0, comeback:0, noYellow:0,
              villeCap:0, villeMonde:0,
@@ -118,6 +119,12 @@
     {id:"qsec8", e:"🕵️", n:"Fin limier",          d:"Percer 8 secrets de créatures",         c:"Quête", t:function(b){return b.qSecrets>=8;}, p:[function(b){return b.qSecrets;},8]},
     {id:"qbest", e:"📖", n:"Bestiaire nourri",    d:"Rencontrer 20 créatures différentes",   c:"Quête", t:function(b){return b.qMonstres>=20;}, p:[function(b){return b.qMonstres;},20]},
     {id:"qlvl",  e:"⚔️", n:"Apprenti confirmé",   d:"Atteindre le niveau 10 en Quête",       c:"Quête", t:function(b){return b.qNiveau>=10;}, p:[function(b){return b.qNiveau;},10]},
+    {id:"me1",   e:"🧠", n:"Première mémoire",   d:"Réussir 1 grille de Mémorisation",       c:"Mémo", t:function(b){return b.memoReussites>=1;}, p:[function(b){return b.memoReussites;},1]},
+    {id:"me10",  e:"💡", n:"Bonne mémoire",       d:"Réussir 10 grilles de Mémorisation",     c:"Mémo", t:function(b){return b.memoReussites>=10;}, p:[function(b){return b.memoReussites;},10]},
+    {id:"me20",  e:"📸", n:"Mémoire photographique", d:"Descendre à 20 s d'affichage",       c:"Mémo", t:function(b){return b.memoBest<=20;}, p:[function(b){return Math.max(0,60-b.memoBest);},40]},
+    {id:"me10s", e:"⚡", n:"Coup d'œil",          d:"Descendre à 10 s d'affichage",           c:"Mémo", t:function(b){return b.memoBest<=10;}, p:[function(b){return Math.max(0,60-b.memoBest);},50]},
+    {id:"me2s",  e:"👁️", n:"Œil absolu",          d:"Descendre à 2 s — le minimum",           c:"Mémo", t:function(b){return b.memoBest<=2;}, p:[function(b){return Math.max(0,60-b.memoBest);},58]},
+    {id:"mese",  e:"🔗", n:"Sans faillir",        d:"5 grilles réussies d'affilée",           c:"Mémo", t:function(b){return b.memoBestSerie>=5;}, p:[function(b){return b.memoBestSerie;},5]},
     {id:"jr1",   e:"🧸", n:"Premières lettres",   d:"Jouer 1 partie en mode Junior",         c:"Junior", t:function(b){return b.jrTotal>=1;}, p:[function(b){return b.jrTotal;},1]},
     {id:"jr25",  e:"🌟", n:"Petit habitué",        d:"Jouer 25 parties en mode Junior",       c:"Junior", t:function(b){return b.jrTotal>=25;}, p:[function(b){return b.jrTotal;},25]},
     {id:"jr100", e:"🏅", n:"Champion junior",       d:"Jouer 100 parties en mode Junior",      c:"Junior", t:function(b){return b.jrTotal>=100;}, p:[function(b){return b.jrTotal;},100]},
@@ -1187,6 +1194,23 @@
        envoie ses compteurs, on ne garde que le meilleur atteint. */
     /* Compteurs cumulés de Motus Junior — même principe que la Quête :
        cette page n'a pas accès au profil, elle nous envoie ses chiffres. */
+    /* Mémorisation : le record est le temps d'affichage le plus BAS, donc
+       on garde le minimum et non le maximum comme pour les autres. */
+    memoDone: function (o) {
+      o = o || {};
+      var b = state.b;
+      b.memoTotal = (b.memoTotal || 0) + 1;
+      if (o.won) {
+        b.memoReussites = (b.memoReussites || 0) + 1;
+        b.memoSerie = (b.memoSerie || 0) + 1;
+        if (b.memoSerie > (b.memoBestSerie || 0)) b.memoBestSerie = b.memoSerie;
+      } else {
+        b.memoSerie = 0;
+      }
+      if (typeof o.best === "number") b.memoBest = Math.min(b.memoBest || 60, o.best);
+      saveLocal(); checkBadges(); pushDebounced(); refreshOpen();
+    },
+
     juniorProgress: function (o) {
       o = o || {};
       var b = state.b;
