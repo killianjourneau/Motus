@@ -55,11 +55,30 @@ jobs:
           git config user.email "actions@github.com"
           git add -A
           git commit -m "Version ${{ steps.bascule.outputs.version }}"
-          git push
+          # -v affiche explicitement le résultat de l'envoi ; sans ça un
+          # rejet partiel (branche protégée, jeton insuffisant) peut se
+          # noyer dans une sortie par ailleurs verte.
+          git push -v
+
+      - name: Vérifier que l'envoi a vraiment abouti
+        # Sans ce contrôle, un push silencieusement rejeté laissait croire
+        # à une bascule réussie alors que rien n'avait changé sur GitHub —
+        # exactement le symptôme d'une version bloquée malgré une exécution
+        # verte.
+        run: |
+          git fetch origin main
+          local_sha=$(git rev-parse HEAD)
+          remote_sha=$(git rev-parse origin/main)
+          if [ "$local_sha" != "$remote_sha" ]; then
+            echo "::error::L'envoi n'a pas abouti : le commit local ($local_sha) ne correspond pas à celui sur GitHub ($remote_sha)."
+            echo "::error::Vérifie Settings → Branches : une règle de protection sur main bloque probablement le robot."
+            exit 1
+          fi
+          echo "Confirmé : la version ${{ steps.bascule.outputs.version }} est bien sur GitHub."
 
       - name: Récapitulatif
         run: |
           echo "### Version ${{ steps.bascule.outputs.version }} publiée" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Les tests sont passés, la mise en ligne se lance automatiquement." >> $GITHUB_STEP_SUMMARY
+          echo "Les tests sont passés et l'envoi a été vérifié : la mise en ligne se lance automatiquement." >> $GITHUB_STEP_SUMMARY
           echo "Compte une à deux minutes, puis rafraîchis le jeu." >> $GITHUB_STEP_SUMMARY
