@@ -589,7 +589,6 @@
         <button class="mode-item" data-mode="long"><span class="mi">🐘</span><b>Long</b><i>10-15 lettres</i></button>
         <button class="mode-item" data-mode="expert"><span class="mi">🎓</span><b>Expert</b><i>Règles strictes</i></button>
         <button class="mode-item nouveau" data-mode="memo"><span class="mi">🧠</span><b>Mémorisation</b><i>6 mots à retenir</i></button>
-        <button class="btn ghost" id="btnMemoTop" style="grid-column:1/-1;margin-top:-4px">🏆 Voir le classement de la Mémorisation</button>
         <button class="mode-item" data-mode="pendu"><span class="mi">🪢</span><b>Le Pendu</b><i>Devine lettre à lettre</i></button>
       </div>
       <div class="mode-cat">Multijoueur</div>
@@ -4671,7 +4670,6 @@
     else if(k==="-" || k==="_") handleKey(DASH);
   });
 
-  $("btnMemoTop").addEventListener("click", ()=>{ closeOverlays(); memoOuvrirClassement(); });
   $("btnKid").addEventListener("click", ()=>{ location.href="./enfant.html"; });
   $("btnRpg").addEventListener("click", ()=>{ location.href="./rpg.html"; });
   document.querySelectorAll("#duelTabs .dtab").forEach(b=>b.addEventListener("click", ()=>{
