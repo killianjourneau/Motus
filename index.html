@@ -3897,8 +3897,8 @@
     if(mode==="memo"){
       if(memoPhase !== "saisie"){ toast("L'indice ne sert que pendant la saisie."); return; }
       const attendu = memoMots[memoIdx];
-      if(memoSaisie[memoIdx] === attendu){ toast("Ce mot est déjà complet !"); return; }
-      memoSaisie[memoIdx] = attendu;
+      if(memoSaisie[memoIdx].join("") === attendu){ toast("Ce mot est déjà complet !"); return; }
+      memoSaisie[memoIdx] = attendu.split("");
       hintsThisGame++; hintSpendOne(); son("indice");
       toast("🔍 Mot " + (memoIdx+1) + " révélé : " + attendu, 2400);
       memoDessine(); refreshHintUI();
@@ -4090,7 +4090,9 @@
     // répartition par mode, pour savoir où l'on joue vraiment
     const parMode = [
       ["Courts","mC"],["Normaux","mN"],["Longs","mL"],
-      ["Prénoms","mP"],["Personnages","mPe"],["Maladies","mM"],["Villes","mV"],["Expert","mX"]
+      ["Prénoms","mP"],["Personnages","mPe"],["Maladies","mM"],["Villes","mV"],["Expert","mX"],
+      // ces deux modes avaient leurs compteurs, mais n'étaient jamais affichés
+      ["Le Pendu","penduPlay"],["Mémorisation","memoTotal"]
     ].filter(([,k])=>(b[k]||0)>0)
      .sort((x,y)=>(b[y[1]]||0)-(b[x[1]]||0))
      .map(([n,k])=>`<div class="st-row"><span>${n}</span><b>${b[k]}</b></div>`).join("");
@@ -4205,7 +4207,8 @@
      plus BAS atteint — plus il est petit, mieux on mémorise.
      --------------------------------------------------------------- */
   const MEMO_NB = 6, MEMO_MIN = 2, MEMO_MAX = 60, MEMO_PAS = 2;
-  let memoMots = [], memoSaisie = [], memoIdx = 0, memoPhase = "", memoTick = null;
+  let memoMots = [], memoSaisie = [], memoIdx = 0, memoCol = 0, memoPhase = "", memoTick = null;
+  let memoSaisieTick = null, memoSaisieDebut = 0;
   let memoSec = store.get("motus.memo.sec", 30);
   let memoReussites = store.get("motus.memo.reussites", 0);
   // null tant qu'aucune grille n'a été réussie : 60 ressemblait à un vrai
@@ -4232,8 +4235,10 @@
       const m = pool[Math.floor(Math.random()*pool.length)];
       if(!pris.has(m)){ pris.add(m); memoMots.push(m); }
     }
-    memoSaisie = memoMots.map(()=> "");
-    memoIdx = 0;
+    // un tableau de lettres par mot (et non une chaîne) : indispensable pour
+    // pouvoir corriger une case précise sans tout retaper
+    memoSaisie = memoMots.map(m => new Array(m.length).fill(""));
+    memoIdx = 0; memoCol = 0;
     /* Masquer ne suffit pas à empêcher un clic resté actif sur l'ancien
        plateau (tuiles du mode précédent encore dans le DOM) : on le VIDE
        et on lui retire toute possibilité d'être cliqué, en plus de le
@@ -4270,46 +4275,92 @@
   function memoSaisir(){
     memoPhase = "saisie";
     keyboard.style.display = "";
-    $("memoChrono").textContent = "";
     $("memoPhase").textContent = "Retape-les dans l'ordre";
+    memoIdx = 0; memoCol = 0;
+    // Un chrono tourne AUSSI pendant la saisie : il mesure le temps mis à
+    // restituer, sans limite imposée — on ne perd pas si on est lent.
+    memoSaisieDebut = Date.now();
+    clearInterval(memoSaisieTick);
+    memoSaisieTick = setInterval(memoMajChrono, 250);
+    memoMajChrono();
     memoDessine();
     refreshHintUI(); refreshGiveUpUI();
+  }
+  function memoMajChrono(){
+    if(memoPhase !== "saisie") return;
+    const sec = Math.floor((Date.now() - memoSaisieDebut) / 1000);
+    $("memoChrono").textContent = Math.floor(sec/60) + ":" + String(sec%60).padStart(2,"0");
   }
 
   function memoDessine(){
     $("memoListe").innerHTML = memoMots.map((m,i)=>{
-      const saisi = memoSaisie[i] || "";
+      const saisi = memoSaisie[i] || [];
       const actif = (i === memoIdx) ? " actif" : "";
-      // une case par lettre, pour que la longueur attendue reste visible
+      // chaque case est cliquable : on peut viser précisément la lettre à corriger
       const cases = Array.from({length:m.length}, (_,c)=>
         '<span class="memo-c'+(saisi[c] ? " plein" : "")
-        + (actif && c === saisi.length ? " cur" : "") + '">'
+        + (i === memoIdx && c === memoCol ? " cur" : "") + '"'
+        + ' data-mot="'+i+'" data-col="'+c+'">'
         + (saisi[c] || "") + '</span>').join("");
-      return '<div class="memo-ligne'+actif+'"><span class="n">'+(i+1)+'</span>'+cases+'</div>';
+      return '<div class="memo-ligne'+actif+'" data-mot="'+i+'"><span class="n">'+(i+1)+'</span>'+cases+'</div>';
     }).join("");
     $("memoPied").innerHTML = '<span class="memo-info">Mot ' + (memoIdx+1) + ' sur ' + MEMO_NB
-      + ' · Entrée pour valider</span>';
+      + ' · touche une case pour la corriger</span>'
+      + '<button class="btn ghost" id="memoPasser">Passer ce mot →</button>';
+    const pass = $("memoPasser");
+    if(pass) pass.addEventListener("click", memoPasser);
+    // sélection directe d'une case
+    $("memoListe").querySelectorAll(".memo-c").forEach(el=>{
+      el.addEventListener("click", ()=>{
+        if(memoPhase !== "saisie" || over) return;
+        memoIdx = +el.dataset.mot; memoCol = +el.dataset.col;
+        memoDessine();
+      });
+    });
+  }
+
+  /* Avance jusqu'à la prochaine case vide du mot, sinon reste au bout. */
+  function memoProchaineCase(){
+    const t = memoSaisie[memoIdx];
+    for(let c = memoCol + 1; c < t.length; c++) if(!t[c]) { memoCol = c; return; }
+    for(let c = 0; c < t.length; c++) if(!t[c]) { memoCol = c; return; }
+    memoCol = Math.min(memoCol + 1, t.length - 1);
   }
 
   function memoTape(ch){
     if(memoPhase !== "saisie" || over) return;
-    const attendu = memoMots[memoIdx];
-    if(memoSaisie[memoIdx].length >= attendu.length) return;
-    memoSaisie[memoIdx] += ch; son("touche"); memoDessine(); refreshGiveUpUI();
+    memoSaisie[memoIdx][memoCol] = ch;
+    son("touche");
+    memoProchaineCase();
+    memoDessine(); refreshGiveUpUI();
   }
   function memoEfface(){
     if(memoPhase !== "saisie" || over) return;
-    const cur = memoSaisie[memoIdx];
-    if(cur.length){ memoSaisie[memoIdx] = cur.slice(0, -1); son("efface"); memoDessine(); }
-    else if(memoIdx > 0){ memoIdx--; memoDessine(); }   // revenir au mot précédent
-    refreshGiveUpUI();
+    const t = memoSaisie[memoIdx];
+    if(t[memoCol]){ t[memoCol] = ""; }
+    else if(memoCol > 0){ memoCol--; t[memoCol] = ""; }
+    else if(memoIdx > 0){ memoIdx--; memoCol = memoSaisie[memoIdx].length - 1; }
+    son("efface"); memoDessine(); refreshGiveUpUI();
   }
+
+  /* Passer : on abandonne CE mot, sans perdre toute la grille. */
+  function memoPasser(){
+    if(memoPhase !== "saisie" || over) return;
+    if(memoIdx < MEMO_NB - 1){
+      memoIdx++; memoCol = 0; memoDessine(); son("efface");
+      toast("Mot passé — tu peux y revenir en touchant sa ligne.", 1800);
+    } else {
+      memoFin();
+    }
+  }
+
   function memoValide(){
     if(memoPhase !== "saisie" || over) return;
-    if(memoSaisie[memoIdx].length !== memoMots[memoIdx].length){
+    const t = memoSaisie[memoIdx];
+    if(t.some(c=>!c)){
       toast("Ce mot fait " + memoMots[memoIdx].length + " lettres."); son("refuse"); return;
     }
-    if(memoIdx < MEMO_NB - 1){ memoIdx++; memoDessine(); son("correct", memoIdx); return; }
+    if(memoIdx < MEMO_NB - 1){ memoIdx++; memoCol = 0; memoDessine(); son("correct", memoIdx); return; }
     memoFin();
   }
 
@@ -4338,8 +4389,9 @@
   function memoFin(){
     over = true; ended = true;
     memoPhase = "fin";
+    clearInterval(memoSaisieTick);   // sinon il continuerait à tourner en fond
     keyboard.style.display = "none";
-    const justes = memoSaisie.filter((s,i)=> s === memoMots[i]).length;
+    const justes = memoSaisie.filter((t,i)=> t.join("") === memoMots[i]).length;
     const gagne = (justes === MEMO_NB);
     won = gagne;
 
@@ -4364,7 +4416,7 @@
     // correction visible : ce qu'on a tapé face à ce qu'il fallait
     $("memoPhase").textContent = gagne ? "Tout juste !" : justes + " sur " + MEMO_NB;
     $("memoListe").innerHTML = memoMots.map((m,i)=>{
-      const s2 = memoSaisie[i] || "";
+      const s2 = (memoSaisie[i] || []).join("");
       const ok = (s2 === m);
       return '<div class="memo-corr '+(ok ? "ok" : "ko")+'">'
         + '<span class="n">'+(i+1)+'</span><b>'+m+'</b>'
@@ -4456,7 +4508,7 @@
   }
   function setupBoardForAnswer(){
     // en quittant la Mémorisation, on rend le plateau, son chrono et le HUD
-    clearInterval(memoTick);
+    clearInterval(memoTick); clearInterval(memoSaisieTick);
     const mb = $("memoBox"); if(mb) mb.style.display = "none";
     board.style.pointerEvents = "";
     keyboard.style.display = "";
