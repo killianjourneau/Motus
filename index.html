@@ -705,8 +705,9 @@
       <div class="dist-title">Contenu</div>
       <p style="text-align:center;margin-bottom:6px" id="aboutCounts"></p>
       <div class="dist-title">Nouveautés</div>
-      <p style="text-align:center;font-size:13px;color:var(--ink-dim)">Mot en Six Quête · Le Pendu · indices &amp; abandon · Course en solo</p>
+      <p style="text-align:center;font-size:13px;color:var(--ink-dim)">🧠 Mémorisation · 🧸 Mot en Six Junior · Mode à deux joueurs · Défense &amp; Journal de guerre</p>
       <button class="btn" id="btnRulesFromAbout">📖 Règles du jeu</button>
+      <button class="btn" id="btnShareFromAbout">📤 Partager le jeu</button>
       <button class="btn ghost" data-close>Fermer</button>
       <p class="mention">© Killian Journeau — tous droits réservés.<br>
         Contenus et dictionnaires protégés. Jouer et partager le lien est libre.</p>
@@ -997,21 +998,21 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=2.0.4"></script>
-<script src="./dico/motus-prenoms.js?v=2.0.4"></script>
-<script src="./dico/motus-prenoms-info.js?v=2.0.4"></script>
-<script src="./dico/motus-maladies.js?v=2.0.4"></script>
-<script src="./dico/motus-maladies-info.js?v=2.0.4"></script>
-<script src="./dico/motus-villes.js?v=2.0.4"></script>
-<script src="./dico/motus-villes-info.js?v=2.0.4"></script>
-<script src="./dico/motus-persos.js?v=2.0.4"></script>
-<script src="./dico/motus-persos-info.js?v=2.0.4"></script>
-<script src="./dico/motus-persos-split.js?v=2.0.4"></script>
-<script src="./dico/motus-race.js?v=2.0.4"></script>
-<script src="./dico/motus-expert.js?v=2.0.4"></script>
-<script src="./profiles/config.js?v=2.0.4"></script>
-<script src="./profiles/profile.js?v=2.0.4"></script>
-<script src="./duel/duel.js?v=2.0.4"></script>
+<script src="./dico/motus-words.js?v=2.0.3"></script>
+<script src="./dico/motus-prenoms.js?v=2.0.3"></script>
+<script src="./dico/motus-prenoms-info.js?v=2.0.3"></script>
+<script src="./dico/motus-maladies.js?v=2.0.3"></script>
+<script src="./dico/motus-maladies-info.js?v=2.0.3"></script>
+<script src="./dico/motus-villes.js?v=2.0.3"></script>
+<script src="./dico/motus-villes-info.js?v=2.0.3"></script>
+<script src="./dico/motus-persos.js?v=2.0.3"></script>
+<script src="./dico/motus-persos-info.js?v=2.0.3"></script>
+<script src="./dico/motus-persos-split.js?v=2.0.3"></script>
+<script src="./dico/motus-race.js?v=2.0.3"></script>
+<script src="./dico/motus-expert.js?v=2.0.3"></script>
+<script src="./profiles/config.js?v=2.0.3"></script>
+<script src="./profiles/profile.js?v=2.0.3"></script>
+<script src="./duel/duel.js?v=2.0.3"></script>
 <script>
 (() => {
   "use strict";
@@ -1063,7 +1064,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "2.0.4";
+  const VERSION = "2.0.3";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -4760,6 +4761,16 @@
     if(navigator.share) navigator.share({text:txt}).catch(()=>copy(txt)); else copy(txt);
   });
 
+  $("btnShareFromAbout").addEventListener("click", ()=>{
+    const texte = "Mot en Six — trouve le mot caché en six essais.\n"
+      + "Gratuit, sans publicité, jouable hors-ligne.\n" + SHARE_URL;
+    if(navigator.share){ navigator.share({ text: texte, url: SHARE_URL }).catch(()=>copyShare(texte)); }
+    else copyShare(texte);
+  });
+  function copyShare(texte){
+    try{ navigator.clipboard.writeText(texte); toast("Lien copié — colle-le où tu veux !"); }
+    catch(e){ toast("Copie impossible : " + SHARE_URL); }
+  }
   $("btnAbout").addEventListener("click", ()=>{
     $("appVersion").textContent = VERSION;
     const nW = (POOLS.court.length+POOLS.normal.length+POOLS.long.length+POOLS.prenoms.length+POOLS.maladies.length+POOLS.villes.length);
