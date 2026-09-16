@@ -1125,3 +1125,243 @@ $$;
 
 grant execute on function memo_record(uuid,text,int,int) to anon, authenticated;
 grant execute on function memo_top(int)                  to anon, authenticated;
+
+-- =====================================================================
+-- v2.1 — Battle Royale : 4 joueurs, 4 manches
+--
+-- Une salle contient jusqu'à 4 joueurs. Les mots des 4 manches sont tirés
+-- à la CRÉATION et stockés : tous les joueurs affrontent la même série,
+-- personne ne peut tirer un mot plus facile qu'un autre.
+-- Les places vides sont comblées par des fantômes déterministes, calculés
+-- à partir du code de salle — ils jouent donc pareil pour tout le monde.
+-- =====================================================================
+
+create table if not exists royale_rooms (
+  id          text primary key,
+  status      text default 'waiting',    -- waiting | playing | done
+  is_public   boolean default false,
+  words       text[] not null,           -- les 4 mots, fixés dès la création
+  manche      int default 0,             -- manche en cours (0 = pas commencé)
+  manche_at   timestamptz,               -- début de la manche courante
+  created_at  timestamptz default now(),
+  started_at  timestamptz
+);
+alter table royale_rooms enable row level security;
+drop policy if exists "lecture salles" on royale_rooms;
+create policy "lecture salles" on royale_rooms for select using (true);
+
+create table if not exists royale_players (
+  room_id   text references royale_rooms(id) on delete cascade,
+  player_id uuid,
+  pseudo    text,
+  level     int default 1,
+  badge     text,
+  fantome   boolean default false,
+  scores    int[] default '{0,0,0,0}',
+  total     int default 0,
+  joined_at timestamptz default now(),
+  primary key (room_id, player_id)
+);
+alter table royale_players enable row level security;
+drop policy if exists "lecture joueurs" on royale_players;
+create policy "lecture joueurs" on royale_players for select using (true);
+
+create index if not exists royale_attente_idx on royale_rooms (status, is_public, created_at);
+
+-- Inscrit un joueur dans une salle (ou met à jour son profil s'il y est déjà).
+create or replace function royale_inscrire(
+  p_room text, p_id uuid, p_pseudo text, p_level int, p_badge text
+) returns void language sql security definer as $$
+  insert into royale_players (room_id, player_id, pseudo, level, badge)
+  values (p_room, p_id, left(coalesce(p_pseudo,'Anonyme'),24), coalesce(p_level,1), p_badge)
+  on conflict (room_id, player_id) do update
+    set pseudo = excluded.pseudo, level = excluded.level, badge = excluded.badge;
+$$;
+
+-- Crée une salle. Les 4 mots sont fournis par le client (tirés dans son
+-- dictionnaire) puis figés ici pour toute la partie.
+create or replace function royale_create(
+  p_id uuid, p_pseudo text, p_level int, p_badge text,
+  p_words text[], p_public boolean
+) returns text language plpgsql security definer as $$
+declare v_code text; v_essais int := 0;
+begin
+  if array_length(p_words, 1) <> 4 then raise exception 'mots-invalides'; end if;
+  loop
+    v_code := upper(substr(md5(random()::text), 1, 4));
+    exit when not exists (select 1 from royale_rooms where id = v_code);
+    v_essais := v_essais + 1;
+    if v_essais > 30 then raise exception 'code-indisponible'; end if;
+  end loop;
+
+  insert into royale_rooms (id, status, is_public, words)
+  values (v_code, 'waiting', coalesce(p_public, false), p_words);
+  perform royale_inscrire(v_code, p_id, p_pseudo, p_level, p_badge);
+  return v_code;
+end $$;
+
+-- Partie rapide : rejoint la salle publique en attente la plus ancienne,
+-- sinon en ouvre une nouvelle. Évite de laisser des joueurs seuls.
+create or replace function royale_quick(
+  p_id uuid, p_pseudo text, p_level int, p_badge text, p_words text[]
+) returns text language plpgsql security definer as $$
+declare v_code text;
+begin
+  select r.id into v_code
+    from royale_rooms r
+   where r.status = 'waiting' and r.is_public
+     and r.created_at > now() - interval '3 minutes'
+     and (select count(*) from royale_players p where p.room_id = r.id and not p.fantome) < 4
+   order by r.created_at asc
+   limit 1
+     for update skip locked;
+
+  if v_code is null then
+    return royale_create(p_id, p_pseudo, p_level, p_badge, p_words, true);
+  end if;
+  perform royale_inscrire(v_code, p_id, p_pseudo, p_level, p_badge);
+  return v_code;
+end $$;
+
+-- Rejoindre par code. Refuse une salle pleine ou déjà lancée.
+create or replace function royale_join(
+  p_code text, p_id uuid, p_pseudo text, p_level int, p_badge text
+) returns text language plpgsql security definer as $$
+declare v_code text := upper(btrim(p_code)); v_statut text; v_nb int;
+begin
+  select status into v_statut from royale_rooms where id = v_code;
+  if v_statut is null then return 'introuvable'; end if;
+  if v_statut <> 'waiting' then
+    -- déjà dedans ? on le laisse revenir après une déconnexion
+    if exists (select 1 from royale_players where room_id = v_code and player_id = p_id)
+      then return 'ok'; end if;
+    return 'commencee';
+  end if;
+  select count(*) into v_nb from royale_players where room_id = v_code and not fantome;
+  if v_nb >= 4 and not exists (select 1 from royale_players where room_id = v_code and player_id = p_id)
+    then return 'pleine'; end if;
+  perform royale_inscrire(v_code, p_id, p_pseudo, p_level, p_badge);
+  return 'ok';
+end $$;
+
+grant execute on function royale_inscrire(text,uuid,text,int,text)      to anon, authenticated;
+grant execute on function royale_create(uuid,text,int,text,text[],boolean) to anon, authenticated;
+grant execute on function royale_quick(uuid,text,int,text,text[])       to anon, authenticated;
+grant execute on function royale_join(text,uuid,text,int,text)          to anon, authenticated;
+
+-- Lance la partie et comble les places vides par des fantômes.
+-- Leur identifiant dérive du code de salle : ils sont donc identiques pour
+-- tous les joueurs, et rejouer le même code redonne les mêmes adversaires.
+create or replace function royale_start(p_code text)
+returns void language plpgsql security definer as $$
+declare v_code text := upper(btrim(p_code)); v_nb int; i int;
+        v_noms text[] := array['Ombre','Écho','Mirage','Spectre'];
+begin
+  if not exists (select 1 from royale_rooms where id = v_code and status = 'waiting')
+    then return; end if;
+
+  select count(*) into v_nb from royale_players where room_id = v_code;
+  i := 0;
+  while v_nb < 4 loop
+    i := i + 1;
+    insert into royale_players (room_id, player_id, pseudo, level, badge, fantome)
+    values (v_code,
+            -- uuid stable, dérivé du code : même salle = mêmes fantômes
+            md5(v_code || ':fantome:' || i)::uuid,
+            v_noms[i] || ' 🤖', 1 + (i * 2), '🤖', true)
+    on conflict do nothing;
+    v_nb := v_nb + 1;
+  end loop;
+
+  update royale_rooms
+     set status = 'playing', manche = 1, started_at = now(), manche_at = now()
+   where id = v_code;
+end $$;
+
+-- Enregistre le score d'une manche. Le barème est calculé ICI, jamais côté
+-- client : personne ne peut s'attribuer un score arbitraire.
+create or replace function royale_report(
+  p_code text, p_id uuid, p_manche int, p_essais int, p_ms int, p_won boolean
+) returns void language plpgsql security definer as $$
+declare v_code text := upper(btrim(p_code)); v_pts int := 0; v_sc int[];
+begin
+  if p_manche < 1 or p_manche > 4 then return; end if;
+  if p_won then
+    -- 100 de base, −15 par essai supplémentaire, bonus de rapidité jusqu'à 30
+    v_pts := greatest(10, 100 - (greatest(1, coalesce(p_essais,6)) - 1) * 15)
+           + greatest(0, 30 - (coalesce(p_ms, 90000) / 3000));
+  end if;
+  select scores into v_sc from royale_players where room_id = v_code and player_id = p_id;
+  if v_sc is null then return; end if;
+  v_sc[p_manche] := v_pts;
+  update royale_players
+     set scores = v_sc,
+         total  = coalesce(v_sc[1],0)+coalesce(v_sc[2],0)+coalesce(v_sc[3],0)+coalesce(v_sc[4],0)
+   where room_id = v_code and player_id = p_id;
+end $$;
+
+-- Passe à la manche suivante, ou termine la partie.
+create or replace function royale_next(p_code text)
+returns void language plpgsql security definer as $$
+declare v_code text := upper(btrim(p_code)); v_m int;
+begin
+  select manche into v_m from royale_rooms where id = v_code and status = 'playing';
+  if v_m is null then return; end if;
+  if v_m >= 4 then
+    update royale_rooms set status = 'done' where id = v_code;
+  else
+    update royale_rooms set manche = v_m + 1, manche_at = now() where id = v_code;
+  end if;
+end $$;
+
+-- État complet de la salle : une seule requête pour tout l'écran.
+create or replace function royale_state(p_code text)
+returns table (
+  id text, status text, is_public boolean, words text[], manche int,
+  manche_at timestamptz,
+  player_id uuid, pseudo text, level int, badge text, fantome boolean,
+  scores int[], total int
+) language sql security definer stable as $$
+  select r.id, r.status, r.is_public, r.words, r.manche, r.manche_at,
+         p.player_id, p.pseudo, p.level, p.badge, p.fantome, p.scores, p.total
+    from royale_rooms r
+    join royale_players p on p.room_id = r.id
+   where r.id = upper(btrim(p_code))
+   order by p.total desc, p.joined_at asc;
+$$;
+
+grant execute on function royale_start(text)                            to anon, authenticated;
+grant execute on function royale_report(text,uuid,int,int,int,boolean)  to anon, authenticated;
+grant execute on function royale_next(text)                             to anon, authenticated;
+grant execute on function royale_state(text)                            to anon, authenticated;
+
+-- Score des fantômes pour une manche. Déterministe : dérivé du code de
+-- salle, de la manche et de l'identifiant du fantôme. Calculé côté serveur
+-- pour que personne ne puisse l'influencer, et rejouable sans effet double.
+create or replace function royale_ghosts(p_code text, p_manche int)
+returns void language plpgsql security definer as $$
+declare v_code text := upper(btrim(p_code)); r record; v_h int; v_pts int; v_sc int[];
+begin
+  if p_manche < 1 or p_manche > 4 then return; end if;
+  for r in select player_id, scores from royale_players
+            where room_id = v_code and fantome loop
+    -- empreinte stable -> 0..99
+    v_h := ('x' || substr(md5(v_code || p_manche::text || r.player_id::text), 1, 8))::bit(32)::bigint % 100;
+    -- un fantôme réussit 3 fois sur 4, avec un niveau plausible
+    if v_h < 75 then
+      v_pts := 40 + (v_h % 60);      -- 40..99 : correct sans être imbattable
+    else
+      v_pts := 0;                     -- il a raté sa manche
+    end if;
+    v_sc := r.scores;
+    if v_sc[p_manche] is null or v_sc[p_manche] = 0 then
+      v_sc[p_manche] := v_pts;
+      update royale_players
+         set scores = v_sc,
+             total  = coalesce(v_sc[1],0)+coalesce(v_sc[2],0)+coalesce(v_sc[3],0)+coalesce(v_sc[4],0)
+       where room_id = v_code and player_id = r.player_id;
+    end if;
+  end loop;
+end $$;
+
+grant execute on function royale_ghosts(text,int) to anon, authenticated;

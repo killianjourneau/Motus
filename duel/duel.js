@@ -560,6 +560,92 @@
      une mesure ne doit jamais gêner une partie.
      --------------------------------------------------------------- */
   /* ---------------------------------------------------------------
+     Battle Royale : 4 joueurs, 4 manches.
+     Les mots sont tirés par le client puis figés côté serveur, et les
+     scores sont calculés par la base — jamais annoncés par le joueur.
+     --------------------------------------------------------------- */
+  window.Royale = {
+    configured: function () { return configured; },
+
+    create: function (mots, publique) {
+      var m = me();
+      return rpc("royale_create", {
+        p_id: m.id, p_pseudo: m.pseudo, p_level: m.level, p_badge: m.badge,
+        p_words: mots, p_public: !!publique
+      });
+    },
+    quick: function (mots) {
+      var m = me();
+      return rpc("royale_quick", {
+        p_id: m.id, p_pseudo: m.pseudo, p_level: m.level, p_badge: m.badge, p_words: mots
+      });
+    },
+    join: function (code) {
+      var m = me();
+      return rpc("royale_join", {
+        p_code: String(code || "").toUpperCase(),
+        p_id: m.id, p_pseudo: m.pseudo, p_level: m.level, p_badge: m.badge
+      });
+    },
+    start:  function (code) { return rpc("royale_start", { p_code: code }).catch(function(){ return null; }); },
+    next:   function (code) { return rpc("royale_next",  { p_code: code }).catch(function(){ return null; }); },
+    ghosts: function (code, manche) {
+      return rpc("royale_ghosts", { p_code: code, p_manche: manche }).catch(function(){ return null; });
+    },
+    report: function (code, manche, o) {
+      var m = me(); o = o || {};
+      return rpc("royale_report", {
+        p_code: code, p_id: m.id, p_manche: manche,
+        p_essais: o.essais || 6, p_ms: o.ms || 90000, p_won: !!o.won
+      }).catch(function () { return null; });
+    },
+
+    /* Une seule requête rend la salle ET ses joueurs : on regroupe. */
+    state: function (code) {
+      return rpcList("royale_state", { p_code: String(code || "").toUpperCase() })
+        .then(function (rows) {
+          if (!rows || !rows.length) return null;
+          var r = rows[0], m = me();
+          return {
+            id: r.id, status: r.status, isPublic: r.is_public,
+            words: r.words || [], manche: r.manche || 0, mancheAt: r.manche_at,
+            joueurs: rows.map(function (x) {
+              return { id: x.player_id, pseudo: x.pseudo, level: x.level,
+                       badge: x.badge, fantome: x.fantome,
+                       scores: x.scores || [0,0,0,0], total: x.total || 0,
+                       moi: x.player_id === m.id };
+            })
+          };
+        });
+    },
+
+    /* Veille identique au Duel : on interroge régulièrement, et on relance
+       dès que l'appli revient au premier plan. */
+    watch: function (code, cb) {
+      var stop = false, t = null, busy = false;
+      function tick() {
+        if (stop || busy) return;
+        busy = true; clearTimeout(t);
+        window.Royale.state(code)
+          .then(function (d) { if (!stop) cb(null, d); })
+          .catch(function (e) { if (!stop) cb(e); })
+          .then(function () { busy = false; if (!stop) t = setTimeout(tick, POLL_MS); });
+      }
+      function onVis() { if (!document.hidden && !stop) tick(); }
+      document.addEventListener("visibilitychange", onVis);
+      window.addEventListener("focus", onVis);
+      tick();
+      var stopper = function () {
+        stop = true; clearTimeout(t);
+        document.removeEventListener("visibilitychange", onVis);
+        window.removeEventListener("focus", onVis);
+      };
+      stopper.now = tick;
+      return stopper;
+    }
+  };
+
+  /* ---------------------------------------------------------------
      Mode Mémorisation : classement des records.
      Le record est le temps d'affichage le plus BAS atteint.
      --------------------------------------------------------------- */
