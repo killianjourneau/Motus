@@ -177,6 +177,11 @@
   .memo-corr.ko{ box-shadow:inset 0 0 0 2px var(--absent); }
   .memo-corr .v{ margin-left:auto; color:var(--ok,#0f8a58); font-weight:800; }
   .memo-corr .f{ margin-left:auto; color:var(--ink-dim); font-size:12.5px; letter-spacing:1px; }
+  .memo-rang{ display:flex; align-items:center; gap:11px; padding:9px 12px; border-radius:11px;
+    background:var(--cell); margin-bottom:6px; }
+  .memo-rang .rg{ min-width:26px; font-size:15px; font-weight:800; text-align:center; }
+  .memo-rang .ps{ flex:1; font-weight:700; font-size:14px; }
+  .memo-rang .sc{ font-weight:800; font-variant-numeric:tabular-nums; }
   .memo-pied{ text-align:center; }
   .memo-info{ display:block; font-size:12px; color:var(--ink-dim); line-height:1.5; margin-bottom:8px; }
   .mode-item.vide{ box-shadow:inset 0 0 0 2px var(--ink-dim); }
@@ -557,6 +562,16 @@
     <button id="modeBtn"><span id="modeBtnLabel">Normal</span><span class="chev">▾</span></button>
   </div>
 
+  <!-- Classement de la Mémorisation -->
+  <div class="overlay" id="memoTopOverlay">
+    <div class="modal">
+      <button class="close-x" data-close>&times;</button>
+      <h2>🏆 Classement — Mémorisation</h2>
+      <p class="sub">Le temps d'affichage le plus bas atteint par chacun.</p>
+      <div id="memoTopListe"></div>
+    </div>
+  </div>
+
   <!-- Panneau de choix du mode -->
   <div class="overlay" id="modeOverlay">
     <div class="modal">
@@ -574,6 +589,7 @@
         <button class="mode-item" data-mode="long"><span class="mi">🐘</span><b>Long</b><i>10-15 lettres</i></button>
         <button class="mode-item" data-mode="expert"><span class="mi">🎓</span><b>Expert</b><i>Règles strictes</i></button>
         <button class="mode-item nouveau" data-mode="memo"><span class="mi">🧠</span><b>Mémorisation</b><i>6 mots à retenir</i></button>
+        <button class="btn ghost" id="btnMemoTop" style="grid-column:1/-1;margin-top:-4px">🏆 Voir le classement de la Mémorisation</button>
         <button class="mode-item" data-mode="pendu"><span class="mi">🪢</span><b>Le Pendu</b><i>Devine lettre à lettre</i></button>
       </div>
       <div class="mode-cat">Multijoueur</div>
@@ -1536,7 +1552,9 @@
   function type(ch){
     // le chrono démarre au premier caractère saisi, jamais avant — sauf en Duel/Course,
     // où il est déjà lancé délibérément au moment de "C'est parti"
-    if(mode!=="duel" && mode!=="race") timerStartIfNeeded();
+    // Mémorisation a son propre chrono (memoTick) : le chrono classique
+    // ne doit jamais démarrer en parallèle, sous peine de tourner pour rien.
+    if(mode!=="duel" && mode!=="race" && mode!=="memo") timerStartIfNeeded();
     if(col<1 || col>=len || isLocked(col)){ const e=firstEmpty(1); if(e<0) return; col=e; }
     setCell(row,col,ch);
     const nxt=firstEmpty(col+1);
@@ -4202,6 +4220,10 @@
     setActiveSeg("memo");
     updateHud();                    // sans cet appel, le HUD garde l'ancien mode ET son ancien chrono
     timerReset();
+    // Le chrono du HUD (en haut, figé à 0:00) et celui de Mémorisation ne
+    // doivent jamais cohabiter : le premier ressemblait à un « timer qui ne
+    // se lance pas » alors que c'était simplement le mauvais chrono affiché.
+    $("timer").style.display = "none";
     // six mots distincts de taille « normale »
     const pool = POOLS.normal;
     const pris = new Set(); memoMots = [];
@@ -4212,7 +4234,13 @@
     }
     memoSaisie = memoMots.map(()=> "");
     memoIdx = 0;
+    /* Masquer ne suffit pas à empêcher un clic resté actif sur l'ancien
+       plateau (tuiles du mode précédent encore dans le DOM) : on le VIDE
+       et on lui retire toute possibilité d'être cliqué, en plus de le
+       masquer. */
     board.style.display = "none";
+    board.style.pointerEvents = "none";
+    board.innerHTML = "";
     $("penduBox").style.display = "none";
     $("memoBox").style.display = "";
     memoAffiche();
@@ -4230,6 +4258,7 @@
     let reste = memoSec;
     $("memoChrono").textContent = reste + " s";
     clearInterval(memoTick);
+    refreshGiveUpUI();   // sans cet appel, le bouton n'apparaissait qu'une fois, jamais réévalué
     memoTick = setInterval(()=>{
       reste--;
       $("memoChrono").textContent = Math.max(0, reste) + " s";
@@ -4244,7 +4273,7 @@
     $("memoChrono").textContent = "";
     $("memoPhase").textContent = "Retape-les dans l'ordre";
     memoDessine();
-    refreshHintUI();
+    refreshHintUI(); refreshGiveUpUI();
   }
 
   function memoDessine(){
@@ -4266,13 +4295,14 @@
     if(memoPhase !== "saisie" || over) return;
     const attendu = memoMots[memoIdx];
     if(memoSaisie[memoIdx].length >= attendu.length) return;
-    memoSaisie[memoIdx] += ch; son("touche"); memoDessine();
+    memoSaisie[memoIdx] += ch; son("touche"); memoDessine(); refreshGiveUpUI();
   }
   function memoEfface(){
     if(memoPhase !== "saisie" || over) return;
     const cur = memoSaisie[memoIdx];
     if(cur.length){ memoSaisie[memoIdx] = cur.slice(0, -1); son("efface"); memoDessine(); }
     else if(memoIdx > 0){ memoIdx--; memoDessine(); }   // revenir au mot précédent
+    refreshGiveUpUI();
   }
   function memoValide(){
     if(memoPhase !== "saisie" || over) return;
@@ -4281,6 +4311,28 @@
     }
     if(memoIdx < MEMO_NB - 1){ memoIdx++; memoDessine(); son("correct", memoIdx); return; }
     memoFin();
+  }
+
+  function memoOuvrirClassement(){
+    const box = $("memoTopListe");
+    box.innerHTML = '<p class="sub">Chargement…</p>';
+    openOverlay("memoTopOverlay");
+    if(!window.Memo || !Memo.configured()){
+      box.innerHTML = '<p class="sub">Le classement demande une connexion au serveur.</p>';
+      return;
+    }
+    Memo.top(20).then(rows=>{
+      if(!rows || !rows.length){
+        box.innerHTML = '<p class="sub">Personne n\'a encore de record. Sois le premier !</p>';
+        return;
+      }
+      box.innerHTML = rows.map((r,i)=>{
+        const medaille = i===0 ? "🥇" : i===1 ? "🥈" : i===2 ? "🥉" : (i+1)+".";
+        return '<div class="memo-rang"><span class="rg">'+medaille+'</span>'
+          + '<span class="ps">'+escapeHtml(r.pseudo||"Anonyme")+'</span>'
+          + '<span class="sc">'+r.secondes+' s</span></div>';
+      }).join("");
+    }).catch(()=>{ box.innerHTML = '<p class="sub">Classement indisponible pour l\'instant.</p>'; });
   }
 
   function memoFin(){
@@ -4323,8 +4375,10 @@
       + (gagne ? "Prochain essai : <b>"+memoSec+" s</b> (−"+MEMO_PAS+")"
                : "Prochain essai : <b>"+memoSec+" s</b> (+"+MEMO_PAS+")")
       + ' · Record : <b>'+(memoBest===null ? "—" : memoBest+" s")+'</b></span>'
-      + '<button class="btn" id="memoRejouer">Recommencer</button>';
+      + '<button class="btn" id="memoRejouer">Recommencer</button>'
+      + '<button class="btn ghost" id="memoVoirClassement">🏆 Voir le classement</button>';
     $("memoRejouer").addEventListener("click", memoStart);
+    $("memoVoirClassement").addEventListener("click", memoOuvrirClassement);
     save();
   }
 
@@ -4401,10 +4455,12 @@
     if(d.done) showEnd(d.won, true);
   }
   function setupBoardForAnswer(){
-    // en quittant la Mémorisation, on rend le plateau et on coupe son chrono
+    // en quittant la Mémorisation, on rend le plateau, son chrono et le HUD
     clearInterval(memoTick);
     const mb = $("memoBox"); if(mb) mb.style.display = "none";
+    board.style.pointerEvents = "";
     keyboard.style.display = "";
+    $("timer").style.display = "";
     len=answer.length; row=0; col=1;
     hintCols=[]; hintsThisGame=0; gaveUp=false;
     grid=Array.from({length:MAX_ROWS},()=>Array(len).fill(""));
@@ -4563,6 +4619,7 @@
     else if(k==="-" || k==="_") handleKey(DASH);
   });
 
+  $("btnMemoTop").addEventListener("click", ()=>{ closeOverlays(); memoOuvrirClassement(); });
   $("btnKid").addEventListener("click", ()=>{ location.href="./enfant.html"; });
   $("btnRpg").addEventListener("click", ()=>{ location.href="./rpg.html"; });
   document.querySelectorAll("#duelTabs .dtab").forEach(b=>b.addEventListener("click", ()=>{
