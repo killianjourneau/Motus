@@ -546,6 +546,7 @@
       <div class="rank-tabs">
         <button class="rk-tab on" data-rk="xp">Expérience</button>
         <button class="rk-tab" data-rk="elo">⚔️ Duel</button>
+        <button class="rk-tab" data-rk="memo">🧠 Mémo</button>
       </div>
       <div class="myrank" id="myRank"></div>
       <button class="btn ghost refresh-btn" id="btnRefreshRank">↻ Actualiser</button>
@@ -838,6 +839,7 @@
     mr.textContent = "…"; box.innerHTML = '<div class="muted">Chargement…</div>';
 
     if (rankMode === "elo") return loadRankElo(done);
+    if (rankMode === "memo") return loadRankMemo(done);
 
     Promise.all([countQuery("profiles?select=id&xp=gt." + state.xp), countQuery("profiles?select=id")])
       .then(function (r) {
@@ -857,6 +859,32 @@
         }).join("");
       })
       .catch(function () { box.innerHTML = '<div class="muted">Classement indisponible</div>'; })
+      .then(function () { if (done) done(); });
+  }
+
+  /* Classement Mémorisation : le temps d'affichage le plus BAS gagne — donc
+     un classement croissant, pas décroissant comme XP et Elo. Utilise l'API
+     déjà exposée par duel.js (window.Memo), pas de requête REST directe ici. */
+  function loadRankMemo(done) {
+    var box = el("leaderboard"), mr = el("myRank");
+    var mesSecondes = state.b.memoBest, mesReussites = state.b.memoReussites || 0;
+    mr.innerHTML = '<div class="elo-line"><div><span class="lbl">Ton record</span>'
+      + '<small>' + (mesReussites ? mesReussites + " grille" + (mesReussites > 1 ? "s" : "") + " réussie" + (mesReussites > 1 ? "s" : "") : "aucune grille réussie") + '</small></div>'
+      + '<span class="val">' + (mesSecondes < 60 ? mesSecondes + " s" : "—") + '</span></div>';
+    if (!window.Memo || !window.Memo.configured || !window.Memo.configured()) {
+      box.innerHTML = '<div class="muted">Classement disponible une fois la base configurée.</div>';
+      if (done) done();
+      return;
+    }
+    window.Memo.top(20).then(function (rows) {
+      if (!rows || !rows.length) { box.innerHTML = '<div class="muted">Personne encore — sois le premier !</div>'; return; }
+      box.innerHTML = rows.map(function (p, i) {
+        var moi = (p.pseudo && p.pseudo === state.pseudo) ? " me" : "";
+        var nm = (p.pseudo && p.pseudo.trim()) ? p.pseudo : "Anonyme";
+        return '<div class="r' + moi + '"><span class="rk">' + (i + 1) + '</span><span class="nm">' + escapeHtml(nm) + '</span>'
+             + '<span class="lv">' + p.secondes + ' s · ' + (p.reussites || 0) + ' réussites</span></div>';
+      }).join("");
+    }).catch(function () { box.innerHTML = '<div class="muted">Classement indisponible</div>'; })
       .then(function () { if (done) done(); });
   }
 
