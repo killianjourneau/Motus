@@ -42,6 +42,7 @@
              qActes:0, qFins:0, qSecrets:0, qMonstres:0, qNiveau:0, qSansMort:0,
              jrTotal:0, jrTousJeux:0, jrDuo:0, jrSerieDuo:0, jrJours:0,
              memoTotal:0, memoReussites:0, memoBest:60, memoSerie:0, memoBestSerie:0,
+             royParties:0, royVictoires:0, royPodiums:0, royMeilleurTotal:0,
              hyph:0, night:0, dawn:0, wknd:0, days:[], dayBest:0,
              defiFast:0, dailyOne:0, allDiff:0, longFast:0, comeback:0, noYellow:0,
              villeCap:0, villeMonde:0,
@@ -119,6 +120,12 @@
     {id:"qsec8", e:"🕵️", n:"Fin limier",          d:"Percer 8 secrets de créatures",         c:"Quête", t:function(b){return b.qSecrets>=8;}, p:[function(b){return b.qSecrets;},8]},
     {id:"qbest", e:"📖", n:"Bestiaire nourri",    d:"Rencontrer 20 créatures différentes",   c:"Quête", t:function(b){return b.qMonstres>=20;}, p:[function(b){return b.qMonstres;},20]},
     {id:"qlvl",  e:"⚔️", n:"Apprenti confirmé",   d:"Atteindre le niveau 10 en Quête",       c:"Quête", t:function(b){return b.qNiveau>=10;}, p:[function(b){return b.qNiveau;},10]},
+    {id:"br1",   e:"👑", n:"Entrée dans l'arène", d:"Jouer 1 Battle Royale",              c:"Battle Royale", t:function(b){return b.royParties>=1;}, p:[function(b){return b.royParties;},1]},
+    {id:"br10",  e:"⚔️", n:"Habitué de l'arène",  d:"Jouer 10 Battle Royale",             c:"Battle Royale", t:function(b){return b.royParties>=10;}, p:[function(b){return b.royParties;},10]},
+    {id:"brwin", e:"🏆", n:"Dernier debout",      d:"Gagner une Battle Royale",            c:"Battle Royale", t:function(b){return b.royVictoires>=1;}, p:[function(b){return b.royVictoires;},1]},
+    {id:"brw5",  e:"👑", n:"Souverain",           d:"Gagner 5 Battle Royale",              c:"Battle Royale", t:function(b){return b.royVictoires>=5;}, p:[function(b){return b.royVictoires;},5]},
+    {id:"brpod", e:"🥉", n:"Régulier du podium",  d:"Finir 10 fois dans les 3 premiers",   c:"Battle Royale", t:function(b){return b.royPodiums>=10;}, p:[function(b){return b.royPodiums;},10]},
+    {id:"br300", e:"💯", n:"Score massif",        d:"Dépasser 300 points sur une partie",  c:"Battle Royale", t:function(b){return b.royMeilleurTotal>=300;}, p:[function(b){return b.royMeilleurTotal;},300]},
     {id:"me1",   e:"🧠", n:"Première mémoire",   d:"Réussir 1 grille de Mémorisation",       c:"Mémorisation", t:function(b){return b.memoReussites>=1;}, p:[function(b){return b.memoReussites;},1]},
     {id:"me10",  e:"💡", n:"Bonne mémoire",       d:"Réussir 10 grilles de Mémorisation",     c:"Mémorisation", t:function(b){return b.memoReussites>=10;}, p:[function(b){return b.memoReussites;},10]},
     {id:"me20",  e:"📸", n:"Mémoire photographique", d:"Descendre à 20 s d'affichage",       c:"Mémorisation", t:function(b){return b.memoBest<=20;}, p:[function(b){return Math.max(0,60-b.memoBest);},40]},
@@ -1224,6 +1231,18 @@
        cette page n'a pas accès au profil, elle nous envoie ses chiffres. */
     /* Mémorisation : le record est le temps d'affichage le plus BAS, donc
        on garde le minimum et non le maximum comme pour les autres. */
+    /* Battle Royale : on ne garde que ce qui a du sens dans la durée —
+       parties jouées, victoires, podiums, meilleur score. */
+    royaleDone: function (o) {
+      o = o || {};
+      var b = state.b;
+      b.royParties = (b.royParties || 0) + 1;
+      if (o.rang === 1) b.royVictoires = (b.royVictoires || 0) + 1;
+      if (o.rang >= 1 && o.rang <= 3) b.royPodiums = (b.royPodiums || 0) + 1;
+      if ((o.total || 0) > (b.royMeilleurTotal || 0)) b.royMeilleurTotal = o.total;
+      saveLocal(); checkBadges(); pushDebounced(); refreshOpen();
+    },
+
     memoDone: function (o) {
       o = o || {};
       var b = state.b;
