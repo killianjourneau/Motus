@@ -177,6 +177,18 @@
   .memo-corr.ko{ box-shadow:inset 0 0 0 2px var(--absent); }
   .memo-corr .v{ margin-left:auto; color:var(--ok,#0f8a58); font-weight:800; }
   .memo-corr .f{ margin-left:auto; color:var(--ink-dim); font-size:12.5px; letter-spacing:1px; }
+  .roy-code{ text-align:center; font-size:30px; font-weight:800; letter-spacing:7px;
+    background:var(--cell); border-radius:13px; padding:12px; margin-bottom:10px; }
+  .roy-j{ display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:11px;
+    background:var(--cell); margin-bottom:6px; }
+  .roy-j .e{ font-size:18px; } .roy-j .n{ flex:1; font-weight:700; font-size:14px; }
+  .roy-j .lv{ font-size:11.5px; color:var(--ink-dim); font-weight:700; }
+  .roy-r{ display:flex; align-items:center; gap:11px; padding:10px 12px; border-radius:11px;
+    background:var(--cell); margin-bottom:6px; }
+  .roy-r.moi{ box-shadow:inset 0 0 0 2px var(--accent); }
+  .roy-r .rg{ min-width:26px; font-size:15px; font-weight:800; text-align:center; }
+  .roy-r .n{ flex:1; font-weight:700; font-size:14px; }
+  .roy-r .sc{ font-weight:800; font-variant-numeric:tabular-nums; }
   .memo-rang{ display:flex; align-items:center; gap:11px; padding:9px 12px; border-radius:11px;
     background:var(--cell); margin-bottom:6px; }
   .memo-rang .rg{ min-width:26px; font-size:15px; font-weight:800; text-align:center; }
@@ -562,6 +574,40 @@
     <button id="modeBtn"><span id="modeBtnLabel">Normal</span><span class="chev">▾</span></button>
   </div>
 
+  <!-- Battle Royale : salle d'attente et classement -->
+  <div class="overlay" id="royaleOverlay">
+    <div class="modal">
+      <button class="close-x" data-close>&times;</button>
+      <h2>👑 Battle Royale</h2>
+
+      <div id="roySetup">
+        <p class="sub">Jusqu'à 4 joueurs, 4 manches. Les places libres sont tenues par des fantômes.</p>
+        <button class="btn" id="royQuick">⚡ Partie rapide</button>
+        <button class="btn ghost" id="royCreate">🔒 Créer une salle privée</button>
+        <div class="duel-join">
+          <input id="royCode" class="duel-in" placeholder="Code de salle" maxlength="4"
+                 autocomplete="off" autocapitalize="characters" spellcheck="false">
+          <button class="btn" id="royJoin">Rejoindre</button>
+        </div>
+        <div class="duel-msg" id="royMsg"></div>
+      </div>
+
+      <div id="royLobby" style="display:none">
+        <div class="roy-code" id="royCodeShow"></div>
+        <p class="sub" id="royLobbySub">En attente de joueurs…</p>
+        <div id="royJoueurs"></div>
+        <button class="btn" id="royGo">Lancer la partie</button>
+        <button class="btn ghost" id="royShare">📤 Partager le code</button>
+      </div>
+
+      <div id="royClassement" style="display:none">
+        <p class="sub" id="royClassSub"></p>
+        <div id="royTable"></div>
+        <button class="btn" id="roySuivant">Manche suivante</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Classement de la Mémorisation -->
   <div class="overlay" id="memoTopOverlay">
     <div class="modal">
@@ -596,6 +642,7 @@
         <button class="mode-item" data-mode="duel"><span class="mi">⚔️</span><b>Duel</b><i>Contre un ami</i></button>
         <button class="mode-item" data-mode="race"><span class="mi">⌨️</span><b>Course</b><i>Vitesse d'écriture</i></button>
         <button class="mode-item" data-mode="defense" id="modeDefense"><span class="mi">🛡️</span><b>Défense</b><i id="modeDefenseSub">Protège ton mot</i></button>
+        <button class="mode-item nouveau" data-mode="royale"><span class="mi">👑</span><b>Battle Royale</b><i>4 joueurs · 4 manches</i></button>
       </div>
       <div class="mode-cat">Thèmes</div>
       <div class="mode-grid">
@@ -998,21 +1045,21 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=2.0.4"></script>
-<script src="./dico/motus-prenoms.js?v=2.0.4"></script>
-<script src="./dico/motus-prenoms-info.js?v=2.0.4"></script>
-<script src="./dico/motus-maladies.js?v=2.0.4"></script>
-<script src="./dico/motus-maladies-info.js?v=2.0.4"></script>
-<script src="./dico/motus-villes.js?v=2.0.4"></script>
-<script src="./dico/motus-villes-info.js?v=2.0.4"></script>
-<script src="./dico/motus-persos.js?v=2.0.4"></script>
-<script src="./dico/motus-persos-info.js?v=2.0.4"></script>
-<script src="./dico/motus-persos-split.js?v=2.0.4"></script>
-<script src="./dico/motus-race.js?v=2.0.4"></script>
-<script src="./dico/motus-expert.js?v=2.0.4"></script>
-<script src="./profiles/config.js?v=2.0.4"></script>
-<script src="./profiles/profile.js?v=2.0.4"></script>
-<script src="./duel/duel.js?v=2.0.4"></script>
+<script src="./dico/motus-words.js?v=2.0.3"></script>
+<script src="./dico/motus-prenoms.js?v=2.0.3"></script>
+<script src="./dico/motus-prenoms-info.js?v=2.0.3"></script>
+<script src="./dico/motus-maladies.js?v=2.0.3"></script>
+<script src="./dico/motus-maladies-info.js?v=2.0.3"></script>
+<script src="./dico/motus-villes.js?v=2.0.3"></script>
+<script src="./dico/motus-villes-info.js?v=2.0.3"></script>
+<script src="./dico/motus-persos.js?v=2.0.3"></script>
+<script src="./dico/motus-persos-info.js?v=2.0.3"></script>
+<script src="./dico/motus-persos-split.js?v=2.0.3"></script>
+<script src="./dico/motus-race.js?v=2.0.3"></script>
+<script src="./dico/motus-expert.js?v=2.0.3"></script>
+<script src="./profiles/config.js?v=2.0.3"></script>
+<script src="./profiles/profile.js?v=2.0.3"></script>
+<script src="./duel/duel.js?v=2.0.3"></script>
 <script>
 (() => {
   "use strict";
@@ -1064,7 +1111,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "2.0.4";
+  const VERSION = "2.0.3";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -1675,6 +1722,7 @@
       for(let c=0;c<len;c++) setTimeout(()=>tileAt(row,c).classList.add("jump"), c*70);
       recordResult(true, guesses.length); awardXp(true);
       if(mode==="defense"){ defFinish(true); setTimeout(()=>showEnd(true), 720); return; }
+      if(mode==="royale"){ timerStop(); setTimeout(()=>royFinManche(true), 900); return; }
       if(mode==="duel"){ setTimeout(()=>duelReport(true), 720); return; }
       if(mode==="defi"){ setTimeout(()=>defiAdvance(true), 720); save(); return; }
       save();
@@ -1684,6 +1732,7 @@
     if(row>=MAX_ROWS){
       over=true; ended=true; timerStop(); recordResult(false); awardXp(false);
       if(mode==="defense"){ defFinish(false); setTimeout(()=>showEnd(false), 360); return; }
+      if(mode==="royale"){ timerStop(); setTimeout(()=>royFinManche(false), 900); return; }
       if(mode==="duel"){ setTimeout(()=>duelReport(false), 360); return; }
       if(mode==="defi"){ save(); setTimeout(()=>defiAdvance(false), 360); return; }
       save(); setTimeout(()=>showEnd(false), 360); return;
@@ -4112,6 +4161,14 @@
   function defiTotalMs(){ return defiTimes.reduce((a,b)=>a+b,0) + timerValue(); }
   function renderTimer(){
     const el=$("timer"); if(!el) return;
+    // Battle Royale : 90 s par manche, compte à rebours partagé par tous
+    if(mode==="royale"){
+      const left = royDeadline ? (royDeadline - Date.now()) : ROY_TEMPS;
+      el.textContent = "⏳ " + fmtTime(Math.max(0,left));
+      el.classList.toggle("warn", left<=20000);
+      if(left<=0 && !ended){ ended=true; over=true; timerStop(); royFinManche(false); }
+      return;
+    }
     if(mode==="duel"){
       // on prend l'échéance partagée si elle existe, sinon celle calculée en local
       const dl = (duelRow && duelRow.deadline) ? duelRow.deadline : duelDeadline;
@@ -4156,7 +4213,7 @@
   }
   function timerValue(){ return tTimer ? tElapsed + (Date.now()-tStart) : tElapsed; }
   function updateHud(){
-    const names={court:"Court",normal:"Normal",long:"Long",expert:"Expert",daily:"Mot du jour",defi:"Défi du jour",prenoms:"Prénoms",maladies:"Maladies",villes:"Villes",duel:"Duel",race:"Course",defense:"Défense",pendu:"Le Pendu",memo:"Mémorisation"};
+    const names={court:"Court",normal:"Normal",long:"Long",expert:"Expert",daily:"Mot du jour",defi:"Défi du jour",prenoms:"Prénoms",maladies:"Maladies",villes:"Villes",duel:"Duel",race:"Course",defense:"Défense",pendu:"Le Pendu",memo:"Mémorisation",royale:"Battle Royale"};
     let label = names[mode]||"";
     if(mode==="race") label = "Course · " + raceThemeName(raceTheme);
     if(mode==="expert") label = "Expert" + (expertRare ? " · mots rares" : "");
@@ -4192,11 +4249,178 @@
   function startFree(m){
     if(m==="pendu"){ penduStart(); return; }
     if(m==="memo"){ memoStart(); return; }
+    if(m==="royale"){ royOuvrir(); return; }
     mode=m; over=false; ended=false; won=false; guesses=[]; rowStates=[];
     const pool = (m==="expert") ? expertPool() : POOLS[m];
     answer=pool[Math.floor(Math.random()*pool.length)];
     setupBoardForAnswer(); loadDico(len); setActiveSeg(m);
     timerReset(); updateHud(); save();
+  }
+
+  /* ---------------------------------------------------------------
+     BATTLE ROYALE — 4 joueurs, 4 manches
+     Les 4 mots sont tirés à la création et figés côté serveur : tout le
+     monde affronte la même série. Les scores sont calculés par la base.
+     --------------------------------------------------------------- */
+  const ROY_MANCHES = 4, ROY_TEMPS = 90000;
+  let royCodeCourant = "", royStop = null, royManche = 0, royMots = [];
+  let royReporte = -1, royDeadline = 0, royEtat = null;
+
+  function royDispo(){ return !!(window.Royale && Royale.configured()); }
+
+  function royMsg(t, err){
+    const e = $("royMsg"); if(!e) return;
+    e.textContent = t || ""; e.classList.toggle("err", !!err);
+  }
+  function royEtape(nom){
+    ["roySetup","royLobby","royClassement"].forEach(id=>{
+      const e = $(id); if(e) e.style.display = (id===nom) ? "" : "none";
+    });
+  }
+
+  /* Quatre mots de longueur « normale », tirés par le client puis figés. */
+  function royTirerMots(){
+    const pool = POOLS.normal, pris = new Set(), out = [];
+    let garde = 0;
+    while(out.length < ROY_MANCHES && garde++ < 400){
+      const m = pool[Math.floor(Math.random()*pool.length)];
+      if(!pris.has(m)){ pris.add(m); out.push(m); }
+    }
+    return out;
+  }
+
+  function royOuvrir(){
+    if(!royDispo()){ toast("Le multijoueur demande une connexion au serveur."); return; }
+    royEtape("roySetup"); royMsg("");
+    $("royCode").value = "";
+    openOverlay("royaleOverlay");
+  }
+
+  function royEntrer(promesse){
+    royMsg("Connexion…");
+    promesse.then(code=>{
+      if(!code || typeof code !== "string"){ royMsg("Impossible de rejoindre.", true); return; }
+      if(code === "introuvable"){ royMsg("Aucune salle avec ce code.", true); return; }
+      if(code === "pleine"){ royMsg("Cette salle est déjà complète.", true); return; }
+      if(code === "commencee"){ royMsg("Cette partie a déjà commencé.", true); return; }
+      royCodeCourant = (code === "ok") ? ($("royCode").value||"").trim().toUpperCase() : code;
+      royMsg("");
+      royVeille();
+    }).catch(()=> royMsg("Connexion impossible.", true));
+  }
+
+  function royVeille(){
+    if(royStop) royStop();
+    royStop = Royale.watch(royCodeCourant, (err, d)=>{
+      if(err || !d) return;
+      royEtat = d;
+      royDessine(d);
+    });
+  }
+
+  function royDessine(d){
+    // salle d'attente
+    if(d.status === "waiting"){
+      royEtape("royLobby");
+      $("royCodeShow").textContent = d.id;
+      const vrais = d.joueurs.filter(j=>!j.fantome).length;
+      $("royLobbySub").textContent = vrais + " joueur" + (vrais>1?"s":"") + " sur 4"
+        + (vrais < 4 ? " — les places libres seront tenues par des fantômes." : " — salle complète !");
+      $("royJoueurs").innerHTML = d.joueurs.map(j=>
+        '<div class="roy-j"><span class="e">'+(j.badge||"🎖️")+'</span>'
+        + '<span class="n">'+escapeHtml(j.pseudo||"Anonyme")+(j.moi?" (toi)":"")+'</span>'
+        + '<span class="lv">niv. '+(j.level||1)+'</span></div>').join("");
+      return;
+    }
+
+    // partie lancée : on joue la manche courante
+    if(d.status === "playing"){
+      royMots = d.words || [];
+      if(d.manche !== royManche){
+        royManche = d.manche;
+        royReporte = -1;
+        closeOverlays();
+        royJouerManche();
+      }
+      return;
+    }
+
+    // terminée : classement final
+    if(d.status === "done"){ royFin(d); }
+  }
+
+  /* Lance la manche courante sur le plateau normal du jeu. */
+  function royJouerManche(){
+    const mot = royMots[royManche-1];
+    if(!mot) return;
+    mode = "royale"; over=false; ended=false; won=false; guesses=[]; rowStates=[]; hintCols=[];
+    answer = mot;
+    resetKeyboardColors();
+    setupBoardForAnswer(); loadDico(len); setActiveSeg("royale");
+    royDeadline = Date.now() + ROY_TEMPS;
+    timerReset(); timerStart(0); updateHud(); save();
+    toast("Manche " + royManche + " sur " + ROY_MANCHES, 2000);
+  }
+
+  /* Fin de manche : on transmet le résultat, puis on montre le classement. */
+  function royFinManche(gagne){
+    if(royReporte === royManche) return;   // une seule fois par manche
+    royReporte = royManche;
+    const ms = Math.min(ROY_TEMPS, timerValue());
+    Royale.report(royCodeCourant, royManche, { essais: guesses.length, ms, won: gagne })
+      .then(()=> Royale.ghosts(royCodeCourant, royManche))
+      .then(()=> Royale.state(royCodeCourant))
+      .then(d=>{ if(d){ royEtat = d; royAfficherClassement(d); } })
+      .catch(()=>{});
+  }
+
+  function royAfficherClassement(d){
+    royEtape("royClassement");
+    // Les scores des fantômes sont posés APRÈS la lecture initiale : sans
+    // ce tri, l'ordre affiché ne correspondait plus aux totaux réels.
+    d.joueurs = d.joueurs.slice().sort((a,b)=> b.total - a.total);
+    const fini = (royManche >= ROY_MANCHES);
+    $("royClassSub").textContent = fini
+      ? "Partie terminée !"
+      : "Manche " + royManche + " sur " + ROY_MANCHES + " — mot : " + (royMots[royManche-1]||"");
+    $("royTable").innerHTML = d.joueurs.map((j,i)=>{
+      const medaille = i===0 ? "🥇" : i===1 ? "🥈" : i===2 ? "🥉" : (i+1)+".";
+      return '<div class="roy-r'+(j.moi?" moi":"")+'">'
+        + '<span class="rg">'+medaille+'</span>'
+        + '<span class="n">'+escapeHtml(j.pseudo||"Anonyme")+'</span>'
+        + '<span class="sc">'+j.total+'</span></div>';
+    }).join("");
+    $("roySuivant").textContent = fini ? "Terminer" : "Manche suivante";
+    openOverlay("royaleOverlay");
+  }
+
+  function royFin(d){
+    royEtape("royClassement");
+    d.joueurs = d.joueurs.slice().sort((a,b)=> b.total - a.total);
+    const moi = d.joueurs.find(j=>j.moi);
+    const rang = d.joueurs.findIndex(j=>j.moi) + 1;
+    $("royClassSub").textContent = moi
+      ? (rang===1 ? "🏆 Victoire !" : rang+"ᵉ place sur "+d.joueurs.length)
+      : "Partie terminée";
+    $("royTable").innerHTML = d.joueurs.map((j,i)=>{
+      const medaille = i===0 ? "🥇" : i===1 ? "🥈" : i===2 ? "🥉" : (i+1)+".";
+      return '<div class="roy-r'+(j.moi?" moi":"")+'">'
+        + '<span class="rg">'+medaille+'</span>'
+        + '<span class="n">'+escapeHtml(j.pseudo||"Anonyme")+'</span>'
+        + '<span class="sc">'+j.total+'</span></div>';
+    }).join("");
+    $("roySuivant").textContent = "Quitter";
+    if(window.Profile && Profile.royaleDone && rang>0){
+      Profile.royaleDone({ rang, joueurs:d.joueurs.length, total: moi ? moi.total : 0 });
+    }
+    mesure("partie:royale"); if(rang===1) mesure("gagne:royale");
+    openOverlay("royaleOverlay");
+  }
+
+  function royQuitter(){
+    if(royStop){ royStop(); royStop = null; }
+    royCodeCourant = ""; royManche = 0; royEtat = null; royReporte = -1;
+    closeOverlays(); startFree("normal");
   }
 
   /* ---------------------------------------------------------------
@@ -4535,7 +4759,7 @@
     else timerReset();                                        // mot pas encore entamé
   }
 
-  const MODE_LABELS={daily:"📅 Mot du jour",defi:"🔥 Défi du jour",court:"🐤 Court",normal:"🎯 Normal",long:"🐘 Long",expert:"🎓 Expert",prenoms:"👶 Prénoms",maladies:"🩺 Maladies",villes:"🏙️ Villes",duel:"⚔️ Duel",race:"⌨️ Course",defense:"🛡️ Défense",pendu:"🪢 Le Pendu",memo:"🧠 Mémorisation"};
+  const MODE_LABELS={daily:"📅 Mot du jour",defi:"🔥 Défi du jour",court:"🐤 Court",normal:"🎯 Normal",long:"🐘 Long",expert:"🎓 Expert",prenoms:"👶 Prénoms",maladies:"🩺 Maladies",villes:"🏙️ Villes",duel:"⚔️ Duel",race:"⌨️ Course",defense:"🛡️ Défense",pendu:"🪢 Le Pendu",memo:"🧠 Mémorisation",royale:"👑 Battle Royale"};
   function setActiveSeg(m){
     $("modeBtnLabel").textContent = MODE_LABELS[m] || m;
     document.querySelectorAll(".mode-item").forEach(b=>b.classList.toggle("active", b.dataset.mode===m));
@@ -4671,6 +4895,34 @@
     else if(k==="-" || k==="_") handleKey(DASH);
   });
 
+  $("royQuick").addEventListener("click", ()=> royEntrer(Royale.quick(royTirerMots())));
+  $("royCreate").addEventListener("click", ()=> royEntrer(Royale.create(royTirerMots(), false)));
+  $("royJoin").addEventListener("click", ()=>{
+    const c = ($("royCode").value||"").trim().toUpperCase();
+    if(c.length < 4){ royMsg("Le code fait 4 caractères.", true); return; }
+    royEntrer(Royale.join(c));
+  });
+  $("royGo").addEventListener("click", ()=>{
+    Royale.start(royCodeCourant).then(()=>{ if(royStop) royStop.now(); });
+  });
+  $("royShare").addEventListener("click", ()=>{
+    const txt = "Rejoins ma partie Battle Royale sur Mot en Six !\nCode : " + royCodeCourant;
+    if(navigator.share) navigator.share({ text: txt, url: SHARE_URL }).catch(()=>copy(txt+"\n"+SHARE_URL));
+    else copy(txt+"\n"+SHARE_URL);
+  });
+  $("roySuivant").addEventListener("click", ()=>{
+    // partie déjà terminée côté serveur : on sort
+    if(royEtat && royEtat.status === "done"){ royQuitter(); return; }
+    // dernière manche jouée : on demande la clôture, puis on affiche le bilan
+    if(royManche >= ROY_MANCHES){
+      Royale.next(royCodeCourant)
+        .then(()=> Royale.state(royCodeCourant))
+        .then(d=>{ if(d){ royEtat = d; royFin(d); } })
+        .catch(()=> royQuitter());
+      return;
+    }
+    Royale.next(royCodeCourant).then(()=>{ closeOverlays(); if(royStop) royStop.now(); });
+  });
   $("btnKid").addEventListener("click", ()=>{ location.href="./enfant.html"; });
   $("btnRpg").addEventListener("click", ()=>{ location.href="./rpg.html"; });
   document.querySelectorAll("#duelTabs .dtab").forEach(b=>b.addEventListener("click", ()=>{
@@ -4762,10 +5014,13 @@
   });
 
   $("btnShareFromAbout").addEventListener("click", ()=>{
+    /* navigator.share affiche "text" ET "url" séparément dans la fenêtre de
+       partage : mettre le lien dans les deux faisait apparaître l'adresse
+       deux fois. Le lien va UNIQUEMENT dans "url". */
     const texte = "Mot en Six — trouve le mot caché en six essais.\n"
-      + "Gratuit, sans publicité, jouable hors-ligne.\n" + SHARE_URL;
-    if(navigator.share){ navigator.share({ text: texte, url: SHARE_URL }).catch(()=>copyShare(texte)); }
-    else copyShare(texte);
+      + "Gratuit, sans publicité, jouable hors-ligne.";
+    if(navigator.share){ navigator.share({ text: texte, url: SHARE_URL }).catch(()=>copyShare(texte+"\n"+SHARE_URL)); }
+    else copyShare(texte+"\n"+SHARE_URL);
   });
   function copyShare(texte){
     try{ navigator.clipboard.writeText(texte); toast("Lien copié — colle-le où tu veux !"); }
