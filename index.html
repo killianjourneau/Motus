@@ -183,6 +183,17 @@
     background:var(--cell); margin-bottom:6px; }
   .roy-j .e{ font-size:18px; } .roy-j .n{ flex:1; font-weight:700; font-size:14px; }
   .roy-j .lv{ font-size:11.5px; color:var(--ink-dim); font-weight:700; }
+  .roy-r{ position:relative; }
+  .roy-r small{ display:block; font-size:11px; color:var(--ink-dim); font-weight:600; margin-top:1px; }
+  .roy-r.fantome{ opacity:.75; }
+  .roy-emotes{ display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin:10px 0; }
+  .roy-em{ border:none; border-radius:9px; background:var(--cell); padding:7px 9px; font-size:17px;
+    cursor:pointer; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
+  .roy-em:active{ transform:scale(.9); }
+  .roy-bulle{ position:fixed; left:50%; bottom:90px; transform:translate(-50%,20px); background:var(--ink);
+    color:var(--bg); padding:10px 16px; border-radius:13px; font-size:13.5px; font-weight:700;
+    opacity:0; pointer-events:none; transition:.25s; z-index:400; box-shadow:0 10px 30px rgba(0,0,0,.4); }
+  .roy-bulle.show{ opacity:1; transform:translate(-50%,0); }
   .roy-r{ display:flex; align-items:center; gap:11px; padding:10px 12px; border-radius:11px;
     background:var(--cell); margin-bottom:6px; }
   .roy-r.moi{ box-shadow:inset 0 0 0 2px var(--accent); }
@@ -603,7 +614,9 @@
       <div id="royClassement" style="display:none">
         <p class="sub" id="royClassSub"></p>
         <div id="royTable"></div>
-        <button class="btn" id="roySuivant">Manche suivante</button>
+        <p class="sub" id="royAttente"></p>
+        <div class="roy-emotes" id="royEmotesBar"></div>
+        <button class="btn" id="roySuivant" style="display:none">Quitter</button>
       </div>
     </div>
   </div>
@@ -1045,21 +1058,21 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=2.1.0"></script>
-<script src="./dico/motus-prenoms.js?v=2.1.0"></script>
-<script src="./dico/motus-prenoms-info.js?v=2.1.0"></script>
-<script src="./dico/motus-maladies.js?v=2.1.0"></script>
-<script src="./dico/motus-maladies-info.js?v=2.1.0"></script>
-<script src="./dico/motus-villes.js?v=2.1.0"></script>
-<script src="./dico/motus-villes-info.js?v=2.1.0"></script>
-<script src="./dico/motus-persos.js?v=2.1.0"></script>
-<script src="./dico/motus-persos-info.js?v=2.1.0"></script>
-<script src="./dico/motus-persos-split.js?v=2.1.0"></script>
-<script src="./dico/motus-race.js?v=2.1.0"></script>
-<script src="./dico/motus-expert.js?v=2.1.0"></script>
-<script src="./profiles/config.js?v=2.1.0"></script>
-<script src="./profiles/profile.js?v=2.1.0"></script>
-<script src="./duel/duel.js?v=2.1.0"></script>
+<script src="./dico/motus-words.js?v=2.0.3"></script>
+<script src="./dico/motus-prenoms.js?v=2.0.3"></script>
+<script src="./dico/motus-prenoms-info.js?v=2.0.3"></script>
+<script src="./dico/motus-maladies.js?v=2.0.3"></script>
+<script src="./dico/motus-maladies-info.js?v=2.0.3"></script>
+<script src="./dico/motus-villes.js?v=2.0.3"></script>
+<script src="./dico/motus-villes-info.js?v=2.0.3"></script>
+<script src="./dico/motus-persos.js?v=2.0.3"></script>
+<script src="./dico/motus-persos-info.js?v=2.0.3"></script>
+<script src="./dico/motus-persos-split.js?v=2.0.3"></script>
+<script src="./dico/motus-race.js?v=2.0.3"></script>
+<script src="./dico/motus-expert.js?v=2.0.3"></script>
+<script src="./profiles/config.js?v=2.0.3"></script>
+<script src="./profiles/profile.js?v=2.0.3"></script>
+<script src="./duel/duel.js?v=2.0.3"></script>
 <script>
 (() => {
   "use strict";
@@ -1111,7 +1124,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "2.1.0";
+  const VERSION = "2.0.3";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -4166,6 +4179,9 @@
       const left = royDeadline ? (royDeadline - Date.now()) : ROY_TEMPS;
       el.textContent = "⏳ " + fmtTime(Math.max(0,left));
       el.classList.toggle("warn", left<=20000);
+      // Le temps écoulé ne fait plus perdre en local : c'est le serveur qui
+      // décide de faire avancer la manche (royale_avancer), une fois que
+      // tous ont fini ou que ce délai commun est dépassé pour de bon.
       if(left<=0 && !ended){ ended=true; over=true; timerStop(); royFinManche(false); }
       return;
     }
@@ -4340,7 +4356,16 @@
         royManche = d.manche;
         royReporte = -1;
         closeOverlays();
-        royJouerManche();
+        royJouerManche(d.manche_at);
+      } else if(mode !== "royale" && !ended){
+        // on revient sur cette manche (retour d'un autre écran) : même
+        // échéance commune, on ne relance pas un nouveau délai
+        royJouerManche(d.manche_at);
+      } else if(royReporte === royManche){
+        // j'ai fini mais la manche n'a pas encore avancé : je réclame la
+        // vérification, au cas où j'étais le dernier et que rien ne l'a
+        // demandée depuis (ex. reprise après mise en veille du téléphone)
+        Royale.check(royCodeCourant);
       }
       return;
     }
@@ -4350,14 +4375,17 @@
   }
 
   /* Lance la manche courante sur le plateau normal du jeu. */
-  function royJouerManche(){
+  function royJouerManche(mancheAt){
     const mot = royMots[royManche-1];
     if(!mot) return;
     mode = "royale"; over=false; ended=false; won=false; guesses=[]; rowStates=[]; hintCols=[];
     answer = mot;
     resetKeyboardColors();
     setupBoardForAnswer(); loadDico(len); setActiveSeg("royale");
-    royDeadline = Date.now() + ROY_TEMPS;
+    // Échéance calculée depuis l'horodatage SERVEUR de la manche, pas depuis
+    // l'instant local : deux joueurs rejoignant à quelques secondes d'écart
+    // partagent la même limite, plutôt que chacun sa propre minuterie.
+    royDeadline = mancheAt ? new Date(mancheAt).getTime() + ROY_TEMPS : Date.now() + ROY_TEMPS;
     timerReset(); timerStart(0); updateHud(); save();
     toast("Manche " + royManche + " sur " + ROY_MANCHES, 2000);
   }
@@ -4367,30 +4395,47 @@
     if(royReporte === royManche) return;   // une seule fois par manche
     royReporte = royManche;
     const ms = Math.min(ROY_TEMPS, timerValue());
+    // royale_report avance déjà la manche toute seule si les conditions
+    // sont réunies (royale_avancer est appelée côté serveur) : on relit
+    // juste l'état pour afficher le classement à jour.
     Royale.report(royCodeCourant, royManche, { essais: guesses.length, ms, won: gagne })
-      .then(()=> Royale.ghosts(royCodeCourant, royManche))
       .then(()=> Royale.state(royCodeCourant))
       .then(d=>{ if(d){ royEtat = d; royAfficherClassement(d); } })
       .catch(()=>{});
   }
 
+  /* Une ligne par joueur : score total, ET le détail de la manche qui
+     vient de se jouer — nombre d'essais et temps, comme demandé. Sans ce
+     détail on ne pouvait comparer sa performance qu'au score agrégé. */
+  function royLigneJoueur(j, i, manche){
+    const medaille = i===0 ? "🥇" : i===1 ? "🥈" : i===2 ? "🥉" : (i+1)+".";
+    const es = manche ? j.essais[manche-1] : -1;
+    const ms = manche ? j.ms[manche-1] : 0;
+    const detail = (manche && es > 0)
+      ? (es>=6 && j.scores[manche-1]<=0 ? "raté" : es+" essai"+(es>1?"s":"")+" · "+fmtTime(ms))
+      : "en attente…";
+    return '<div class="roy-r'+(j.moi?" moi":"")+(j.fantome?" fantome":"")+'">'
+      + '<span class="rg">'+medaille+'</span>'
+      + '<span class="n">'+escapeHtml(j.pseudo||"Anonyme")
+      +   (manche ? '<small>'+detail+'</small>' : '')+'</span>'
+      + '<span class="sc">'+j.total+'</span></div>';
+  }
+
   function royAfficherClassement(d){
     royEtape("royClassement");
-    // Les scores des fantômes sont posés APRÈS la lecture initiale : sans
-    // ce tri, l'ordre affiché ne correspondait plus aux totaux réels.
     d.joueurs = d.joueurs.slice().sort((a,b)=> b.total - a.total);
-    const fini = (royManche >= ROY_MANCHES);
-    $("royClassSub").textContent = fini
-      ? "Partie terminée !"
-      : "Manche " + royManche + " sur " + ROY_MANCHES + " — mot : " + (royMots[royManche-1]||"");
-    $("royTable").innerHTML = d.joueurs.map((j,i)=>{
-      const medaille = i===0 ? "🥇" : i===1 ? "🥈" : i===2 ? "🥉" : (i+1)+".";
-      return '<div class="roy-r'+(j.moi?" moi":"")+'">'
-        + '<span class="rg">'+medaille+'</span>'
-        + '<span class="n">'+escapeHtml(j.pseudo||"Anonyme")+'</span>'
-        + '<span class="sc">'+j.total+'</span></div>';
-    }).join("");
-    $("roySuivant").textContent = fini ? "Terminer" : "Manche suivante";
+    const fini = (d.manche >= ROY_MANCHES && d.status === "done");
+    $("royClassSub").textContent = "Manche " + Math.min(royManche, ROY_MANCHES) + " sur " + ROY_MANCHES
+      + " — mot : " + (royMots[royManche-1]||"");
+    $("royTable").innerHTML = d.joueurs.map((j,i)=> royLigneJoueur(j,i,royManche)).join("");
+    // La manche avance TOUTE SEULE (côté serveur) : on affiche qui manque,
+    // sans bouton pour forcer quoi que ce soit.
+    const attend = d.joueurs.filter(j=>!j.fantome && j.scores[royManche-1]===-1 && !j.moi);
+    $("royAttente").textContent = attend.length
+      ? "En attente de " + attend.map(j=>j.pseudo).join(", ") + "…"
+      : "Tout le monde a joué — la manche suivante arrive.";
+    royDessinerEmotes(d.joueurs);
+    if(!fini) $("roySuivant").style.display = "none";
     openOverlay("royaleOverlay");
   }
 
@@ -4402,13 +4447,9 @@
     $("royClassSub").textContent = moi
       ? (rang===1 ? "🏆 Victoire !" : rang+"ᵉ place sur "+d.joueurs.length)
       : "Partie terminée";
-    $("royTable").innerHTML = d.joueurs.map((j,i)=>{
-      const medaille = i===0 ? "🥇" : i===1 ? "🥈" : i===2 ? "🥉" : (i+1)+".";
-      return '<div class="roy-r'+(j.moi?" moi":"")+'">'
-        + '<span class="rg">'+medaille+'</span>'
-        + '<span class="n">'+escapeHtml(j.pseudo||"Anonyme")+'</span>'
-        + '<span class="sc">'+j.total+'</span></div>';
-    }).join("");
+    $("royTable").innerHTML = d.joueurs.map((j,i)=> royLigneJoueur(j,i,0)).join("");
+    $("royAttente").textContent = "";
+    $("roySuivant").style.display = "";
     $("roySuivant").textContent = "Quitter";
     if(window.Profile && Profile.royaleDone && rang>0){
       Profile.royaleDone({ rang, joueurs:d.joueurs.length, total: moi ? moi.total : 0 });
@@ -4417,9 +4458,57 @@
     openOverlay("royaleOverlay");
   }
 
+  const ROY_EMOTES = [
+    {id:"gg",       e:"🤝", t:"GG"},
+    {id:"bravo",    e:"👏", t:"Bravo"},
+    {id:"vite",     e:"⚡", t:"Trop vite !"},
+    {id:"feu",      e:"🔥", t:"En feu"},
+    {id:"coeur",    e:"❤️", t:"Sympa"},
+    {id:"oups",     e:"😅", t:"Oups"},
+    {id:"lol",      e:"😂", t:"Mdr"},
+    {id:"deception",e:"😩", t:"Argh"}
+  ];
+  let royDerniersEmotes = {};   // pour ne montrer une bulle qu'une fois par message
+
+  function royDessinerEmotes(joueurs){
+    const bar = $("royEmotesBar"); if(!bar) return;
+    bar.innerHTML = ROY_EMOTES.map(m=>
+      '<button class="roy-em" data-e="'+m.id+'" title="'+m.t+'">'+m.e+'</button>').join("");
+    bar.querySelectorAll(".roy-em").forEach(b=>{
+      b.addEventListener("click", ()=>{
+        if(!royCodeCourant || !window.Royale) return;
+        Royale.emote(royCodeCourant, b.dataset.e);
+        royAfficherBulle(b.dataset.e, null);   // aperçu immédiat de mon propre envoi
+      });
+    });
+    // bulles des AUTRES joueurs : un message récent (moins de 6 s) et pas
+    // déjà montré
+    (joueurs||[]).filter(j=>!j.moi && j.emote && j.emoteAt).forEach(j=>{
+      const cle = j.id + ":" + j.emoteAt;
+      if(royDerniersEmotes[cle]) return;
+      const age = Date.now() - new Date(j.emoteAt).getTime();
+      if(age > 6000) return;
+      royDerniersEmotes[cle] = true;
+      royAfficherBulle(j.emote, j.pseudo);
+    });
+  }
+  let royBulleTimer = null;
+  function royAfficherBulle(id, pseudo){
+    const m = ROY_EMOTES.find(x=>x.id===id); if(!m) return;
+    const b = $("royEmoteBulle") || (function(){
+      const e = document.createElement("div"); e.id = "royEmoteBulle"; e.className = "roy-bulle";
+      document.body.appendChild(e); return e;
+    })();
+    b.innerHTML = (pseudo ? '<b>'+escapeHtml(pseudo)+' :</b> ' : "") + m.e + " " + m.t;
+    b.classList.add("show");
+    clearTimeout(royBulleTimer);
+    royBulleTimer = setTimeout(()=> b.classList.remove("show"), 2800);
+  }
+
   function royQuitter(){
     if(royStop){ royStop(); royStop = null; }
     royCodeCourant = ""; royManche = 0; royEtat = null; royReporte = -1;
+    royDerniersEmotes = {};
     closeOverlays(); startFree("normal");
   }
 
@@ -4910,19 +4999,7 @@
     if(navigator.share) navigator.share({ text: txt, url: SHARE_URL }).catch(()=>copy(txt+"\n"+SHARE_URL));
     else copy(txt+"\n"+SHARE_URL);
   });
-  $("roySuivant").addEventListener("click", ()=>{
-    // partie déjà terminée côté serveur : on sort
-    if(royEtat && royEtat.status === "done"){ royQuitter(); return; }
-    // dernière manche jouée : on demande la clôture, puis on affiche le bilan
-    if(royManche >= ROY_MANCHES){
-      Royale.next(royCodeCourant)
-        .then(()=> Royale.state(royCodeCourant))
-        .then(d=>{ if(d){ royEtat = d; royFin(d); } })
-        .catch(()=> royQuitter());
-      return;
-    }
-    Royale.next(royCodeCourant).then(()=>{ closeOverlays(); if(royStop) royStop.now(); });
-  });
+  $("roySuivant").addEventListener("click", royQuitter);
   $("btnKid").addEventListener("click", ()=>{ location.href="./enfant.html"; });
   $("btnRpg").addEventListener("click", ()=>{ location.href="./rpg.html"; });
   document.querySelectorAll("#duelTabs .dtab").forEach(b=>b.addEventListener("click", ()=>{
