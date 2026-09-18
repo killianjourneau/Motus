@@ -1300,19 +1300,13 @@ begin
    where room_id = v_code and player_id = p_id;
 end $$;
 
--- Passe à la manche suivante, ou termine la partie.
+-- Remplacée par royale_avancer/royale_check (v2.2) : la manche ne doit
+-- plus jamais avancer sur la seule initiative d'un joueur. Conservée
+-- vide pour ne pas casser un appel resté en cache côté client.
 create or replace function royale_next(p_code text)
-returns void language plpgsql security definer as $$
-declare v_code text := upper(btrim(p_code)); v_m int;
-begin
-  select manche into v_m from royale_rooms where id = v_code and status = 'playing';
-  if v_m is null then return; end if;
-  if v_m >= 4 then
-    update royale_rooms set status = 'done' where id = v_code;
-  else
-    update royale_rooms set manche = v_m + 1, manche_at = now() where id = v_code;
-  end if;
-end $$;
+returns void language sql security definer as $$
+  select royale_check(p_code);
+$$;
 
 -- État complet de la salle : une seule requête pour tout l'écran.
 create or replace function royale_state(p_code text)
@@ -1365,3 +1359,139 @@ begin
 end $$;
 
 grant execute on function royale_ghosts(text,int) to anon, authenticated;
+
+-- =====================================================================
+-- v2.2 — Battle Royale : synchronisation réelle des manches, détails de
+-- performance, et messages entre joueurs.
+--
+-- PROBLÈME CORRIGÉ : rien n'empêchait un joueur de faire avancer la manche
+-- pour tout le monde pendant que d'autres jouaient encore. La manche
+-- n'avance désormais QUE lorsque tous les vrais joueurs ont terminé, ou
+-- que le délai commun (manche_at + 90 s) est écoulé — jamais sur un simple
+-- clic d'un joueur.
+-- =====================================================================
+
+-- -1 = pas encore joué cette manche (distinct d'un score de 0 = manche ratée)
+alter table royale_players alter column scores set default '{-1,-1,-1,-1}';
+update royale_players set scores = '{-1,-1,-1,-1}' where scores = '{0,0,0,0}' and total = 0;
+
+alter table royale_players add column if not exists essais  int[] default '{0,0,0,0}';
+alter table royale_players add column if not exists temps_ms int[] default '{0,0,0,0}';
+
+-- Dernier message envoyé par un joueur : un seul en mémoire, avec sa date,
+-- pour qu'un client puisse ignorer ceux déjà vus sans historique à charger.
+alter table royale_players add column if not exists emote text;
+alter table royale_players add column if not exists emote_at timestamptz;
+
+drop function if exists royale_report(text,uuid,int,int,int,boolean);
+create or replace function royale_report(
+  p_id uuid, p_code text, p_manche int, p_essais int, p_ms int, p_won boolean
+) returns void language plpgsql security definer as $$
+declare v_code text := upper(btrim(p_code)); v_pts int := 0; v_sc int[]; v_es int[]; v_tp int[];
+begin
+  if p_manche < 1 or p_manche > 4 then return; end if;
+  if p_won then
+    v_pts := greatest(10, 100 - (greatest(1, coalesce(p_essais,6)) - 1) * 15)
+           + greatest(0, 30 - (coalesce(p_ms, 90000) / 3000));
+  end if;
+  select scores, essais, temps_ms into v_sc, v_es, v_tp
+    from royale_players where room_id = v_code and player_id = p_id;
+  if v_sc is null then return; end if;
+  v_sc[p_manche] := v_pts; v_es[p_manche] := coalesce(p_essais,6); v_tp[p_manche] := coalesce(p_ms,90000);
+  update royale_players
+     set scores = v_sc, essais = v_es, temps_ms = v_tp,
+         total  = (select sum(x) from unnest(v_sc) x where x > 0)
+   where room_id = v_code and player_id = p_id;
+  perform royale_avancer(v_code);
+end $$;
+
+-- Comble les fantômes n'ayant pas encore de score pour cette manche.
+drop function if exists royale_ghosts(text,int);
+create or replace function royale_ghosts_manche(p_code text, p_manche int)
+returns void language plpgsql security definer as $$
+declare v_code text := upper(btrim(p_code)); r record; v_h int; v_pts int;
+        v_sc int[]; v_es int[]; v_tp int[];
+begin
+  for r in select player_id, scores, essais, temps_ms from royale_players
+            where room_id = v_code and fantome and scores[p_manche] = -1 loop
+    v_h := ('x' || substr(md5(v_code || p_manche::text || r.player_id::text), 1, 8))::bit(32)::bigint % 100;
+    v_sc := r.scores; v_es := r.essais; v_tp := r.temps_ms;
+    if v_h < 75 then
+      v_es[p_manche] := 2 + (v_h % 4); v_tp[p_manche] := 20000 + (v_h % 50) * 1000;
+      v_pts := greatest(10, 100 - (v_es[p_manche]-1)*15) + greatest(0, 30 - v_tp[p_manche]/3000);
+    else
+      v_es[p_manche] := 6; v_tp[p_manche] := 90000; v_pts := 0;
+    end if;
+    v_sc[p_manche] := v_pts;
+    update royale_players
+       set scores = v_sc, essais = v_es, temps_ms = v_tp,
+           total  = (select sum(x) from unnest(v_sc) x where x > 0)
+     where room_id = v_code and player_id = r.player_id;
+  end loop;
+end $$;
+
+-- Fait avancer la manche SI ELLE DOIT avancer : tous les vrais joueurs ont
+-- un score, ou le temps commun est écoulé. Verrou explicite pour qu'un
+-- appel simultané de plusieurs clients ne fasse jamais sauter une manche.
+create or replace function royale_avancer(p_code text)
+returns void language plpgsql security definer as $$
+declare v_code text := upper(btrim(p_code)); v_m int; v_at timestamptz;
+        v_restants int; v_dus boolean;
+begin
+  select manche, manche_at into v_m, v_at
+    from royale_rooms where id = v_code and status = 'playing'
+    for update;                              -- sérialise les appels concurrents
+  if v_m is null then return; end if;
+
+  select count(*) into v_restants from royale_players
+   where room_id = v_code and not fantome and scores[v_m] = -1;
+  v_dus := (v_restants = 0) or (v_at is not null and now() > v_at + interval '90 seconds');
+  if not v_dus then return; end if;
+
+  perform royale_ghosts_manche(v_code, v_m);
+  if v_m >= 4 then
+    update royale_rooms set status = 'done' where id = v_code and manche = v_m;
+  else
+    update royale_rooms set manche = v_m + 1, manche_at = now() where id = v_code and manche = v_m;
+  end if;
+end $$;
+
+-- Un joueur peut forcer la vérification (utile si tout le monde a fini
+-- mais que personne n'a émis d'écriture depuis) : même règle, pas de
+-- passage en force possible.
+create or replace function royale_check(p_code text)
+returns void language sql security definer as $$
+  select royale_avancer(p_code);
+$$;
+
+-- Émote : un seul message vivant par joueur, horodaté. Whitelist stricte,
+-- comme pour la mesure d'audience — jamais de texte libre.
+create or replace function royale_emote(p_code text, p_id uuid, p_emote text)
+returns void language plpgsql security definer as $$
+begin
+  if p_emote !~ '^(gg|bravo|vite|oups|lol|coeur|feu|deception)$' then return; end if;
+  update royale_players set emote = p_emote, emote_at = now()
+   where room_id = upper(btrim(p_code)) and player_id = p_id;
+end $$;
+
+drop function if exists royale_state(text);
+create or replace function royale_state(p_code text)
+returns table (
+  id text, status text, is_public boolean, words text[], manche int, manche_at timestamptz,
+  player_id uuid, pseudo text, level int, badge text, fantome boolean,
+  scores int[], essais int[], temps_ms int[], total int, emote text, emote_at timestamptz
+) language sql security definer stable as $$
+  select r.id, r.status, r.is_public, r.words, r.manche, r.manche_at,
+         p.player_id, p.pseudo, p.level, p.badge, p.fantome,
+         p.scores, p.essais, p.temps_ms, p.total, p.emote, p.emote_at
+    from royale_rooms r
+    join royale_players p on p.room_id = r.id
+   where r.id = upper(btrim(p_code))
+   order by p.total desc, p.joined_at asc;
+$$;
+
+grant execute on function royale_report(uuid,text,int,int,int,boolean) to anon, authenticated;
+grant execute on function royale_avancer(text)                        to anon, authenticated;
+grant execute on function royale_check(text)                          to anon, authenticated;
+grant execute on function royale_emote(text,uuid,text)                to anon, authenticated;
+grant execute on function royale_state(text)                          to anon, authenticated;

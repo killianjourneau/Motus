@@ -587,17 +587,21 @@
         p_id: m.id, p_pseudo: m.pseudo, p_level: m.level, p_badge: m.badge
       });
     },
-    start:  function (code) { return rpc("royale_start", { p_code: code }).catch(function(){ return null; }); },
-    next:   function (code) { return rpc("royale_next",  { p_code: code }).catch(function(){ return null; }); },
-    ghosts: function (code, manche) {
-      return rpc("royale_ghosts", { p_code: code, p_manche: manche }).catch(function(){ return null; });
-    },
+    start: function (code) { return rpc("royale_start", { p_code: code }).catch(function(){ return null; }); },
+    /* La manche n'avance plus jamais sur simple demande : le serveur décide,
+       seul, si tous ont fini ou si le temps commun est écoulé. */
+    check: function (code) { return rpc("royale_check", { p_code: code }).catch(function(){ return null; }); },
     report: function (code, manche, o) {
       var m = me(); o = o || {};
       return rpc("royale_report", {
-        p_code: code, p_id: m.id, p_manche: manche,
+        p_id: m.id, p_code: code, p_manche: manche,
         p_essais: o.essais || 6, p_ms: o.ms || 90000, p_won: !!o.won
       }).catch(function () { return null; });
+    },
+    emote: function (code, emote) {
+      var m = me();
+      return rpc("royale_emote", { p_code: code, p_id: m.id, p_emote: emote })
+        .catch(function () { return null; });
     },
 
     /* Une seule requête rend la salle ET ses joueurs : on regroupe. */
@@ -612,7 +616,11 @@
             joueurs: rows.map(function (x) {
               return { id: x.player_id, pseudo: x.pseudo, level: x.level,
                        badge: x.badge, fantome: x.fantome,
-                       scores: x.scores || [0,0,0,0], total: x.total || 0,
+                       scores: x.scores || [-1,-1,-1,-1],
+                       essais: x.essais || [0,0,0,0],
+                       ms: x.temps_ms || [0,0,0,0],
+                       total: x.total || 0,
+                       emote: x.emote, emoteAt: x.emote_at,
                        moi: x.player_id === m.id };
             })
           };
