@@ -186,6 +186,11 @@
   .roy-r{ position:relative; }
   .roy-r small{ display:block; font-size:11px; color:var(--ink-dim); font-weight:600; margin-top:1px; }
   .roy-r.fantome{ opacity:.75; }
+  .roy-r.observable{ cursor:pointer; }
+  .roy-r.observable:active{ transform:scale(.98); }
+  #roySpy{ margin:10px 0; }
+  .spy-x{ float:right; border:none; background:none; color:var(--ink-dim); font-size:15px;
+    cursor:pointer; padding:0 2px; line-height:1; }
   .roy-compte{ display:block; font-size:44px; font-weight:800; line-height:1.1;
     color:var(--red); font-variant-numeric:tabular-nums; }
   .roy-compte-t{ display:block; font-size:12.5px; color:var(--ink-dim); font-weight:700; }
@@ -619,6 +624,7 @@
         <p class="sub" id="royClassSub"></p>
         <div id="royTable"></div>
         <p class="sub" id="royAttente"></p>
+        <div class="spy" id="roySpy"></div>
         <div class="roy-emotes" id="royEmotesBar"></div>
         <button class="btn" id="roySuivant" style="display:none">Quitter</button>
       </div>
@@ -1062,21 +1068,21 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=2.0.4"></script>
-<script src="./dico/motus-prenoms.js?v=2.0.4"></script>
-<script src="./dico/motus-prenoms-info.js?v=2.0.4"></script>
-<script src="./dico/motus-maladies.js?v=2.0.4"></script>
-<script src="./dico/motus-maladies-info.js?v=2.0.4"></script>
-<script src="./dico/motus-villes.js?v=2.0.4"></script>
-<script src="./dico/motus-villes-info.js?v=2.0.4"></script>
-<script src="./dico/motus-persos.js?v=2.0.4"></script>
-<script src="./dico/motus-persos-info.js?v=2.0.4"></script>
-<script src="./dico/motus-persos-split.js?v=2.0.4"></script>
-<script src="./dico/motus-race.js?v=2.0.4"></script>
-<script src="./dico/motus-expert.js?v=2.0.4"></script>
-<script src="./profiles/config.js?v=2.0.4"></script>
-<script src="./profiles/profile.js?v=2.0.4"></script>
-<script src="./duel/duel.js?v=2.0.4"></script>
+<script src="./dico/motus-words.js?v=2.0.3"></script>
+<script src="./dico/motus-prenoms.js?v=2.0.3"></script>
+<script src="./dico/motus-prenoms-info.js?v=2.0.3"></script>
+<script src="./dico/motus-maladies.js?v=2.0.3"></script>
+<script src="./dico/motus-maladies-info.js?v=2.0.3"></script>
+<script src="./dico/motus-villes.js?v=2.0.3"></script>
+<script src="./dico/motus-villes-info.js?v=2.0.3"></script>
+<script src="./dico/motus-persos.js?v=2.0.3"></script>
+<script src="./dico/motus-persos-info.js?v=2.0.3"></script>
+<script src="./dico/motus-persos-split.js?v=2.0.3"></script>
+<script src="./dico/motus-race.js?v=2.0.3"></script>
+<script src="./dico/motus-expert.js?v=2.0.3"></script>
+<script src="./profiles/config.js?v=2.0.3"></script>
+<script src="./profiles/profile.js?v=2.0.3"></script>
+<script src="./duel/duel.js?v=2.0.3"></script>
 <script>
 (() => {
   "use strict";
@@ -1128,7 +1134,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "2.0.4";
+  const VERSION = "2.0.3";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -1499,15 +1505,20 @@
      le réseau n'a pas à suivre chaque touche. */
   let duelLiveT = 0, duelLiveLast = "";
   function duelSendLive(){
-    if(mode!=="duel" || !duelCode || !window.Duel || !Duel.moves || over) return;
+    // même mécanisme pour le Duel et la Battle Royale : seule la
+    // destination change
+    const enDuel   = (mode==="duel"   && duelCode && window.Duel   && Duel.moves);
+    const enRoyale = (mode==="royale" && royCodeCourant && window.Royale && Royale.moves);
+    if((!enDuel && !enRoyale) || over) return;
     const partial = (grid[row]||[]).map(x=>x||"·").join("");
     if(partial === duelLiveLast) return;
     duelLiveLast = partial;
     clearTimeout(duelLiveT);
     duelLiveT = setTimeout(()=>{
-      if(mode!=="duel" || !duelCode) return;
       const vide = partial.split("").every(x=>x==="·");
-      Duel.moves(duelCode, vide ? guesses : guesses.concat(["~"+partial]));
+      const liste = vide ? guesses : guesses.concat(["~"+partial]);
+      if(mode==="duel" && duelCode) Duel.moves(duelCode, liste);
+      else if(mode==="royale" && royCodeCourant) Royale.moves(royCodeCourant, royManche, liste);
     }, 320);
   }
 
@@ -1673,6 +1684,8 @@
     guesses.push(guess); rowStates.push(states);
     // duel : on transmet ses essais au fil de l'eau, pour le suivi en direct
     if(mode==="duel" && duelCode && window.Duel && Duel.moves) Duel.moves(duelCode, guesses);
+    if(mode==="royale" && royCodeCourant && window.Royale && Royale.moves)
+      Royale.moves(royCodeCourant, royManche, guesses);
     for(let c=0;c<len;c++){
       const t=tileAt(row,c);
       setTimeout(()=>{ t.classList.add("reveal"); setTimeout(()=>{
@@ -4421,9 +4434,15 @@
     const detail = (manche && es > 0)
       ? (es>=6 && j.scores[manche-1]<=0 ? "raté" : es+" essai"+(es>1?"s":"")+" · "+fmtTime(ms))
       : "en attente…";
-    return '<div class="roy-r'+(j.moi?" moi":"")+(j.fantome?" fantome":"")+'">'
+    // On ne peut observer qu'un joueur RÉEL encore en train de chercher :
+    // regarder la grille de quelqu'un qui a fini n'aurait aucun intérêt,
+    // et les fantômes n'ont pas de grille à montrer.
+    const observable = manche && !j.fantome && !j.moi && j.scores[manche-1] === -1;
+    return '<div class="roy-r'+(j.moi?" moi":"")+(j.fantome?" fantome":"")
+      +   (observable?" observable":"")+'"'+(observable?' data-spy="'+j.id+'"':'')+'>'
       + '<span class="rg">'+medaille+'</span>'
       + '<span class="n">'+escapeHtml(j.pseudo||"Anonyme")
+      +   (observable ? ' 👁️' : '')
       +   (manche ? '<small>'+detail+'</small>' : '')+'</span>'
       + '<span class="sc">'+j.total+'</span></div>';
   }
@@ -4444,6 +4463,14 @@
     royDessinerEmotes(d.joueurs);
     if(!fini) $("roySuivant").style.display = "none";
     royMajAttente(d);
+    // observer un joueur : uniquement possible une fois qu'on a soi-même fini
+    $("royTable").querySelectorAll("[data-spy]").forEach(el=>{
+      el.addEventListener("click", ()=>{
+        roySpyId = (roySpyId === el.dataset.spy) ? null : el.dataset.spy;
+        royDessinerSpy(d);
+      });
+    });
+    royDessinerSpy(d);
     openOverlay("royaleOverlay");
   }
 
@@ -4451,6 +4478,51 @@
      sont les autres en direct. Une fois le dernier arrivé, un décompte
      commun de 10 s annonce la manche suivante — l'attente devient lisible
      au lieu d'être un écran figé. */
+  let roySpyId = null;   // joueur actuellement observé, null si aucun
+
+  /* Grille d'un joueur encore en train de chercher. Même lecture qu'en
+     Duel : les tentatives validées sont évaluées, la ligne en cours de
+     frappe (préfixée « ~ ») est montrée sans aucune couleur — sinon on
+     lui donnerait les réponses avant qu'il ne valide. */
+  function royDessinerSpy(d){
+    const box = $("roySpy"); if(!box) return;
+    if(!roySpyId){ box.classList.remove("show"); box.innerHTML=""; return; }
+    const j = d.joueurs.find(x=>x.id===roySpyId);
+    const mot = royMots[royManche-1] || "";
+    if(!j || !mot){ box.classList.remove("show"); box.innerHTML=""; return; }
+
+    // il a terminé entre-temps : on referme, la grille n'a plus d'intérêt
+    if(j.scores[royManche-1] !== -1){
+      box.innerHTML = '<div class="spy-t">'+escapeHtml(j.pseudo)+' a terminé.</div>';
+      box.classList.add("show");
+      roySpyId = null;
+      return;
+    }
+
+    const brut = j.moves || [];
+    const live = (brut.find(g=>g && g[0]==="~") || "").slice(1);
+    const list = brut.filter(g=>g && g[0]!=="~" && g.length===mot.length);
+    let html = '<div class="spy-t">👁️ '+escapeHtml(j.pseudo)+' · en train de chercher'
+             + '<button class="spy-x" id="roySpyClose">✕</button></div>';
+    if(!list.length && !live){
+      html += '<div class="spy-none">Il n\'a pas encore proposé de mot…</div>';
+    } else {
+      list.forEach(g=>{
+        const st = duelEvalWord(g, mot);
+        html += '<div class="spy-row">' + g.split("").map((ch,i)=>
+          '<div class="spy-c '+st[i]+'"><span>'+ch+'</span></div>').join("") + '</div>';
+      });
+      if(live){
+        html += '<div class="spy-row live">' + live.split("").map(ch=>
+          '<div class="spy-c typing"><span>'+(ch==="·"?"":ch)+'</span></div>').join("") + '</div>';
+      }
+    }
+    box.innerHTML = html;
+    box.classList.add("show");
+    const x = $("roySpyClose");
+    if(x) x.addEventListener("click", ()=>{ roySpyId = null; royDessinerSpy(d); });
+  }
+
   let royPauseTick = null;
   function royMajAttente(d){
     clearInterval(royPauseTick);
@@ -4559,7 +4631,7 @@
   function royQuitter(){
     if(royStop){ royStop(); royStop = null; }
     royCodeCourant = ""; royManche = 0; royEtat = null; royReporte = -1;
-    royDerniersEmotes = {};
+    royDerniersEmotes = {}; roySpyId = null;
     clearInterval(royPauseTick);
     duelEmoteBtnShow(false);
     closeOverlays(); startFree("normal");
