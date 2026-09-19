@@ -613,6 +613,7 @@
           return {
             id: r.id, status: r.status, isPublic: r.is_public,
             words: r.words || [], manche: r.manche || 0, mancheAt: r.manche_at,
+            pauseJusqu: r.pause_jusqu,
             joueurs: rows.map(function (x) {
               return { id: x.player_id, pseudo: x.pseudo, level: x.level,
                        badge: x.badge, fantome: x.fantome,
