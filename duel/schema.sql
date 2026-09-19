@@ -627,9 +627,9 @@ $$;
 
 -- ---------- Cibles attaquables ----------
 -- Le type de retour change (accroche + note) : PostgreSQL impose un drop.
-drop function if exists defense_targets(uuid, int);
 -- On exclut sa propre défense, celles déjà tombées et non reposées, et
 -- toutes celles qu'on a déjà tentées dans leur version courante.
+drop function if exists defense_targets(uuid,int);
 create or replace function defense_targets(p_id uuid, p_limit int default 20)
 returns table (
   player_id uuid, pseudo text, level int, badge text,
@@ -654,6 +654,7 @@ $$;
 -- ---------- Lancer une attaque ----------
 -- Renvoie le mot à deviner. La tentative est enregistrée immédiatement :
 -- quitter sans finir vaut échec, et interdit donc de réessayer.
+drop function if exists defense_attack(uuid,uuid,text);
 create or replace function defense_attack(p_id uuid, p_pseudo text, p_target uuid)
 returns table (word text, wlen int, version int, pseudo text) language plpgsql security definer as $$
 declare d defenses;
@@ -935,6 +936,7 @@ begin
 end $$;
 
 -- Lecture réservée à l'administrateur.
+drop function if exists stats_read(uuid,int);
 create or replace function stats_read(p_id uuid, p_jours int default 30)
 returns table (jour date, cle text, valeur int)
 language sql security definer stable as $$
@@ -1114,6 +1116,7 @@ end $$;
 
 -- Classement : les plus bas temps d'abord, départagés par le nombre de
 -- réussites puis par l'ancienneté du record.
+drop function if exists memo_top(int);
 create or replace function memo_top(p_limit int default 20)
 returns table (pseudo text, secondes int, reussites int, at timestamptz)
 language sql security definer stable as $$
@@ -1300,15 +1303,11 @@ begin
    where room_id = v_code and player_id = p_id;
 end $$;
 
--- Remplacée par royale_avancer/royale_check (v2.2) : la manche ne doit
--- plus jamais avancer sur la seule initiative d'un joueur. Conservée
--- vide pour ne pas casser un appel resté en cache côté client.
-create or replace function royale_next(p_code text)
-returns void language sql security definer as $$
-  select royale_check(p_code);
-$$;
-
 -- État complet de la salle : une seule requête pour tout l'écran.
+-- drop nécessaire : la structure de sortie est retravaillée plus loin dans
+-- ce script (v2.2 puis v2.3), et PostgreSQL refuse de changer les colonnes
+-- d'une fonction à résultats multiples sans passer par un drop explicite.
+drop function if exists royale_state(text);
 create or replace function royale_state(p_code text)
 returns table (
   id text, status text, is_public boolean, words text[], manche int,
@@ -1492,6 +1491,156 @@ $$;
 
 grant execute on function royale_report(uuid,text,int,int,int,boolean) to anon, authenticated;
 grant execute on function royale_avancer(text)                        to anon, authenticated;
+-- Remplacée par royale_avancer/royale_check (v2.2) : la manche ne doit
+-- plus jamais avancer sur la seule initiative d'un joueur. Conservée
+-- vide pour ne pas casser un appel resté en cache côté client.
+create or replace function royale_next(p_code text)
+returns void language sql security definer as $$
+  select royale_check(p_code);
+$$;
+
 grant execute on function royale_check(text)                          to anon, authenticated;
+grant execute on function royale_next(text) to anon, authenticated;
 grant execute on function royale_emote(text,uuid,text)                to anon, authenticated;
 grant execute on function royale_state(text)                          to anon, authenticated;
+
+-- =====================================================================
+-- v2.3 — Fantômes plus crédibles
+--
+-- Leur temps était tiré indépendamment du nombre d'essais : on pouvait
+-- voir « 2 essais · 1:09 », incohérent. Le temps découle désormais du
+-- nombre d'essais, avec une variation, comme pour un vrai joueur.
+-- =====================================================================
+create or replace function royale_ghosts_manche(p_code text, p_manche int)
+returns void language plpgsql security definer as $$
+declare v_code text := upper(btrim(p_code)); r record; v_h int; v_h2 int; v_pts int;
+        v_sc int[]; v_es int[]; v_tp int[];
+begin
+  for r in select player_id, scores, essais, temps_ms from royale_players
+            where room_id = v_code and fantome and scores[p_manche] = -1 loop
+    v_h  := ('x' || substr(md5(v_code || p_manche::text || r.player_id::text), 1, 8))::bit(32)::bigint % 100;
+    v_h2 := ('x' || substr(md5(r.player_id::text || p_manche::text || v_code), 1, 8))::bit(32)::bigint % 100;
+    v_sc := r.scores; v_es := r.essais; v_tp := r.temps_ms;
+    if v_h < 75 then
+      v_es[p_manche] := 2 + (v_h % 4);                       -- 2 à 5 essais
+      -- ~9 s par essai, plus une variation de 0 à 12 s : cohérent avec
+      -- le nombre d'essais affiché, et toujours sous la limite de 90 s
+      v_tp[p_manche] := least(88000, v_es[p_manche] * 9000 + (v_h2 % 13) * 1000);
+      v_pts := greatest(10, 100 - (v_es[p_manche]-1)*15)
+             + greatest(0, 30 - v_tp[p_manche]/3000);
+    else
+      v_es[p_manche] := 6; v_tp[p_manche] := 90000; v_pts := 0;
+    end if;
+    v_sc[p_manche] := v_pts;
+    update royale_players
+       set scores = v_sc, essais = v_es, temps_ms = v_tp,
+           total  = (select sum(x) from unnest(v_sc) x where x > 0)
+     where room_id = v_code and player_id = r.player_id;
+  end loop;
+end $$;
+
+grant execute on function royale_ghosts_manche(text,int) to anon, authenticated;
+
+-- =====================================================================
+-- v2.3 — Pause de 10 s entre les manches
+--
+-- Quand le dernier joueur termine, on ne passe plus immédiatement à la
+-- manche suivante : une pause commune laisse le temps de voir le
+-- classement. L'échéance est stockée en base pour être IDENTIQUE chez
+-- tout le monde, plutôt que recalculée par chaque appareil.
+-- =====================================================================
+alter table royale_rooms add column if not exists pause_jusqu timestamptz;
+
+create or replace function royale_avancer(p_code text)
+returns void language plpgsql security definer as $$
+declare v_code text := upper(btrim(p_code)); v_m int; v_at timestamptz;
+        v_pause timestamptz; v_restants int; v_fini boolean;
+begin
+  select manche, manche_at, pause_jusqu into v_m, v_at, v_pause
+    from royale_rooms where id = v_code and status = 'playing'
+    for update;
+  if v_m is null then return; end if;
+
+  -- une pause est en cours : on attend son terme avant de basculer
+  if v_pause is not null then
+    if now() < v_pause then return; end if;
+    perform royale_ghosts_manche(v_code, v_m);
+    if v_m >= 4 then
+      update royale_rooms set status = 'done', pause_jusqu = null where id = v_code and manche = v_m;
+    else
+      update royale_rooms set manche = v_m + 1, manche_at = now(), pause_jusqu = null
+       where id = v_code and manche = v_m;
+    end if;
+    return;
+  end if;
+
+  select count(*) into v_restants from royale_players
+   where room_id = v_code and not fantome and scores[v_m] = -1;
+  v_fini := (v_restants = 0) or (v_at is not null and now() > v_at + interval '90 seconds');
+  if not v_fini then return; end if;
+
+  -- tout le monde a fini : on complète les fantômes et on ouvre la pause,
+  -- pour que le classement de la manche reste lisible 10 secondes
+  perform royale_ghosts_manche(v_code, v_m);
+  update royale_rooms set pause_jusqu = now() + interval '10 seconds'
+   where id = v_code and manche = v_m and pause_jusqu is null;
+end $$;
+
+drop function if exists royale_state(text);
+create or replace function royale_state(p_code text)
+returns table (
+  id text, status text, is_public boolean, words text[], manche int, manche_at timestamptz,
+  pause_jusqu timestamptz,
+  player_id uuid, pseudo text, level int, badge text, fantome boolean,
+  scores int[], essais int[], temps_ms int[], total int, emote text, emote_at timestamptz
+) language sql security definer stable as $$
+  select r.id, r.status, r.is_public, r.words, r.manche, r.manche_at, r.pause_jusqu,
+         p.player_id, p.pseudo, p.level, p.badge, p.fantome,
+         p.scores, p.essais, p.temps_ms, p.total, p.emote, p.emote_at
+    from royale_rooms r
+    join royale_players p on p.room_id = r.id
+   where r.id = upper(btrim(p_code))
+   order by p.total desc, p.joined_at asc;
+$$;
+
+grant execute on function royale_avancer(text) to anon, authenticated;
+grant execute on function royale_state(text)   to anon, authenticated;
+
+-- =====================================================================
+-- v2.4 — Battle Royale : observer un joueur en cours de manche
+--
+-- Même principe qu'en Duel : chaque joueur publie ses tentatives au fur et
+-- à mesure, et les autres peuvent les consulter. Les coups sont remis à
+-- zéro à chaque manche, on ne garde que la manche en cours.
+-- =====================================================================
+alter table royale_players add column if not exists moves text;
+alter table royale_players add column if not exists moves_manche int;
+
+create or replace function royale_moves(p_code text, p_id uuid, p_manche int, p_moves text)
+returns void language sql security definer as $$
+  update royale_players
+     set moves = left(coalesce(p_moves, ''), 400), moves_manche = p_manche
+   where room_id = upper(btrim(p_code)) and player_id = p_id;
+$$;
+
+drop function if exists royale_state(text);
+create or replace function royale_state(p_code text)
+returns table (
+  id text, status text, is_public boolean, words text[], manche int, manche_at timestamptz,
+  pause_jusqu timestamptz,
+  player_id uuid, pseudo text, level int, badge text, fantome boolean,
+  scores int[], essais int[], temps_ms int[], total int, emote text, emote_at timestamptz,
+  moves text, moves_manche int
+) language sql security definer stable as $$
+  select r.id, r.status, r.is_public, r.words, r.manche, r.manche_at, r.pause_jusqu,
+         p.player_id, p.pseudo, p.level, p.badge, p.fantome,
+         p.scores, p.essais, p.temps_ms, p.total, p.emote, p.emote_at,
+         p.moves, p.moves_manche
+    from royale_rooms r
+    join royale_players p on p.room_id = r.id
+   where r.id = upper(btrim(p_code))
+   order by p.total desc, p.joined_at asc;
+$$;
+
+grant execute on function royale_moves(text,uuid,int,text) to anon, authenticated;
+grant execute on function royale_state(text)               to anon, authenticated;

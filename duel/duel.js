@@ -598,6 +598,15 @@
         p_essais: o.essais || 6, p_ms: o.ms || 90000, p_won: !!o.won
       }).catch(function () { return null; });
     },
+    /* Publie ses tentatives pour que les autres puissent suivre. Brouillées
+       comme en Duel : lisibles par le jeu, pas à l'œil nu dans la base. */
+    moves: function (code, manche, liste) {
+      var m = me();
+      return rpc("royale_moves", {
+        p_code: code, p_id: m.id, p_manche: manche,
+        p_moves: hide((liste || []).join(","))
+      }).catch(function () { return null; });
+    },
     emote: function (code, emote) {
       var m = me();
       return rpc("royale_emote", { p_code: code, p_id: m.id, p_emote: emote })
@@ -622,6 +631,8 @@
                        ms: x.temps_ms || [0,0,0,0],
                        total: x.total || 0,
                        emote: x.emote, emoteAt: x.emote_at,
+                       moves: (x.moves && x.moves_manche === (r.manche||0))
+                                ? show(x.moves).split(",").filter(Boolean) : [],
                        moi: x.player_id === m.id };
             })
           };
