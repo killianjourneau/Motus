@@ -186,6 +186,10 @@
   .roy-r{ position:relative; }
   .roy-r small{ display:block; font-size:11px; color:var(--ink-dim); font-weight:600; margin-top:1px; }
   .roy-r.fantome{ opacity:.75; }
+  .roy-compte{ display:block; font-size:44px; font-weight:800; line-height:1.1;
+    color:var(--red); font-variant-numeric:tabular-nums; }
+  .roy-compte-t{ display:block; font-size:12.5px; color:var(--ink-dim); font-weight:700; }
+  .roy-pts{ letter-spacing:2px; animation:pulse 1.2s ease-in-out infinite; }
   .roy-emotes{ display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin:10px 0; }
   .roy-em{ border:none; border-radius:9px; background:var(--cell); padding:7px 9px; font-size:17px;
     cursor:pointer; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
@@ -1058,21 +1062,21 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=2.1.0"></script>
-<script src="./dico/motus-prenoms.js?v=2.1.0"></script>
-<script src="./dico/motus-prenoms-info.js?v=2.1.0"></script>
-<script src="./dico/motus-maladies.js?v=2.1.0"></script>
-<script src="./dico/motus-maladies-info.js?v=2.1.0"></script>
-<script src="./dico/motus-villes.js?v=2.1.0"></script>
-<script src="./dico/motus-villes-info.js?v=2.1.0"></script>
-<script src="./dico/motus-persos.js?v=2.1.0"></script>
-<script src="./dico/motus-persos-info.js?v=2.1.0"></script>
-<script src="./dico/motus-persos-split.js?v=2.1.0"></script>
-<script src="./dico/motus-race.js?v=2.1.0"></script>
-<script src="./dico/motus-expert.js?v=2.1.0"></script>
-<script src="./profiles/config.js?v=2.1.0"></script>
-<script src="./profiles/profile.js?v=2.1.0"></script>
-<script src="./duel/duel.js?v=2.1.0"></script>
+<script src="./dico/motus-words.js?v=2.0.3"></script>
+<script src="./dico/motus-prenoms.js?v=2.0.3"></script>
+<script src="./dico/motus-prenoms-info.js?v=2.0.3"></script>
+<script src="./dico/motus-maladies.js?v=2.0.3"></script>
+<script src="./dico/motus-maladies-info.js?v=2.0.3"></script>
+<script src="./dico/motus-villes.js?v=2.0.3"></script>
+<script src="./dico/motus-villes-info.js?v=2.0.3"></script>
+<script src="./dico/motus-persos.js?v=2.0.3"></script>
+<script src="./dico/motus-persos-info.js?v=2.0.3"></script>
+<script src="./dico/motus-persos-split.js?v=2.0.3"></script>
+<script src="./dico/motus-race.js?v=2.0.3"></script>
+<script src="./dico/motus-expert.js?v=2.0.3"></script>
+<script src="./profiles/config.js?v=2.0.3"></script>
+<script src="./profiles/profile.js?v=2.0.3"></script>
+<script src="./duel/duel.js?v=2.0.3"></script>
 <script>
 (() => {
   "use strict";
@@ -1124,7 +1128,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "2.1.0";
+  const VERSION = "2.0.3";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -4362,6 +4366,8 @@
         // échéance commune, on ne relance pas un nouveau délai
         royJouerManche(d.manche_at);
       } else if(royReporte === royManche){
+        // j'attends les autres : on garde l'écran d'attente à jour
+        royAfficherClassement(d);
         // j'ai fini mais la manche n'a pas encore avancé : je réclame la
         // vérification, au cas où j'étais le dernier et que rien ne l'a
         // demandée depuis (ex. reprise après mise en veille du téléphone)
@@ -4386,6 +4392,7 @@
     // l'instant local : deux joueurs rejoignant à quelques secondes d'écart
     // partagent la même limite, plutôt que chacun sa propre minuterie.
     royDeadline = mancheAt ? new Date(mancheAt).getTime() + ROY_TEMPS : Date.now() + ROY_TEMPS;
+    duelEmoteBtnShow(true);        // même bouton de communication qu'en Duel
     timerReset(); timerStart(0); updateHud(); save();
     toast("Manche " + royManche + " sur " + ROY_MANCHES, 2000);
   }
@@ -4436,7 +4443,35 @@
       : "Tout le monde a joué — la manche suivante arrive.";
     royDessinerEmotes(d.joueurs);
     if(!fini) $("roySuivant").style.display = "none";
+    royMajAttente(d);
     openOverlay("royaleOverlay");
+  }
+
+  /* Écran d'attente : tant que tout le monde n'a pas fini, on montre où en
+     sont les autres en direct. Une fois le dernier arrivé, un décompte
+     commun de 10 s annonce la manche suivante — l'attente devient lisible
+     au lieu d'être un écran figé. */
+  let royPauseTick = null;
+  function royMajAttente(d){
+    clearInterval(royPauseTick);
+    const zone = $("royAttente"); if(!zone) return;
+
+    if(d.pauseJusqu){
+      const rendu = ()=>{
+        const reste = Math.max(0, Math.ceil((new Date(d.pauseJusqu).getTime() - Date.now())/1000));
+        zone.innerHTML = '<span class="roy-compte">'+reste+'</span>'
+          + '<span class="roy-compte-t">' + (royManche >= ROY_MANCHES
+              ? "Résultats finaux…" : "Manche " + (royManche+1) + " dans…") + '</span>';
+        if(reste <= 0){ clearInterval(royPauseTick); if(royStop) royStop.now(); }
+      };
+      rendu(); royPauseTick = setInterval(rendu, 250);
+      return;
+    }
+
+    const attend = d.joueurs.filter(j=>!j.fantome && j.scores[royManche-1]===-1 && !j.moi);
+    zone.innerHTML = attend.length
+      ? '<span class="roy-pts">●●●</span> En attente de ' + attend.map(j=>escapeHtml(j.pseudo)).join(", ")
+      : "Tout le monde a joué.";
   }
 
   function royFin(d){
@@ -4492,6 +4527,22 @@
       royAfficherBulle(j.emote, j.pseudo);
     });
   }
+  /* Réutilise le panneau du duel, mais rempli avec les émotes de la salle
+     et sans l'option « ne plus recevoir » (qui vise un adversaire précis). */
+  function royTogglePicker(){
+    const p = $("duelEmotePicker"); if(!p) return;
+    p.innerHTML = ROY_EMOTES.map(m=>
+      '<button class="emote-item" data-roy="'+m.id+'"><span class="ee">'+m.e+'</span>'+m.t+'</button>').join("");
+    p.querySelectorAll("[data-roy]").forEach(b=>b.addEventListener("click", ()=>{
+      p.classList.remove("open");
+      if(!royCodeCourant || !window.Royale) return;
+      Royale.emote(royCodeCourant, b.dataset.roy);
+      royAfficherBulle(b.dataset.roy, null);
+    }));
+    p.dataset.built = "";           // le duel le reconstruira à son tour
+    p.classList.toggle("open");
+  }
+
   let royBulleTimer = null;
   function royAfficherBulle(id, pseudo){
     const m = ROY_EMOTES.find(x=>x.id===id); if(!m) return;
@@ -4509,6 +4560,8 @@
     if(royStop){ royStop(); royStop = null; }
     royCodeCourant = ""; royManche = 0; royEtat = null; royReporte = -1;
     royDerniersEmotes = {};
+    clearInterval(royPauseTick);
+    duelEmoteBtnShow(false);
     closeOverlays(); startFree("normal");
   }
 
@@ -5071,7 +5124,11 @@
   $("duelReplay").addEventListener("click", duelStartRematch);
   $("duelResumeBtn").addEventListener("click", ()=>duelResume(duelActive()));
   $("duelNewBtn").addEventListener("click", ()=>{ clearDuel(); duelFresh(); });
-  $("duelEmoteBtn").addEventListener("click", duelTogglePicker);
+  $("duelEmoteBtn").addEventListener("click", ()=>{
+    // même bouton, deux systèmes : le duel s'adresse à UN adversaire,
+    // la Battle Royale à toute la salle.
+    if(mode === "royale") royTogglePicker(); else duelTogglePicker();
+  });
   $("duelResEmote").addEventListener("click", duelTogglePicker);
   $("raceResEmote").addEventListener("click", duelTogglePicker);
   document.addEventListener("click", (e)=>{
