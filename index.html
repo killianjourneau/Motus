@@ -191,6 +191,11 @@
     box-shadow:inset 0 0 0 1.5px var(--cell-edge); color:var(--ink); font-size:17px;
     font-weight:700; text-align:center; padding:0 12px; }
   .gram-in:focus{ outline:none; box-shadow:inset 0 0 0 2px var(--accent); }
+  .gram-choix{ display:flex; flex-direction:column; gap:8px; }
+  .gram-ch{ border:none; border-radius:12px; background:var(--cell); color:var(--ink);
+    box-shadow:inset 0 0 0 1.5px var(--cell-edge); font-size:17px; font-weight:700;
+    padding:14px 12px; cursor:pointer; letter-spacing:.5px; }
+  .gram-ch:active{ transform:scale(.97); }
   .gram-res{ text-align:center; font-size:15px; font-weight:800; padding:11px; border-radius:12px; }
   .gram-res.ok{ background:var(--ok,#0f8a58); color:#fff; }
   .gram-res.ko{ background:var(--cell); box-shadow:inset 0 0 0 2px var(--red); }
@@ -720,6 +725,7 @@
     </div>
     <div class="gram-phrase" id="gramPhrase"></div>
     <div class="gram-indic" id="gramIndic"></div>
+    <div class="gram-choix" id="gramChoix" style="display:none"></div>
     <input id="gramSaisie" class="gram-in" placeholder="Ta réponse"
            autocomplete="off" autocapitalize="none" spellcheck="false">
     <button class="btn" id="gramValider">Valider</button>
@@ -1111,23 +1117,23 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=2.4.1"></script>
-<script src="./dico/motus-grammaire.js?v=2.4.1"></script>
-<script src="./dico/motus-ortho.js?v=2.4.1"></script>
-<script src="./dico/motus-prenoms.js?v=2.4.1"></script>
-<script src="./dico/motus-prenoms-info.js?v=2.4.1"></script>
-<script src="./dico/motus-maladies.js?v=2.4.1"></script>
-<script src="./dico/motus-maladies-info.js?v=2.4.1"></script>
-<script src="./dico/motus-villes.js?v=2.4.1"></script>
-<script src="./dico/motus-villes-info.js?v=2.4.1"></script>
-<script src="./dico/motus-persos.js?v=2.4.1"></script>
-<script src="./dico/motus-persos-info.js?v=2.4.1"></script>
-<script src="./dico/motus-persos-split.js?v=2.4.1"></script>
-<script src="./dico/motus-race.js?v=2.4.1"></script>
-<script src="./dico/motus-expert.js?v=2.4.1"></script>
-<script src="./profiles/config.js?v=2.4.1"></script>
-<script src="./profiles/profile.js?v=2.4.1"></script>
-<script src="./duel/duel.js?v=2.4.1"></script>
+<script src="./dico/motus-words.js?v=2.4.0"></script>
+<script src="./dico/motus-grammaire.js?v=2.4.0"></script>
+<script src="./dico/motus-ortho.js?v=2.4.0"></script>
+<script src="./dico/motus-prenoms.js?v=2.4.0"></script>
+<script src="./dico/motus-prenoms-info.js?v=2.4.0"></script>
+<script src="./dico/motus-maladies.js?v=2.4.0"></script>
+<script src="./dico/motus-maladies-info.js?v=2.4.0"></script>
+<script src="./dico/motus-villes.js?v=2.4.0"></script>
+<script src="./dico/motus-villes-info.js?v=2.4.0"></script>
+<script src="./dico/motus-persos.js?v=2.4.0"></script>
+<script src="./dico/motus-persos-info.js?v=2.4.0"></script>
+<script src="./dico/motus-persos-split.js?v=2.4.0"></script>
+<script src="./dico/motus-race.js?v=2.4.0"></script>
+<script src="./dico/motus-expert.js?v=2.4.0"></script>
+<script src="./profiles/config.js?v=2.4.0"></script>
+<script src="./profiles/profile.js?v=2.4.0"></script>
+<script src="./duel/duel.js?v=2.4.0"></script>
 <script>
 (() => {
   "use strict";
@@ -1179,7 +1185,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "2.4.1";
+  const VERSION = "2.4.0";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -4135,6 +4141,13 @@
 
     if(fini){
       if(window.Profile) Profile.defiDone({ success:!defiFailed, ms:defiTimes.reduce((a,b)=>a+b,0) });
+      // remonte aussi dans l'onglet « Aujourd'hui », comme le mot du jour.
+      // « tries » = nombre de mots ratés : 0 = sans faute, comparable entre
+      // tous les exercices quotidiens à trois épreuves.
+      if(window.Profile && Profile.submitDaily){
+        const rates = defiTries.filter(t=>!t||t<=0).length;
+        Profile.submitDaily({ game:"defi", day:defiKey, tries:rates, won:!defiFailed });
+      }
       if(!defiFailed) grantHintOnce("defi", defiKey);
       showDefiEnd(); return;
     }
@@ -4392,6 +4405,14 @@
       .toLowerCase().replace(/[’']/g,"'").replace(/\s+/g," ").trim();
   }
   function gramJuste(saisie, ex){
+    /* En ORTHOGRAPHE, l'accent EST l'objet du test : « érreur » doit être
+       refusé. On compare donc à l'identique, casse et espaces mis à part.
+       En grammaire, on reste indulgent sur les accents (pénibles à taper),
+       car ce qu'on teste est l'accord, pas la frappe. */
+    if(gramMode === "ortho"){
+      const brut = String(saisie||"").trim().toLowerCase();
+      return (ex.r||[]).some(r => String(r).trim().toLowerCase() === brut);
+    }
     const s2 = gramNormalise(saisie);
     return (ex.r||[]).some(r => gramNormalise(r) === s2);
   }
@@ -4425,22 +4446,51 @@
     if(gramFini || gramIdx >= GRAM_NB){ gramBilan(); return; }
     const ex = gramEx[gramIdx];
     $("gramPhrase").innerHTML = escapeHtml(ex.p).replace("___", '<span class="gram-trou">?</span>');
-    $("gramIndic").innerHTML = "👉 " + escapeHtml(ex.i);
     $("gramCorr").innerHTML = "";
-    $("gramSaisie").value = ""; $("gramSaisie").disabled = false;
+
+    /* Orthographe : le mot est DONNÉ, on choisit sa graphie — sinon on
+       testerait le vocabulaire, pas l'orthographe. Grammaire : saisie
+       libre, puisqu'il faut produire la forme accordée. */
+    if(gramMode === "ortho" && ex.c && ex.c.length){
+      $("gramIndic").innerHTML = 'Comment écrit-on <b>« ' + escapeHtml(ex.i) + ' »</b> ?';
+      $("gramSaisie").style.display = "none";
+      $("gramValider").style.display = "none";
+      // ordre mélangé, mais stable pour la journée : même grille pour tous
+      const choix = [ex.r[0]].concat(ex.c);
+      const graine = (gramNum()*31 + gramIdx*7) >>> 0;
+      for(let k=choix.length-1; k>0; k--){
+        const j = ((graine * (k+13)) >>> 0) % (k+1);
+        const t = choix[k]; choix[k] = choix[j]; choix[j] = t;
+      }
+      $("gramChoix").innerHTML = choix.map(c=>
+        '<button class="gram-ch" data-c="'+escapeHtml(c)+'">'+escapeHtml(c)+'</button>').join("");
+      $("gramChoix").style.display = "";
+      $("gramChoix").querySelectorAll(".gram-ch").forEach(b=>
+        b.addEventListener("click", ()=> gramRepondre(b.dataset.c)));
+      return;
+    }
+
+    $("gramChoix").style.display = "none";
+    $("gramIndic").innerHTML = "👉 " + escapeHtml(ex.i);
+    $("gramSaisie").style.display = ""; $("gramSaisie").value = ""; $("gramSaisie").disabled = false;
     $("gramValider").style.display = ""; $("gramValider").textContent = "Valider";
     setTimeout(()=>{ try{ $("gramSaisie").focus(); }catch(e){} }, 80);
   }
 
   function gramValider(){
     if(gramFini || gramIdx >= GRAM_NB) return;
-    const ex = gramEx[gramIdx];
     const saisie = $("gramSaisie").value;
     if(!saisie.trim()){ toast("Écris ta réponse."); return; }
+    gramRepondre(saisie);
+  }
+  function gramRepondre(saisie){
+    if(gramFini || gramIdx >= GRAM_NB) return;
+    const ex = gramEx[gramIdx];
     const bon = gramJuste(saisie, ex);
     if(bon){ gramScore++; son("gagne"); } else { son("refuse"); }
     $("gramSaisie").disabled = true;
     $("gramValider").style.display = "none";
+    $("gramChoix").style.display = "none";
     $("gramCorr").innerHTML =
         '<div class="gram-res '+(bon?"ok":"ko")+'">' + (bon ? "✅ Juste !" : "❌ Non")
       + ' — la réponse était <b>' + escapeHtml(ex.r[0]) + '</b></div>'
@@ -4459,6 +4509,11 @@
     store.set(gramConf().cle, { day: gramKey(), score: gramScore, fini: true });
     if(window.Profile && Profile.gramDone){
       Profile.gramDone({ quel: gramMode, score: gramScore, total: GRAM_NB, parfait: gramScore === GRAM_NB });
+    }
+    if(window.Profile && Profile.submitDaily){
+      Profile.submitDaily({ game: gramMode, day: gramKey(),
+                            tries: GRAM_NB - gramScore,      // fautes : 0 = parfait
+                            won: gramScore === GRAM_NB });
     }
     mesure("partie:" + gramMode); if(gramScore === GRAM_NB) mesure("gagne:" + gramMode);
     if(gramScore === GRAM_NB) grantHintOnce(gramMode, gramKey());
