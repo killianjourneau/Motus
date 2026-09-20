@@ -575,6 +575,12 @@
     </div>
 
     <div class="pane" id="pane-today" style="display:none">
+      <div class="rank-tabs" id="todayTabs">
+        <button class="rk-tab on" data-td="motus">📅 Mot</button>
+        <button class="rk-tab" data-td="defi">🔥 Défi</button>
+        <button class="rk-tab" data-td="gram">✍️ Gram.</button>
+        <button class="rk-tab" data-td="ortho">🔤 Ortho.</button>
+      </div>
       <button class="btn ghost refresh-btn" id="btnRefreshToday">↻ Actualiser</button>
       <div id="todayStats"></div>
     </div>
@@ -639,6 +645,15 @@
     el("btnRefreshRank").addEventListener("click", function () {
       var b = el("btnRefreshRank"); b.classList.add("spin"); b.textContent = "Actualisation…";
       loadRank(function () { b.classList.remove("spin"); b.textContent = "↻ Actualiser"; });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("#todayTabs .rk-tab"), function (b) {
+      b.addEventListener("click", function () {
+        if (todayMode === b.dataset.td) return;
+        todayMode = b.dataset.td;
+        Array.prototype.forEach.call(document.querySelectorAll("#todayTabs .rk-tab"),
+          function (x) { x.classList.toggle("on", x === b); });
+        loadToday();
+      });
     });
     el("btnRefreshToday").addEventListener("click", function () {
       var b = el("btnRefreshToday"); b.classList.add("spin"); b.textContent = "Actualisation…";
@@ -710,7 +725,13 @@
     if (tab === "profil") fillProfil();
     else if (tab === "badges") fillBadges();
     else if (tab === "rank") loadRank();
-    else if (tab === "today") loadToday();
+    else if (tab === "today") {
+      // les autres jeux (rébus…) n'ont qu'un exercice : le sélecteur
+      // n'aurait rien à sélectionner
+      var tabs = el("todayTabs");
+      if (tabs) tabs.style.display = ((window.Profile.game || "motus") === "motus") ? "" : "none";
+      loadToday();
+    }
   }
 
   function fillProfil() {
@@ -942,10 +963,26 @@
       .then(function () { if (done) done(); });
   }
 
+  /* Les quatre exercices quotidiens partagent la table daily_results, le
+     champ « game » les distingue. « tries » n'a pas le même sens partout :
+     nombre d'essais pour le mot du jour, nombre de fautes pour les autres. */
+  var TODAY_EX = {
+    // « art » porte l'article : « le mot du jour » mais « l'orthographe du jour »
+    motus: { art:"le ", label:"mot du jour",         barres:"essais", unite:function(n){ return n + " essai" + (n>1?"s":""); } },
+    defi:  { art:"le ", label:"défi du jour",        barres:"fautes", unite:function(n){ return n===0 ? "sans faute" : n + " raté" + (n>1?"s":""); } },
+    gram:  { art:"la ", label:"grammaire du jour",   barres:"fautes", unite:function(n){ return n===0 ? "sans faute" : n + " faute" + (n>1?"s":""); } },
+    ortho: { art:"l'",  label:"orthographe du jour", barres:"fautes", unite:function(n){ return n===0 ? "sans faute" : n + " faute" + (n>1?"s":""); } }
+  };
+  var todayMode = "motus";
+
   function loadToday(done) {
     var box = el("todayStats");
-    var g = window.Profile.game || "motus", d = todayStr();
-    var label = g === "rebus" ? "rébus du jour" : "mot du jour";
+    var jeu = window.Profile.game || "motus";
+    // le sélecteur n'a de sens que pour Motus : un autre jeu garde le sien
+    var g = (jeu === "motus") ? todayMode : jeu, d = todayStr();
+    var conf = TODAY_EX[g] || { art:"l'", label:"exercice du jour", barres:"essais",
+                                unite:function(n){ return n + ""; } };
+    var label = jeu === "rebus" ? "le rébus du jour" : (conf.art + conf.label);
     if (!configured) { box.innerHTML = '<div class="muted">Stats communautaires disponibles une fois la base configurée.</div>'; if (done) done(); return; }
     box.innerHTML = '<div class="muted">Chargement…</div>';
     var base = API + "/rest/v1/daily_results?game=eq." + g + "&day=eq." + d;
@@ -957,7 +994,7 @@
       var total = rows.length, solved = rows.filter(function (x) { return x.won; }).length;
       var pct = total ? Math.round(solved / total * 100) : 0;
       var html = '<div class="today-head"><div class="today-big">' + total + '</div><div class="today-sub">' +
-                 (total > 1 ? "joueurs ont tenté le " : "joueur a tenté le ") + label + "</div></div>";
+                 (total > 1 ? "joueurs ont tenté " : "joueur a tenté ") + label + "</div></div>";
       html += '<div class="dist-title">' + pct + "% de réussite (" + solved + "/" + total + ")</div>";
       if (g === "motus") {
         var dist = {}; for (var i = 1; i <= 6; i++) dist[i] = 0;
@@ -966,12 +1003,24 @@
         html += '<div class="dist-title">Essais de la communauté</div><div class="dist">';
         for (var j = 1; j <= 6; j++) { var v = dist[j], w = Math.max(Math.round(v / max * 100), 8); html += '<div class="bar"><span class="k">' + j + '</span><div class="t" style="width:' + w + '%">' + v + "</div></div>"; }
         html += "</div>";
+      } else if (conf.barres === "fautes") {
+        // ici « tries » compte les fautes : 0 à 3, et 0 est le meilleur
+        var df = {0:0, 1:0, 2:0, 3:0};
+        rows.forEach(function (x) { var t = x.tries; if (t >= 0 && t <= 3) df[t]++; });
+        var mx = Math.max(1, df[0], df[1], df[2], df[3]);
+        html += '<div class="dist-title">Fautes de la communauté</div><div class="dist">';
+        for (var k = 0; k <= 3; k++) {
+          var vf = df[k], wf = Math.max(Math.round(vf / mx * 100), 8);
+          html += '<div class="bar"><span class="k">' + (k === 0 ? "0 ✓" : k) + '</span>'
+                + '<div class="t" style="width:' + wf + '%">' + vf + "</div></div>";
+        }
+        html += "</div>";
       }
       html += '<div class="dist-title">Top du jour</div>';
       if (!top.length) html += '<div class="muted">Personne n\'a encore trouvé aujourd\'hui.</div>';
       else html += '<div class="lb">' + top.map(function (p, i) {
         var nm = (p.pseudo && p.pseudo.trim()) ? p.pseudo : "Anonyme";
-        var t = g === "motus" ? (p.tries + " essai" + (p.tries > 1 ? "s" : "")) : "trouvé";
+        var t = (p.tries == null) ? "trouvé" : conf.unite(p.tries);
         return '<div class="r"><span class="rk">' + (i + 1) + '</span><span class="nm">' + escapeHtml(nm) + '</span><span class="lv">' + t + "</span></div>";
       }).join("") + "</div>";
       box.innerHTML = html;
