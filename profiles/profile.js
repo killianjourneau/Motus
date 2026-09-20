@@ -43,6 +43,7 @@
              jrTotal:0, jrTousJeux:0, jrDuo:0, jrSerieDuo:0, jrJours:0,
              memoTotal:0, memoReussites:0, memoBest:60, memoSerie:0, memoBestSerie:0,
              royParties:0, royVictoires:0, royPodiums:0, royMeilleurTotal:0,
+             gramJours:0, gramParfaits:0, gramSerie:0, gramBestSerie:0, gramBonnes:0, gramDernier:"",
              hyph:0, night:0, dawn:0, wknd:0, days:[], dayBest:0,
              defiFast:0, dailyOne:0, allDiff:0, longFast:0, comeback:0, noYellow:0,
              villeCap:0, villeMonde:0,
@@ -120,6 +121,12 @@
     {id:"qsec8", e:"🕵️", n:"Fin limier",          d:"Percer 8 secrets de créatures",         c:"Quête", t:function(b){return b.qSecrets>=8;}, p:[function(b){return b.qSecrets;},8]},
     {id:"qbest", e:"📖", n:"Bestiaire nourri",    d:"Rencontrer 20 créatures différentes",   c:"Quête", t:function(b){return b.qMonstres>=20;}, p:[function(b){return b.qMonstres;},20]},
     {id:"qlvl",  e:"⚔️", n:"Apprenti confirmé",   d:"Atteindre le niveau 10 en Quête",       c:"Quête", t:function(b){return b.qNiveau>=10;}, p:[function(b){return b.qNiveau;},10]},
+    {id:"gr1",   e:"✍️", n:"Première dictée",     d:"Faire 1 Grammaire du jour",            c:"Grammaire", t:function(b){return b.gramJours>=1;}, p:[function(b){return b.gramJours;},1]},
+    {id:"gr10",  e:"📝", n:"Plume assidue",        d:"Faire 10 Grammaires du jour",          c:"Grammaire", t:function(b){return b.gramJours>=10;}, p:[function(b){return b.gramJours;},10]},
+    {id:"grp",   e:"💯", n:"Sans une faute",       d:"Un sans-faute en Grammaire du jour",   c:"Grammaire", t:function(b){return b.gramParfaits>=1;}, p:[function(b){return b.gramParfaits;},1]},
+    {id:"grp10", e:"🎓", n:"Grammairien",          d:"10 sans-faute en Grammaire",           c:"Grammaire", t:function(b){return b.gramParfaits>=10;}, p:[function(b){return b.gramParfaits;},10]},
+    {id:"grser", e:"🔥", n:"Régularité",           d:"7 jours de suite en Grammaire",        c:"Grammaire", t:function(b){return b.gramBestSerie>=7;}, p:[function(b){return b.gramBestSerie;},7]},
+    {id:"gr50",  e:"📚", n:"Cinquante bonnes",     d:"50 bonnes réponses au total",          c:"Grammaire", t:function(b){return b.gramBonnes>=50;}, p:[function(b){return b.gramBonnes;},50]},
     {id:"br1",   e:"👑", n:"Entrée dans l'arène", d:"Jouer 1 Battle Royale",              c:"Battle Royale", t:function(b){return b.royParties>=1;}, p:[function(b){return b.royParties;},1]},
     {id:"br10",  e:"⚔️", n:"Habitué de l'arène",  d:"Jouer 10 Battle Royale",             c:"Battle Royale", t:function(b){return b.royParties>=10;}, p:[function(b){return b.royParties;},10]},
     {id:"brwin", e:"🏆", n:"Dernier debout",      d:"Gagner une Battle Royale",            c:"Battle Royale", t:function(b){return b.royVictoires>=1;}, p:[function(b){return b.royVictoires;},1]},
@@ -1233,6 +1240,22 @@
        on garde le minimum et non le maximum comme pour les autres. */
     /* Battle Royale : on ne garde que ce qui a du sens dans la durée —
        parties jouées, victoires, podiums, meilleur score. */
+    /* Grammaire du jour : une seule participation compte par journée, comme
+       le mot du jour. La série se casse si un jour est sauté. */
+    gramDone: function (o) {
+      o = o || {};
+      var b = state.b, jour = new Date().toISOString().slice(0, 10);
+      if (b.gramDernier === jour) return;          // déjà compté aujourd'hui
+      var hier = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+      b.gramSerie = (b.gramDernier === hier) ? (b.gramSerie || 0) + 1 : 1;
+      if (b.gramSerie > (b.gramBestSerie || 0)) b.gramBestSerie = b.gramSerie;
+      b.gramDernier = jour;
+      b.gramJours = (b.gramJours || 0) + 1;
+      b.gramBonnes = (b.gramBonnes || 0) + (o.score || 0);
+      if (o.parfait) b.gramParfaits = (b.gramParfaits || 0) + 1;
+      saveLocal(); checkBadges(); pushDebounced(); refreshOpen();
+    },
+
     royaleDone: function (o) {
       o = o || {};
       var b = state.b;
