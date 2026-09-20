@@ -44,6 +44,7 @@
              memoTotal:0, memoReussites:0, memoBest:60, memoSerie:0, memoBestSerie:0,
              royParties:0, royVictoires:0, royPodiums:0, royMeilleurTotal:0,
              gramJours:0, gramParfaits:0, gramSerie:0, gramBestSerie:0, gramBonnes:0, gramDernier:"",
+             orthoJours:0, orthoParfaits:0, orthoSerie:0, orthoBestSerie:0, orthoBonnes:0, orthoDernier:"",
              hyph:0, night:0, dawn:0, wknd:0, days:[], dayBest:0,
              defiFast:0, dailyOne:0, allDiff:0, longFast:0, comeback:0, noYellow:0,
              villeCap:0, villeMonde:0,
@@ -121,6 +122,12 @@
     {id:"qsec8", e:"🕵️", n:"Fin limier",          d:"Percer 8 secrets de créatures",         c:"Quête", t:function(b){return b.qSecrets>=8;}, p:[function(b){return b.qSecrets;},8]},
     {id:"qbest", e:"📖", n:"Bestiaire nourri",    d:"Rencontrer 20 créatures différentes",   c:"Quête", t:function(b){return b.qMonstres>=20;}, p:[function(b){return b.qMonstres;},20]},
     {id:"qlvl",  e:"⚔️", n:"Apprenti confirmé",   d:"Atteindre le niveau 10 en Quête",       c:"Quête", t:function(b){return b.qNiveau>=10;}, p:[function(b){return b.qNiveau;},10]},
+    {id:"or1",   e:"🔤", n:"Premier mot",        d:"Faire 1 Orthographe du jour",          c:"Orthographe", t:function(b){return b.orthoJours>=1;}, p:[function(b){return b.orthoJours;},1]},
+    {id:"or10",  e:"📖", n:"Bon orthographe",     d:"Faire 10 Orthographes du jour",        c:"Orthographe", t:function(b){return b.orthoJours>=10;}, p:[function(b){return b.orthoJours;},10]},
+    {id:"orp",   e:"💎", n:"Zéro faute",          d:"Un sans-faute en Orthographe",         c:"Orthographe", t:function(b){return b.orthoParfaits>=1;}, p:[function(b){return b.orthoParfaits;},1]},
+    {id:"orp10", e:"🏅", n:"Orthographe sûre",    d:"10 sans-faute en Orthographe",         c:"Orthographe", t:function(b){return b.orthoParfaits>=10;}, p:[function(b){return b.orthoParfaits;},10]},
+    {id:"orser", e:"📅", n:"Chaque jour",         d:"7 jours de suite en Orthographe",      c:"Orthographe", t:function(b){return b.orthoBestSerie>=7;}, p:[function(b){return b.orthoBestSerie;},7]},
+    {id:"or50",  e:"🗂️", n:"Cinquante mots",      d:"50 mots correctement écrits",          c:"Orthographe", t:function(b){return b.orthoBonnes>=50;}, p:[function(b){return b.orthoBonnes;},50]},
     {id:"gr1",   e:"✍️", n:"Première dictée",     d:"Faire 1 Grammaire du jour",            c:"Grammaire", t:function(b){return b.gramJours>=1;}, p:[function(b){return b.gramJours;},1]},
     {id:"gr10",  e:"📝", n:"Plume assidue",        d:"Faire 10 Grammaires du jour",          c:"Grammaire", t:function(b){return b.gramJours>=10;}, p:[function(b){return b.gramJours;},10]},
     {id:"grp",   e:"💯", n:"Sans une faute",       d:"Un sans-faute en Grammaire du jour",   c:"Grammaire", t:function(b){return b.gramParfaits>=1;}, p:[function(b){return b.gramParfaits;},1]},
@@ -1242,17 +1249,20 @@
        parties jouées, victoires, podiums, meilleur score. */
     /* Grammaire du jour : une seule participation compte par journée, comme
        le mot du jour. La série se casse si un jour est sauté. */
+    /* Sert les deux exercices quotidiens : le préfixe des compteurs change,
+       la logique de série est identique. */
     gramDone: function (o) {
       o = o || {};
+      var pre = (o.quel === "ortho") ? "ortho" : "gram";
       var b = state.b, jour = new Date().toISOString().slice(0, 10);
-      if (b.gramDernier === jour) return;          // déjà compté aujourd'hui
+      if (b[pre + "Dernier"] === jour) return;      // déjà compté aujourd'hui
       var hier = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-      b.gramSerie = (b.gramDernier === hier) ? (b.gramSerie || 0) + 1 : 1;
-      if (b.gramSerie > (b.gramBestSerie || 0)) b.gramBestSerie = b.gramSerie;
-      b.gramDernier = jour;
-      b.gramJours = (b.gramJours || 0) + 1;
-      b.gramBonnes = (b.gramBonnes || 0) + (o.score || 0);
-      if (o.parfait) b.gramParfaits = (b.gramParfaits || 0) + 1;
+      b[pre + "Serie"] = (b[pre + "Dernier"] === hier) ? (b[pre + "Serie"] || 0) + 1 : 1;
+      if (b[pre + "Serie"] > (b[pre + "BestSerie"] || 0)) b[pre + "BestSerie"] = b[pre + "Serie"];
+      b[pre + "Dernier"] = jour;
+      b[pre + "Jours"] = (b[pre + "Jours"] || 0) + 1;
+      b[pre + "Bonnes"] = (b[pre + "Bonnes"] || 0) + (o.score || 0);
+      if (o.parfait) b[pre + "Parfaits"] = (b[pre + "Parfaits"] || 0) + 1;
       saveLocal(); checkBadges(); pushDebounced(); refreshOpen();
     },
 
