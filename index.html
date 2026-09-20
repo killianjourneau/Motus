@@ -177,6 +177,30 @@
   .memo-corr.ko{ box-shadow:inset 0 0 0 2px var(--absent); }
   .memo-corr .v{ margin-left:auto; color:var(--ok,#0f8a58); font-weight:800; }
   .memo-corr .f{ margin-left:auto; color:var(--ink-dim); font-size:12.5px; letter-spacing:1px; }
+  /* --- Grammaire du jour --- */
+  #gramBox{ display:flex; flex-direction:column; gap:11px; padding:6px 2px; }
+  .gram-tete{ display:flex; align-items:center; justify-content:space-between; }
+  .gram-num{ font-size:12.5px; color:var(--ink-dim); font-weight:700; }
+  .gram-prog{ font-size:13px; font-weight:800; }
+  .gram-phrase{ font-size:19px; font-weight:700; line-height:1.55; text-align:center;
+    background:var(--cell); border-radius:13px; padding:18px 14px; }
+  .gram-trou{ display:inline-block; min-width:52px; border-bottom:2.5px solid var(--red);
+    color:var(--red); font-weight:800; }
+  .gram-indic{ text-align:center; font-size:14px; color:var(--ink-dim); font-weight:700; }
+  .gram-in{ width:100%; height:50px; border:none; border-radius:12px; background:var(--cell);
+    box-shadow:inset 0 0 0 1.5px var(--cell-edge); color:var(--ink); font-size:17px;
+    font-weight:700; text-align:center; padding:0 12px; }
+  .gram-in:focus{ outline:none; box-shadow:inset 0 0 0 2px var(--accent); }
+  .gram-res{ text-align:center; font-size:15px; font-weight:800; padding:11px; border-radius:12px; }
+  .gram-res.ok{ background:var(--ok,#0f8a58); color:#fff; }
+  .gram-res.ko{ background:var(--cell); box-shadow:inset 0 0 0 2px var(--red); }
+  .gram-expl{ text-align:center; font-size:12.5px; color:var(--ink-dim); line-height:1.5;
+    margin:9px 0 4px; }
+  .gram-bilan{ font-size:40px; font-weight:800; color:var(--accent); }
+  .gram-revue{ display:flex; align-items:center; gap:10px; background:var(--cell);
+    border-radius:11px; padding:9px 12px; margin-bottom:6px; }
+  .gram-revue .q{ flex:1; font-size:12.5px; color:var(--ink-dim); }
+  .gram-revue .a{ font-weight:800; font-size:13px; }
   .roy-code{ text-align:center; font-size:30px; font-weight:800; letter-spacing:7px;
     background:var(--cell); border-radius:13px; padding:12px; margin-bottom:10px; }
   .roy-j{ display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:11px;
@@ -189,6 +213,8 @@
   .roy-r.observable{ cursor:pointer; }
   .roy-r.observable:active{ transform:scale(.98); }
   #roySpy{ margin:10px 0; }
+  .spy-time{ float:right; margin-right:8px; font-variant-numeric:tabular-nums; font-weight:800; }
+  .spy-time.urgent{ color:var(--red); }
   .spy-x{ float:right; border:none; background:none; color:var(--ink-dim); font-size:15px;
     cursor:pointer; padding:0 2px; line-height:1; }
   .roy-compte{ display:block; font-size:44px; font-weight:800; line-height:1.1;
@@ -616,6 +642,7 @@
         <div class="roy-code" id="royCodeShow"></div>
         <p class="sub" id="royLobbySub">En attente de joueurs…</p>
         <div id="royJoueurs"></div>
+        <div class="roy-emotes" id="royLobbyEmotes"></div>
         <button class="btn" id="royGo">Lancer la partie</button>
         <button class="btn ghost" id="royShare">📤 Partager le code</button>
       </div>
@@ -650,6 +677,7 @@
       <div class="mode-grid">
         <button class="mode-item" data-mode="daily" id="modeDaily"><span class="mi">📅</span><b>Mot du jour</b><i>Le même pour tous</i></button>
         <button class="mode-item" data-mode="defi" id="modeDefi"><span class="mi">🔥</span><b>Défi du jour</b><i>3 mots · 15 min</i></button>
+        <button class="mode-item nouveau" data-mode="gram" id="modeGram"><span class="mi">✍️</span><b>Grammaire du jour</b><i>Une phrase à compléter</i></button>
       </div>
       <div class="mode-cat">Classique</div>
       <div class="mode-grid">
@@ -683,6 +711,20 @@
 
   <main><div id="board" role="grid" aria-label="Grille de jeu"></div>
   <!-- Mémorisation : affichage des mots, puis saisie de mémoire -->
+  <!-- Grammaire du jour : phrase à compléter -->
+  <div id="gramBox" style="display:none">
+    <div class="gram-tete">
+      <span class="gram-num" id="gramNum"></span>
+      <span class="gram-prog" id="gramProg"></span>
+    </div>
+    <div class="gram-phrase" id="gramPhrase"></div>
+    <div class="gram-indic" id="gramIndic"></div>
+    <input id="gramSaisie" class="gram-in" placeholder="Ta réponse"
+           autocomplete="off" autocapitalize="none" spellcheck="false">
+    <button class="btn" id="gramValider">Valider</button>
+    <div class="gram-corr" id="gramCorr"></div>
+  </div>
+
   <div id="memoBox" style="display:none">
     <div class="memo-tete">
       <span id="memoPhase">Mémorise !</span>
@@ -1068,21 +1110,22 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=2.1.1"></script>
-<script src="./dico/motus-prenoms.js?v=2.1.1"></script>
-<script src="./dico/motus-prenoms-info.js?v=2.1.1"></script>
-<script src="./dico/motus-maladies.js?v=2.1.1"></script>
-<script src="./dico/motus-maladies-info.js?v=2.1.1"></script>
-<script src="./dico/motus-villes.js?v=2.1.1"></script>
-<script src="./dico/motus-villes-info.js?v=2.1.1"></script>
-<script src="./dico/motus-persos.js?v=2.1.1"></script>
-<script src="./dico/motus-persos-info.js?v=2.1.1"></script>
-<script src="./dico/motus-persos-split.js?v=2.1.1"></script>
-<script src="./dico/motus-race.js?v=2.1.1"></script>
-<script src="./dico/motus-expert.js?v=2.1.1"></script>
-<script src="./profiles/config.js?v=2.1.1"></script>
-<script src="./profiles/profile.js?v=2.1.1"></script>
-<script src="./duel/duel.js?v=2.1.1"></script>
+<script src="./dico/motus-words.js?v=2.2.0"></script>
+<script src="./dico/motus-grammaire.js?v=2.2.0"></script>
+<script src="./dico/motus-prenoms.js?v=2.2.0"></script>
+<script src="./dico/motus-prenoms-info.js?v=2.2.0"></script>
+<script src="./dico/motus-maladies.js?v=2.2.0"></script>
+<script src="./dico/motus-maladies-info.js?v=2.2.0"></script>
+<script src="./dico/motus-villes.js?v=2.2.0"></script>
+<script src="./dico/motus-villes-info.js?v=2.2.0"></script>
+<script src="./dico/motus-persos.js?v=2.2.0"></script>
+<script src="./dico/motus-persos-info.js?v=2.2.0"></script>
+<script src="./dico/motus-persos-split.js?v=2.2.0"></script>
+<script src="./dico/motus-race.js?v=2.2.0"></script>
+<script src="./dico/motus-expert.js?v=2.2.0"></script>
+<script src="./profiles/config.js?v=2.2.0"></script>
+<script src="./profiles/profile.js?v=2.2.0"></script>
+<script src="./duel/duel.js?v=2.2.0"></script>
 <script>
 (() => {
   "use strict";
@@ -1134,7 +1177,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "2.1.1";
+  const VERSION = "2.2.0";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -1356,6 +1399,10 @@
        « failed », lui, a TOUJOURS été fiable dans tous les cas d'échec : on
        s'appuie sur les deux pour que les défis déjà en mémoire s'affichent
        correctement, sans attendre d'en rejouer un nouveau. */
+    const g = store.get("motus.gram", null);
+    const gram = $("modeGram");
+    if(gram) gram.classList.toggle("fait", !!(g && g.day===jour && g.fini));
+
     const f = store.get("motus.defi", null);
     const defi = $("modeDefi");
     if(defi) defi.classList.toggle("fait", !!(f && f.day===jour && (f.over || f.failed)));
@@ -4246,7 +4293,7 @@
   }
   function timerValue(){ return tTimer ? tElapsed + (Date.now()-tStart) : tElapsed; }
   function updateHud(){
-    const names={court:"Court",normal:"Normal",long:"Long",expert:"Expert",daily:"Mot du jour",defi:"Défi du jour",prenoms:"Prénoms",maladies:"Maladies",villes:"Villes",duel:"Duel",race:"Course",defense:"Défense",pendu:"Le Pendu",memo:"Mémorisation",royale:"Battle Royale"};
+    const names={court:"Court",normal:"Normal",long:"Long",expert:"Expert",daily:"Mot du jour",defi:"Défi du jour",prenoms:"Prénoms",maladies:"Maladies",villes:"Villes",duel:"Duel",race:"Course",defense:"Défense",pendu:"Le Pendu",memo:"Mémorisation",royale:"Battle Royale",gram:"Grammaire du jour"};
     let label = names[mode]||"";
     if(mode==="race") label = "Course · " + raceThemeName(raceTheme);
     if(mode==="expert") label = "Expert" + (expertRare ? " · mots rares" : "");
@@ -4282,12 +4329,143 @@
   function startFree(m){
     if(m==="pendu"){ penduStart(); return; }
     if(m==="memo"){ memoStart(); return; }
+    if(m==="gram"){ gramStart(); return; }
     if(m==="royale"){ royOuvrir(); return; }
     mode=m; over=false; ended=false; won=false; guesses=[]; rowStates=[];
     const pool = (m==="expert") ? expertPool() : POOLS[m];
     answer=pool[Math.floor(Math.random()*pool.length)];
     setupBoardForAnswer(); loadDico(len); setActiveSeg(m);
     timerReset(); updateHud(); save();
+  }
+
+  /* ---------------------------------------------------------------
+     GRAMMAIRE DU JOUR
+     Trois phrases à compléter, les mêmes pour tout le monde chaque jour.
+     Les accents sont tolérés à la saisie (pénible à taper sur mobile),
+     mais jamais au point d'accepter une forme grammaticalement fausse :
+     vérifié sur tout le corpus.
+     --------------------------------------------------------------- */
+  const GRAM_NB = 3;
+  let gramEx = [], gramIdx = 0, gramScore = 0, gramFini = false;
+
+  function gramKey(){ return todayKey(); }
+  function gramNum(){
+    // même numérotation que le mot du jour : un numéro par journée
+    return Math.floor((Date.parse(todayKey()+"T00:00:00Z") - Date.parse("2024-01-01T00:00:00Z"))/86400000);
+  }
+  /* Tirage déterministe : tout le monde a les mêmes phrases le même jour. */
+  function gramTirage(){
+    const src = window.MOTUS_GRAMMAIRE || [];
+    if(!src.length) return [];
+    const n = gramNum(), out = [], pris = new Set();
+    for(let i=0; i<GRAM_NB; i++){
+      let h = ((n*2654435761) ^ ((i+7)*40503)) >>> 0;
+      let k = h % src.length, garde = 0;
+      while(pris.has(k) && garde++ < src.length){ k = (k+1) % src.length; }
+      pris.add(k); out.push(src[k]);
+    }
+    return out;
+  }
+
+  /* Comparaison indulgente sur les accents, la casse et les espaces —
+     mais pas sur la grammaire elle-même. */
+  function gramNormalise(t){
+    return String(t||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+      .toLowerCase().replace(/[’']/g,"'").replace(/\s+/g," ").trim();
+  }
+  function gramJuste(saisie, ex){
+    const s2 = gramNormalise(saisie);
+    return (ex.r||[]).some(r => gramNormalise(r) === s2);
+  }
+
+  function gramStart(){
+    mode = "gram"; over=false; ended=false; won=false;
+    gramEx = gramTirage();
+    if(!gramEx.length){ toast("Exercices indisponibles."); startFree("normal"); return; }
+    const sauve = store.get("motus.gram", null);
+    if(sauve && sauve.day === gramKey() && sauve.fini){
+      // déjà fait aujourd'hui : on remontre le bilan plutôt que de rejouer
+      gramIdx = GRAM_NB; gramScore = sauve.score||0; gramFini = true;
+    } else {
+      gramIdx = 0; gramScore = 0; gramFini = false;
+    }
+    board.style.display="none"; board.style.pointerEvents="none"; board.innerHTML="";
+    $("memoBox").style.display="none";
+    $("penduBox").style.display="none";
+    $("gramBox").style.display="";
+    keyboard.style.display="none";      // saisie libre : le clavier du système suffit
+    $("timer").style.display="none";
+    setActiveSeg("gram"); updateHud();
+    gramDessine();
+    save();
+  }
+
+  function gramDessine(){
+    $("gramNum").textContent = "Grammaire du jour n°" + gramNum();
+    $("gramProg").textContent = Math.min(gramIdx+1, GRAM_NB) + "/" + GRAM_NB;
+    if(gramFini || gramIdx >= GRAM_NB){ gramBilan(); return; }
+    const ex = gramEx[gramIdx];
+    $("gramPhrase").innerHTML = escapeHtml(ex.p).replace("___", '<span class="gram-trou">?</span>');
+    $("gramIndic").innerHTML = "👉 " + escapeHtml(ex.i);
+    $("gramCorr").innerHTML = "";
+    $("gramSaisie").value = ""; $("gramSaisie").disabled = false;
+    $("gramValider").style.display = ""; $("gramValider").textContent = "Valider";
+    setTimeout(()=>{ try{ $("gramSaisie").focus(); }catch(e){} }, 80);
+  }
+
+  function gramValider(){
+    if(gramFini || gramIdx >= GRAM_NB) return;
+    const ex = gramEx[gramIdx];
+    const saisie = $("gramSaisie").value;
+    if(!saisie.trim()){ toast("Écris ta réponse."); return; }
+    const bon = gramJuste(saisie, ex);
+    if(bon){ gramScore++; son("gagne"); } else { son("refuse"); }
+    $("gramSaisie").disabled = true;
+    $("gramValider").style.display = "none";
+    $("gramCorr").innerHTML =
+        '<div class="gram-res '+(bon?"ok":"ko")+'">' + (bon ? "✅ Juste !" : "❌ Non")
+      + ' — la réponse était <b>' + escapeHtml(ex.r[0]) + '</b></div>'
+      + '<div class="gram-expl">' + escapeHtml(ex.e) + '</div>'
+      + '<button class="btn" id="gramSuivant">'
+      +   (gramIdx < GRAM_NB-1 ? "Phrase suivante" : "Voir le résultat") + '</button>';
+    $("gramSuivant").addEventListener("click", ()=>{
+      gramIdx++;
+      if(gramIdx >= GRAM_NB){ gramTerminer(); } else { gramDessine(); }
+    });
+    save();
+  }
+
+  function gramTerminer(){
+    gramFini = true; over = true; ended = true;
+    store.set("motus.gram", { day: gramKey(), score: gramScore, fini: true });
+    if(window.Profile && Profile.gramDone){
+      Profile.gramDone({ score: gramScore, total: GRAM_NB, parfait: gramScore === GRAM_NB });
+    }
+    mesure("partie:gram"); if(gramScore === GRAM_NB) mesure("gagne:gram");
+    if(gramScore === GRAM_NB) grantHintOnce("gram", gramKey());
+    majPastillesDuJour();
+    gramBilan();
+  }
+
+  function gramBilan(){
+    const mention = gramScore === GRAM_NB ? "Sans faute ! 🎉"
+                  : gramScore >= 2 ? "Bien joué."
+                  : gramScore === 1 ? "Un début." : "La prochaine fois.";
+    $("gramProg").textContent = gramScore + "/" + GRAM_NB;
+    $("gramPhrase").innerHTML = '<span class="gram-bilan">' + gramScore + " / " + GRAM_NB + "</span>";
+    $("gramIndic").textContent = mention;
+    $("gramSaisie").style.display = "none";
+    $("gramValider").style.display = "none";
+    $("gramCorr").innerHTML = gramEx.map((ex,i)=>
+        '<div class="gram-revue"><span class="q">' + escapeHtml(ex.p.replace("___","___")) + '</span>'
+      + '<span class="a">' + escapeHtml(ex.r[0]) + '</span></div>').join("")
+      + '<button class="btn ghost" id="gramPartage">📤 Partager</button>';
+    $("gramPartage").addEventListener("click", ()=>{
+      const txt = "Grammaire du jour n°" + gramNum() + " — " + gramScore + "/" + GRAM_NB
+        + "\n" + "✍️".repeat(gramScore) + "▫️".repeat(GRAM_NB-gramScore)
+        + "\nTrois phrases à compléter, une par jour :\n" + SHARE_URL;
+      if(navigator.share) navigator.share({text:txt}).catch(()=>copy(txt)); else copy(txt);
+    });
   }
 
   /* ---------------------------------------------------------------
@@ -4363,6 +4541,8 @@
         '<div class="roy-j"><span class="e">'+(j.badge||"🎖️")+'</span>'
         + '<span class="n">'+escapeHtml(j.pseudo||"Anonyme")+(j.moi?" (toi)":"")+'</span>'
         + '<span class="lv">niv. '+(j.level||1)+'</span></div>').join("");
+      // on peut se parler DÈS la salle d'attente, pas seulement entre les manches
+      royDessinerEmotes(d.joueurs, "royLobbyEmotes");
       return;
     }
 
@@ -4431,9 +4611,14 @@
     const medaille = i===0 ? "🥇" : i===1 ? "🥈" : i===2 ? "🥉" : (i+1)+".";
     const es = manche ? j.essais[manche-1] : -1;
     const ms = manche ? j.ms[manche-1] : 0;
-    const detail = (manche && es > 0)
-      ? (es>=6 && j.scores[manche-1]<=0 ? "raté" : es+" essai"+(es>1?"s":"")+" · "+fmtTime(ms))
-      : "en attente…";
+    /* Un score à 0 signifie « mot non trouvé », quelle qu'en soit la raison :
+       six essais épuisés OU temps écoulé. Se fier au nombre d'essais était
+       faux — manquer de temps avec 3 essais affichait « 3 essais ». */
+    const sc = manche ? j.scores[manche-1] : -1;
+    const detail = !manche ? ""
+      : sc === -1 ? "en attente…"
+      : sc <= 0   ? "raté · " + fmtTime(ms)
+      : es + " essai" + (es>1?"s":"") + " · " + fmtTime(ms);
     // On ne peut observer qu'un joueur RÉEL encore en train de chercher :
     // regarder la grille de quelqu'un qui a fini n'aurait aucun intérêt,
     // et les fantômes n'ont pas de grille à montrer.
@@ -4478,7 +4663,7 @@
      sont les autres en direct. Une fois le dernier arrivé, un décompte
      commun de 10 s annonce la manche suivante — l'attente devient lisible
      au lieu d'être un écran figé. */
-  let roySpyId = null;   // joueur actuellement observé, null si aucun
+  let roySpyId = null, roySpyTick = null;   // joueur observé, null si aucun
 
   /* Grille d'un joueur encore en train de chercher. Même lecture qu'en
      Duel : les tentatives validées sont évaluées, la ligne en cours de
@@ -4486,7 +4671,7 @@
      lui donnerait les réponses avant qu'il ne valide. */
   function royDessinerSpy(d){
     const box = $("roySpy"); if(!box) return;
-    if(!roySpyId){ box.classList.remove("show"); box.innerHTML=""; return; }
+    if(!roySpyId){ clearInterval(roySpyTick); box.classList.remove("show"); box.innerHTML=""; return; }
     const j = d.joueurs.find(x=>x.id===roySpyId);
     const mot = royMots[royManche-1] || "";
     if(!j || !mot){ box.classList.remove("show"); box.innerHTML=""; return; }
@@ -4502,7 +4687,12 @@
     const brut = j.moves || [];
     const live = (brut.find(g=>g && g[0]==="~") || "").slice(1);
     const list = brut.filter(g=>g && g[0]!=="~" && g.length===mot.length);
+    /* Temps restant : déduit de l'échéance COMMUNE de la manche, la même
+       pour tous — on voit donc réellement le temps qu'il lui reste, pas une
+       estimation locale. */
+    const reste = Math.max(0, royDeadline - Date.now());
     let html = '<div class="spy-t">👁️ '+escapeHtml(j.pseudo)+' · en train de chercher'
+             + '<span class="spy-time'+(reste<=20000?" urgent":"")+'">⏳ '+fmtTime(reste)+'</span>'
              + '<button class="spy-x" id="roySpyClose">✕</button></div>';
     if(!list.length && !live){
       html += '<div class="spy-none">Il n\'a pas encore proposé de mot…</div>';
@@ -4520,7 +4710,16 @@
     box.innerHTML = html;
     box.classList.add("show");
     const x = $("roySpyClose");
-    if(x) x.addEventListener("click", ()=>{ roySpyId = null; royDessinerSpy(d); });
+    if(x) x.addEventListener("click", ()=>{ roySpyId = null; clearInterval(roySpyTick); royDessinerSpy(d); });
+    // la grille ne bouge qu'au rythme du réseau, mais le décompte doit
+    // défiler chaque seconde
+    clearInterval(roySpyTick);
+    roySpyTick = setInterval(()=>{
+      const t = box.querySelector(".spy-time"); if(!t){ clearInterval(roySpyTick); return; }
+      const r = Math.max(0, royDeadline - Date.now());
+      t.textContent = "⏳ " + fmtTime(r);
+      t.classList.toggle("urgent", r <= 20000);
+    }, 1000);
   }
 
   let royPauseTick = null;
@@ -4577,8 +4776,8 @@
   ];
   let royDerniersEmotes = {};   // pour ne montrer une bulle qu'une fois par message
 
-  function royDessinerEmotes(joueurs){
-    const bar = $("royEmotesBar"); if(!bar) return;
+  function royDessinerEmotes(joueurs, zoneId){
+    const bar = $(zoneId || "royEmotesBar"); if(!bar) return;
     bar.innerHTML = ROY_EMOTES.map(m=>
       '<button class="roy-em" data-e="'+m.id+'" title="'+m.t+'">'+m.e+'</button>').join("");
     bar.querySelectorAll(".roy-em").forEach(b=>{
@@ -4632,7 +4831,7 @@
     if(royStop){ royStop(); royStop = null; }
     royCodeCourant = ""; royManche = 0; royEtat = null; royReporte = -1;
     royDerniersEmotes = {}; roySpyId = null;
-    clearInterval(royPauseTick);
+    clearInterval(royPauseTick); clearInterval(roySpyTick);
     duelEmoteBtnShow(false);
     closeOverlays(); startFree("normal");
   }
@@ -4949,6 +5148,7 @@
     clearInterval(memoTick); clearInterval(memoSaisieTick);
     const mb = $("memoBox"); if(mb) mb.style.display = "none";
     board.style.pointerEvents = "";
+    const gb = $("gramBox"); if(gb) gb.style.display = "none";
     keyboard.style.display = "";
     $("timer").style.display = "";
     len=answer.length; row=0; col=1;
@@ -4973,7 +5173,7 @@
     else timerReset();                                        // mot pas encore entamé
   }
 
-  const MODE_LABELS={daily:"📅 Mot du jour",defi:"🔥 Défi du jour",court:"🐤 Court",normal:"🎯 Normal",long:"🐘 Long",expert:"🎓 Expert",prenoms:"👶 Prénoms",maladies:"🩺 Maladies",villes:"🏙️ Villes",duel:"⚔️ Duel",race:"⌨️ Course",defense:"🛡️ Défense",pendu:"🪢 Le Pendu",memo:"🧠 Mémorisation",royale:"👑 Battle Royale"};
+  const MODE_LABELS={daily:"📅 Mot du jour",defi:"🔥 Défi du jour",court:"🐤 Court",normal:"🎯 Normal",long:"🐘 Long",expert:"🎓 Expert",prenoms:"👶 Prénoms",maladies:"🩺 Maladies",villes:"🏙️ Villes",duel:"⚔️ Duel",race:"⌨️ Course",defense:"🛡️ Défense",pendu:"🪢 Le Pendu",memo:"🧠 Mémorisation",royale:"👑 Battle Royale",gram:"✍️ Grammaire du jour"};
   function setActiveSeg(m){
     $("modeBtnLabel").textContent = MODE_LABELS[m] || m;
     document.querySelectorAll(".mode-item").forEach(b=>b.classList.toggle("active", b.dataset.mode===m));
@@ -5120,11 +5320,16 @@
     Royale.start(royCodeCourant).then(()=>{ if(royStop) royStop.now(); });
   });
   $("royShare").addEventListener("click", ()=>{
+    // lien direct vers LA SALLE, pas vers l'accueil du jeu : le code est
+    // pré-rempli à l'ouverture, il ne reste qu'à valider
+    const lien = SHARE_URL + "?royale=" + royCodeCourant;
     const txt = "Rejoins ma partie Battle Royale sur Mot en Six !\nCode : " + royCodeCourant;
-    if(navigator.share) navigator.share({ text: txt, url: SHARE_URL }).catch(()=>copy(txt+"\n"+SHARE_URL));
-    else copy(txt+"\n"+SHARE_URL);
+    if(navigator.share) navigator.share({ text: txt, url: lien }).catch(()=>copy(txt+"\n"+lien));
+    else copy(txt+"\n"+lien);
   });
   $("roySuivant").addEventListener("click", royQuitter);
+  $("gramValider").addEventListener("click", gramValider);
+  $("gramSaisie").addEventListener("keydown", e=>{ if(e.key==="Enter") gramValider(); });
   $("btnKid").addEventListener("click", ()=>{ location.href="./enfant.html"; });
   $("btnRpg").addEventListener("click", ()=>{ location.href="./rpg.html"; });
   document.querySelectorAll("#duelTabs .dtab").forEach(b=>b.addEventListener("click", ()=>{
@@ -5308,7 +5513,8 @@
     const rc = (q.get("race")||"").trim().toUpperCase();
     const df = (q.get("defense")||"").trim();
     const cp = (q.get("compte")||"").trim();
-    if(!dc && !rc && !df && !cp) return;
+    const br = (q.get("royale")||"").trim().toUpperCase();
+    if(!dc && !rc && !df && !cp && !br) return;
     try{ history.replaceState(null,"",location.pathname); }catch(e){}   // pas de re-déclenchement au rechargement
     setTimeout(()=>{
       if(cp){                          // lien « récupérer mon compte »
@@ -5320,6 +5526,12 @@
           if(boite) boite.open = true;
           toast("Appuie sur « Récupérer » pour lier ce compte", 5000);
         }
+        return;
+      }
+      if(br){                          // lien « rejoins ma Battle Royale »
+        royOuvrir();
+        $("royCode").value = br;
+        toast("Appuie sur « Rejoindre » pour entrer dans la salle", 4000);
         return;
       }
       if(df){ defOpen(); return; }     // lien « viens attaquer ma défense »
