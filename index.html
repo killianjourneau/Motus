@@ -678,6 +678,7 @@
         <button class="mode-item" data-mode="daily" id="modeDaily"><span class="mi">📅</span><b>Mot du jour</b><i>Le même pour tous</i></button>
         <button class="mode-item" data-mode="defi" id="modeDefi"><span class="mi">🔥</span><b>Défi du jour</b><i>3 mots · 15 min</i></button>
         <button class="mode-item nouveau" data-mode="gram" id="modeGram"><span class="mi">✍️</span><b>Grammaire du jour</b><i>Une phrase à compléter</i></button>
+        <button class="mode-item nouveau" data-mode="ortho" id="modeOrtho"><span class="mi">🔤</span><b>Orthographe du jour</b><i>Trois mots à écrire</i></button>
       </div>
       <div class="mode-cat">Classique</div>
       <div class="mode-grid">
@@ -1110,22 +1111,23 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=2.3.0"></script>
-<script src="./dico/motus-grammaire.js?v=2.3.0"></script>
-<script src="./dico/motus-prenoms.js?v=2.3.0"></script>
-<script src="./dico/motus-prenoms-info.js?v=2.3.0"></script>
-<script src="./dico/motus-maladies.js?v=2.3.0"></script>
-<script src="./dico/motus-maladies-info.js?v=2.3.0"></script>
-<script src="./dico/motus-villes.js?v=2.3.0"></script>
-<script src="./dico/motus-villes-info.js?v=2.3.0"></script>
-<script src="./dico/motus-persos.js?v=2.3.0"></script>
-<script src="./dico/motus-persos-info.js?v=2.3.0"></script>
-<script src="./dico/motus-persos-split.js?v=2.3.0"></script>
-<script src="./dico/motus-race.js?v=2.3.0"></script>
-<script src="./dico/motus-expert.js?v=2.3.0"></script>
-<script src="./profiles/config.js?v=2.3.0"></script>
-<script src="./profiles/profile.js?v=2.3.0"></script>
-<script src="./duel/duel.js?v=2.3.0"></script>
+<script src="./dico/motus-words.js?v=2.4.0"></script>
+<script src="./dico/motus-grammaire.js?v=2.4.0"></script>
+<script src="./dico/motus-ortho.js?v=2.4.0"></script>
+<script src="./dico/motus-prenoms.js?v=2.4.0"></script>
+<script src="./dico/motus-prenoms-info.js?v=2.4.0"></script>
+<script src="./dico/motus-maladies.js?v=2.4.0"></script>
+<script src="./dico/motus-maladies-info.js?v=2.4.0"></script>
+<script src="./dico/motus-villes.js?v=2.4.0"></script>
+<script src="./dico/motus-villes-info.js?v=2.4.0"></script>
+<script src="./dico/motus-persos.js?v=2.4.0"></script>
+<script src="./dico/motus-persos-info.js?v=2.4.0"></script>
+<script src="./dico/motus-persos-split.js?v=2.4.0"></script>
+<script src="./dico/motus-race.js?v=2.4.0"></script>
+<script src="./dico/motus-expert.js?v=2.4.0"></script>
+<script src="./profiles/config.js?v=2.4.0"></script>
+<script src="./profiles/profile.js?v=2.4.0"></script>
+<script src="./duel/duel.js?v=2.4.0"></script>
 <script>
 (() => {
   "use strict";
@@ -1177,7 +1179,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "2.3.0";
+  const VERSION = "2.4.0";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -1402,6 +1404,10 @@
     const g = store.get("motus.gram", null);
     const gram = $("modeGram");
     if(gram) gram.classList.toggle("fait", !!(g && g.day===jour && g.fini));
+
+    const o = store.get("motus.ortho", null);
+    const ortho = $("modeOrtho");
+    if(ortho) ortho.classList.toggle("fait", !!(o && o.day===jour && o.fini));
 
     const f = store.get("motus.defi", null);
     const defi = $("modeDefi");
@@ -4293,7 +4299,7 @@
   }
   function timerValue(){ return tTimer ? tElapsed + (Date.now()-tStart) : tElapsed; }
   function updateHud(){
-    const names={court:"Court",normal:"Normal",long:"Long",expert:"Expert",daily:"Mot du jour",defi:"Défi du jour",prenoms:"Prénoms",maladies:"Maladies",villes:"Villes",duel:"Duel",race:"Course",defense:"Défense",pendu:"Le Pendu",memo:"Mémorisation",royale:"Battle Royale",gram:"Grammaire du jour"};
+    const names={court:"Court",normal:"Normal",long:"Long",expert:"Expert",daily:"Mot du jour",defi:"Défi du jour",prenoms:"Prénoms",maladies:"Maladies",villes:"Villes",duel:"Duel",race:"Course",defense:"Défense",pendu:"Le Pendu",memo:"Mémorisation",royale:"Battle Royale",gram:"Grammaire du jour",ortho:"Orthographe du jour"};
     let label = names[mode]||"";
     if(mode==="race") label = "Course · " + raceThemeName(raceTheme);
     if(mode==="expert") label = "Expert" + (expertRare ? " · mots rares" : "");
@@ -4329,7 +4335,8 @@
   function startFree(m){
     if(m==="pendu"){ penduStart(); return; }
     if(m==="memo"){ memoStart(); return; }
-    if(m==="gram"){ gramStart(); return; }
+    if(m==="gram"){ gramStart("gram"); return; }
+    if(m==="ortho"){ gramStart("ortho"); return; }
     if(m==="royale"){ royOuvrir(); return; }
     mode=m; over=false; ended=false; won=false; guesses=[]; rowStates=[];
     const pool = (m==="expert") ? expertPool() : POOLS[m];
@@ -4345,8 +4352,18 @@
      mais jamais au point d'accepter une forme grammaticalement fausse :
      vérifié sur tout le corpus.
      --------------------------------------------------------------- */
+  /* Grammaire et Orthographe partagent exactement le même moteur : seuls
+     le corpus, le libellé et la clé de sauvegarde changent. Dupliquer le
+     code aurait fait diverger les deux à la première correction. */
   const GRAM_NB = 3;
-  let gramEx = [], gramIdx = 0, gramScore = 0, gramFini = false;
+  const GRAM_SRC = {
+    gram:  { corpus:()=> window.MOTUS_GRAMMAIRE || [], cle:"motus.gram",  titre:"Grammaire du jour",
+             icone:"✍️", decalage:7 },
+    ortho: { corpus:()=> window.MOTUS_ORTHO || [],     cle:"motus.ortho", titre:"Orthographe du jour",
+             icone:"🔤", decalage:23 }   // décalage différent : pas le même tirage
+  };
+  let gramEx = [], gramIdx = 0, gramScore = 0, gramFini = false, gramMode = "gram";
+  function gramConf(){ return GRAM_SRC[gramMode] || GRAM_SRC.gram; }
 
   function gramKey(){ return todayKey(); }
   function gramNum(){
@@ -4355,11 +4372,12 @@
   }
   /* Tirage déterministe : tout le monde a les mêmes phrases le même jour. */
   function gramTirage(){
-    const src = window.MOTUS_GRAMMAIRE || [];
+    const conf = gramConf();
+    const src = conf.corpus();
     if(!src.length) return [];
     const n = gramNum(), out = [], pris = new Set();
     for(let i=0; i<GRAM_NB; i++){
-      let h = ((n*2654435761) ^ ((i+7)*40503)) >>> 0;
+      let h = ((n*2654435761) ^ ((i+conf.decalage)*40503)) >>> 0;
       let k = h % src.length, garde = 0;
       while(pris.has(k) && garde++ < src.length){ k = (k+1) % src.length; }
       pris.add(k); out.push(src[k]);
@@ -4378,11 +4396,12 @@
     return (ex.r||[]).some(r => gramNormalise(r) === s2);
   }
 
-  function gramStart(){
-    mode = "gram"; over=false; ended=false; won=false;
+  function gramStart(quel){
+    gramMode = (quel === "ortho") ? "ortho" : "gram";
+    mode = gramMode; over=false; ended=false; won=false;
     gramEx = gramTirage();
     if(!gramEx.length){ toast("Exercices indisponibles."); startFree("normal"); return; }
-    const sauve = store.get("motus.gram", null);
+    const sauve = store.get(gramConf().cle, null);
     if(sauve && sauve.day === gramKey() && sauve.fini){
       // déjà fait aujourd'hui : on remontre le bilan plutôt que de rejouer
       gramIdx = GRAM_NB; gramScore = sauve.score||0; gramFini = true;
@@ -4395,13 +4414,13 @@
     $("gramBox").style.display="";
     keyboard.style.display="none";      // saisie libre : le clavier du système suffit
     $("timer").style.display="none";
-    setActiveSeg("gram"); updateHud();
+    setActiveSeg(gramMode); updateHud();
     gramDessine();
     save();
   }
 
   function gramDessine(){
-    $("gramNum").textContent = "Grammaire du jour n°" + gramNum();
+    $("gramNum").textContent = gramConf().titre + " n°" + gramNum();
     $("gramProg").textContent = Math.min(gramIdx+1, GRAM_NB) + "/" + GRAM_NB;
     if(gramFini || gramIdx >= GRAM_NB){ gramBilan(); return; }
     const ex = gramEx[gramIdx];
@@ -4437,12 +4456,12 @@
 
   function gramTerminer(){
     gramFini = true; over = true; ended = true;
-    store.set("motus.gram", { day: gramKey(), score: gramScore, fini: true });
+    store.set(gramConf().cle, { day: gramKey(), score: gramScore, fini: true });
     if(window.Profile && Profile.gramDone){
-      Profile.gramDone({ score: gramScore, total: GRAM_NB, parfait: gramScore === GRAM_NB });
+      Profile.gramDone({ quel: gramMode, score: gramScore, total: GRAM_NB, parfait: gramScore === GRAM_NB });
     }
-    mesure("partie:gram"); if(gramScore === GRAM_NB) mesure("gagne:gram");
-    if(gramScore === GRAM_NB) grantHintOnce("gram", gramKey());
+    mesure("partie:" + gramMode); if(gramScore === GRAM_NB) mesure("gagne:" + gramMode);
+    if(gramScore === GRAM_NB) grantHintOnce(gramMode, gramKey());
     majPastillesDuJour();
     gramBilan();
   }
@@ -4461,9 +4480,10 @@
       + '<span class="a">' + escapeHtml(ex.r[0]) + '</span></div>').join("")
       + '<button class="btn ghost" id="gramPartage">📤 Partager</button>';
     $("gramPartage").addEventListener("click", ()=>{
-      const txt = "Grammaire du jour n°" + gramNum() + " — " + gramScore + "/" + GRAM_NB
-        + "\n" + "✍️".repeat(gramScore) + "▫️".repeat(GRAM_NB-gramScore)
-        + "\nTrois phrases à compléter, une par jour :\n" + SHARE_URL;
+      const c = gramConf();
+      const txt = c.titre + " n°" + gramNum() + " — " + gramScore + "/" + GRAM_NB
+        + "\n" + c.icone.repeat(gramScore) + "▫️".repeat(GRAM_NB-gramScore)
+        + "\nUn exercice par jour :\n" + SHARE_URL;
       if(navigator.share) navigator.share({text:txt}).catch(()=>copy(txt)); else copy(txt);
     });
   }
@@ -5173,7 +5193,7 @@
     else timerReset();                                        // mot pas encore entamé
   }
 
-  const MODE_LABELS={daily:"📅 Mot du jour",defi:"🔥 Défi du jour",court:"🐤 Court",normal:"🎯 Normal",long:"🐘 Long",expert:"🎓 Expert",prenoms:"👶 Prénoms",maladies:"🩺 Maladies",villes:"🏙️ Villes",duel:"⚔️ Duel",race:"⌨️ Course",defense:"🛡️ Défense",pendu:"🪢 Le Pendu",memo:"🧠 Mémorisation",royale:"👑 Battle Royale",gram:"✍️ Grammaire du jour"};
+  const MODE_LABELS={daily:"📅 Mot du jour",defi:"🔥 Défi du jour",court:"🐤 Court",normal:"🎯 Normal",long:"🐘 Long",expert:"🎓 Expert",prenoms:"👶 Prénoms",maladies:"🩺 Maladies",villes:"🏙️ Villes",duel:"⚔️ Duel",race:"⌨️ Course",defense:"🛡️ Défense",pendu:"🪢 Le Pendu",memo:"🧠 Mémorisation",royale:"👑 Battle Royale",gram:"✍️ Grammaire du jour",ortho:"🔤 Orthographe du jour"};
   function setActiveSeg(m){
     $("modeBtnLabel").textContent = MODE_LABELS[m] || m;
     document.querySelectorAll(".mode-item").forEach(b=>b.classList.toggle("active", b.dataset.mode===m));
