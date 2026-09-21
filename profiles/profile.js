@@ -1358,14 +1358,19 @@
       saveLocal(); checkBadges(); pushDebounced(); refreshOpen();
     },
 
+    /* Renvoie une promesse : true si le serveur a bien enregistré. L'appelant
+       peut ainsi rejouer l'envoi plus tard — auparavant, un échec réseau
+       était avalé et le joueur manquait au classement du jour. L'envoi est
+       idempotent (upsert sur joueur + jeu + jour) : le rejouer est sans risque. */
     submitDaily: function (o) {
-      if (!configured || !o) return;
-      fetch(API + "/rest/v1/daily_results?on_conflict=player_id,game,day", {
+      if (!configured || !o) return Promise.resolve(false);
+      return fetch(API + "/rest/v1/daily_results?on_conflict=player_id,game,day", {
         method: "POST",
         headers: headers({ "Prefer": "resolution=merge-duplicates,return=minimal" }),
         body: JSON.stringify({ player_id: state.id, pseudo: state.pseudo, game: o.game, day: o.day,
                                tries: (o.tries == null ? null : o.tries), won: !!o.won })
-      }).catch(function () {});
+      }).then(function (r) { return !!(r && r.ok); })
+        .catch(function () { return false; });
     }
   };
 
