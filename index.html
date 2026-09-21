@@ -1117,23 +1117,23 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=2.4.1"></script>
-<script src="./dico/motus-grammaire.js?v=2.4.1"></script>
-<script src="./dico/motus-ortho.js?v=2.4.1"></script>
-<script src="./dico/motus-prenoms.js?v=2.4.1"></script>
-<script src="./dico/motus-prenoms-info.js?v=2.4.1"></script>
-<script src="./dico/motus-maladies.js?v=2.4.1"></script>
-<script src="./dico/motus-maladies-info.js?v=2.4.1"></script>
-<script src="./dico/motus-villes.js?v=2.4.1"></script>
-<script src="./dico/motus-villes-info.js?v=2.4.1"></script>
-<script src="./dico/motus-persos.js?v=2.4.1"></script>
-<script src="./dico/motus-persos-info.js?v=2.4.1"></script>
-<script src="./dico/motus-persos-split.js?v=2.4.1"></script>
-<script src="./dico/motus-race.js?v=2.4.1"></script>
-<script src="./dico/motus-expert.js?v=2.4.1"></script>
-<script src="./profiles/config.js?v=2.4.1"></script>
-<script src="./profiles/profile.js?v=2.4.1"></script>
-<script src="./duel/duel.js?v=2.4.1"></script>
+<script src="./dico/motus-words.js?v=2.4.0"></script>
+<script src="./dico/motus-grammaire.js?v=2.4.0"></script>
+<script src="./dico/motus-ortho.js?v=2.4.0"></script>
+<script src="./dico/motus-prenoms.js?v=2.4.0"></script>
+<script src="./dico/motus-prenoms-info.js?v=2.4.0"></script>
+<script src="./dico/motus-maladies.js?v=2.4.0"></script>
+<script src="./dico/motus-maladies-info.js?v=2.4.0"></script>
+<script src="./dico/motus-villes.js?v=2.4.0"></script>
+<script src="./dico/motus-villes-info.js?v=2.4.0"></script>
+<script src="./dico/motus-persos.js?v=2.4.0"></script>
+<script src="./dico/motus-persos-info.js?v=2.4.0"></script>
+<script src="./dico/motus-persos-split.js?v=2.4.0"></script>
+<script src="./dico/motus-race.js?v=2.4.0"></script>
+<script src="./dico/motus-expert.js?v=2.4.0"></script>
+<script src="./profiles/config.js?v=2.4.0"></script>
+<script src="./profiles/profile.js?v=2.4.0"></script>
+<script src="./duel/duel.js?v=2.4.0"></script>
 <script>
 (() => {
   "use strict";
@@ -1185,7 +1185,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "2.4.1";
+  const VERSION = "2.4.0";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -4376,6 +4376,26 @@
              icone:"🔤", decalage:23 }   // décalage différent : pas le même tirage
   };
   let gramEx = [], gramIdx = 0, gramScore = 0, gramFini = false, gramMode = "gram";
+  /* Entraînement libre, après les trois exercices du jour. Il ne touche NI
+     au classement, NI aux badges du jour, NI à la série : seul l'exercice
+     quotidien compte. On évite de revoir un exercice tant que la
+     bibliothèque n'a pas été parcourue en entier. */
+  let gramLibre = false, gramLibreBon = 0, gramLibreTotal = 0, gramLibreCourant = null;
+  function gramVusCle(){ return "motus." + gramMode + ".vus"; }
+  function gramPiocher(){
+    const src = gramConf().corpus();
+    if(!src.length) return null;
+    // exclure ceux du jour, puis ceux déjà vus en entraînement
+    const duJour = new Set(gramTirage().map(x=>x.p));
+    let vus = store.get(gramVusCle(), []) || [];
+    let dispo = src.filter(x=> !duJour.has(x.p) && vus.indexOf(x.p) < 0);
+    if(!dispo.length){                    // tout vu : on recommence un cycle
+      vus = []; dispo = src.filter(x=> !duJour.has(x.p));
+    }
+    const ex = dispo[Math.floor(Math.random()*dispo.length)];
+    vus.push(ex.p); store.set(gramVusCle(), vus.slice(-400));
+    return ex;
+  }
   function gramConf(){ return GRAM_SRC[gramMode] || GRAM_SRC.gram; }
 
   function gramKey(){ return todayKey(); }
@@ -4420,12 +4440,14 @@
   function gramStart(quel){
     gramMode = (quel === "ortho") ? "ortho" : "gram";
     mode = gramMode; over=false; ended=false; won=false;
+    gramLibre = false; gramLibreCourant = null; gramLibreBon = 0; gramLibreTotal = 0;
     gramEx = gramTirage();
     if(!gramEx.length){ toast("Exercices indisponibles."); startFree("normal"); return; }
     const sauve = store.get(gramConf().cle, null);
     if(sauve && sauve.day === gramKey() && sauve.fini){
       // déjà fait aujourd'hui : on remontre le bilan plutôt que de rejouer
       gramIdx = GRAM_NB; gramScore = sauve.score||0; gramFini = true;
+      gramEnvoyer();                      // au cas où l'envoi n'aurait jamais abouti
     } else {
       gramIdx = 0; gramScore = 0; gramFini = false;
     }
@@ -4440,11 +4462,19 @@
     save();
   }
 
+  function gramExCourant(){ return gramLibre ? gramLibreCourant : gramEx[gramIdx]; }
+
   function gramDessine(){
-    $("gramNum").textContent = gramConf().titre + " n°" + gramNum();
-    $("gramProg").textContent = Math.min(gramIdx+1, GRAM_NB) + "/" + GRAM_NB;
-    if(gramFini || gramIdx >= GRAM_NB){ gramBilan(); return; }
-    const ex = gramEx[gramIdx];
+    if(gramLibre){
+      $("gramNum").textContent = gramConf().titre + " · entraînement";
+      $("gramProg").textContent = gramLibreBon + "/" + gramLibreTotal;
+    } else {
+      $("gramNum").textContent = gramConf().titre + " n°" + gramNum();
+      $("gramProg").textContent = Math.min(gramIdx+1, GRAM_NB) + "/" + GRAM_NB;
+      if(gramFini || gramIdx >= GRAM_NB){ gramBilan(); return; }
+    }
+    const ex = gramExCourant();
+    if(!ex){ gramBilan(); return; }
     $("gramPhrase").innerHTML = escapeHtml(ex.p).replace("___", '<span class="gram-trou">?</span>');
     $("gramCorr").innerHTML = "";
 
@@ -4480,16 +4510,18 @@
   }
 
   function gramValider(){
-    if(gramFini || gramIdx >= GRAM_NB) return;
+    if(!gramLibre && (gramFini || gramIdx >= GRAM_NB)) return;
     const saisie = $("gramSaisie").value;
     if(!saisie.trim()){ toast("Écris ta réponse."); return; }
     gramRepondre(saisie);
   }
   function gramRepondre(saisie){
-    if(gramFini || gramIdx >= GRAM_NB) return;
-    const ex = gramEx[gramIdx];
+    if(!gramLibre && (gramFini || gramIdx >= GRAM_NB)) return;
+    const ex = gramExCourant(); if(!ex) return;
     const bon = gramJuste(saisie, ex);
-    if(bon){ gramScore++; son("gagne"); } else { son("refuse"); }
+    if(gramLibre){ gramLibreTotal++; if(bon) gramLibreBon++; }
+    else if(bon){ gramScore++; }
+    son(bon ? "gagne" : "refuse");
     $("gramSaisie").disabled = true;
     $("gramValider").style.display = "none";
     $("gramChoix").style.display = "none";
@@ -4497,13 +4529,39 @@
         '<div class="gram-res '+(bon?"ok":"ko")+'">' + (bon ? "✅ Juste !" : "❌ Non")
       + ' — la réponse était <b>' + escapeHtml(ex.r[0]) + '</b></div>'
       + '<div class="gram-expl">' + escapeHtml(ex.e) + '</div>'
-      + '<button class="btn" id="gramSuivant">'
-      +   (gramIdx < GRAM_NB-1 ? "Phrase suivante" : "Voir le résultat") + '</button>';
-    $("gramSuivant").addEventListener("click", ()=>{
-      gramIdx++;
-      if(gramIdx >= GRAM_NB){ gramTerminer(); } else { gramDessine(); }
-    });
+      + (gramLibre
+          ? '<button class="btn" id="gramSuivant">Suivant</button>'
+            + '<button class="btn ghost" id="gramStop">Arrêter</button>'
+          : '<button class="btn" id="gramSuivant">'
+            + (gramIdx < GRAM_NB-1 ? "Phrase suivante" : "Voir le résultat") + '</button>');
+    if(gramLibre){
+      $("gramProg").textContent = gramLibreBon + "/" + gramLibreTotal;
+      $("gramSuivant").addEventListener("click", gramLibreSuivant);
+      $("gramStop").addEventListener("click", gramLibreArreter);
+    } else {
+      $("gramSuivant").addEventListener("click", ()=>{
+        gramIdx++;
+        if(gramIdx >= GRAM_NB){ gramTerminer(); } else { gramDessine(); }
+      });
+    }
     save();
+  }
+
+  /* ---- entraînement libre ---- */
+  function gramLibreDemarrer(){
+    gramLibre = true; gramLibreBon = 0; gramLibreTotal = 0;
+    gramLibreSuivant();
+  }
+  function gramLibreSuivant(){
+    gramLibreCourant = gramPiocher();
+    if(!gramLibreCourant){ toast("Bibliothèque vide."); gramLibreArreter(); return; }
+    $("gramSaisie").style.display = "";       // gramDessine choisit saisie ou choix
+    gramDessine();
+  }
+  function gramLibreArreter(){
+    gramLibre = false; gramLibreCourant = null;
+    if(gramLibreTotal) mesure("partie:" + gramMode + "lib");
+    gramBilan();
   }
 
   function gramTerminer(){
@@ -4512,15 +4570,30 @@
     if(window.Profile && Profile.gramDone){
       Profile.gramDone({ quel: gramMode, score: gramScore, total: GRAM_NB, parfait: gramScore === GRAM_NB });
     }
-    if(window.Profile && Profile.submitDaily){
-      Profile.submitDaily({ game: gramMode, day: gramKey(),
-                            tries: GRAM_NB - gramScore,      // fautes : 0 = parfait
-                            won: gramScore === GRAM_NB });
-    }
+    gramEnvoyer();
     mesure("partie:" + gramMode); if(gramScore === GRAM_NB) mesure("gagne:" + gramMode);
     if(gramScore === GRAM_NB) grantHintOnce(gramMode, gramKey());
     majPastillesDuJour();
     gramBilan();
+  }
+
+  /* Transmet le résultat du jour au classement communautaire, et retient
+     s'il est bien arrivé. Rejoué à chaque ouverture tant que ce n'est pas le
+     cas : rattrape un échec réseau, ET les joueurs ayant fini avant que cet
+     envoi n'existe — ils manquaient au classement « Aujourd'hui ». */
+  function gramEnvoyer(quel){
+    quel = quel || gramMode;
+    const cle = (GRAM_SRC[quel] || GRAM_SRC.gram).cle, sv = store.get(cle, null);
+    if(!sv || sv.day !== gramKey() || !sv.fini || sv.envoye) return;
+    if(!window.Profile || !Profile.submitDaily) return;
+    const r = Profile.submitDaily({ game: quel, day: gramKey(),
+                                    tries: GRAM_NB - (sv.score||0),   // fautes : 0 = parfait
+                                    won: (sv.score||0) === GRAM_NB });
+    if(r && r.then) r.then(ok=>{
+      if(!ok) return;
+      const s2 = store.get(cle, null);
+      if(s2 && s2.day === gramKey()){ s2.envoye = true; store.set(cle, s2); }
+    });
   }
 
   function gramBilan(){
@@ -4535,7 +4608,11 @@
     $("gramCorr").innerHTML = gramEx.map((ex,i)=>
         '<div class="gram-revue"><span class="q">' + escapeHtml(ex.p.replace("___","___")) + '</span>'
       + '<span class="a">' + escapeHtml(ex.r[0]) + '</span></div>').join("")
+      + (gramLibreTotal ? '<div class="gram-expl">Entraînement : '
+            + gramLibreBon + ' / ' + gramLibreTotal + ' justes</div>' : '')
+      + '<button class="btn" id="gramContinuer">➕ Continuer à s\'entraîner</button>'
       + '<button class="btn ghost" id="gramPartage">📤 Partager</button>';
+    $("gramContinuer").addEventListener("click", gramLibreDemarrer);
     $("gramPartage").addEventListener("click", ()=>{
       const c = gramConf();
       const txt = c.titre + " n°" + gramNum() + " — " + gramScore + "/" + GRAM_NB
@@ -5663,6 +5740,8 @@
     }catch(e){}
   }, 1600);
   setTimeout(notifDaily, 2500);   // après l'installation de l'écran
+  // rattrapage du classement « Aujourd'hui » pour les exercices déjà faits
+  setTimeout(()=>{ gramEnvoyer("gram"); gramEnvoyer("ortho"); }, 2800);
   persoLoadApproved();
   const last = store.get("motus.last","free");
   if(last==="duel"){ const a=duelActive(); if(a) duelResume(a); else startFree("normal"); }
