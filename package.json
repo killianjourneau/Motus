@@ -1,6 +1,6 @@
 {
   "name": "motus",
-  "version": "2.4.1",
+  "version": "2.5.0",
   "description": "Mot en Six — jeu de mots en français, installable et jouable hors-ligne.",
   "private": true,
   "scripts": {
