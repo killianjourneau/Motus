@@ -172,6 +172,15 @@
 
     /* Émote : phrase toute faite envoyée à l'adversaire. La valeur inclut
        un horodatage pour que deux envois identiques soient bien détectés. */
+    /* Signale où j'en suis sur un duel donné (résultats, choix, attente).
+       Silencieux en cas d'échec : c'est une information de confort. */
+    presence: function (code, etat) {
+      if (!configured || !code) return Promise.resolve(null);
+      var m = me();
+      return rpc("duel_presence", { p_code: String(code).toUpperCase(), p_id: m.id, p_etat: etat })
+        .catch(function () { return null; });
+    },
+
     emote: function (code, value) {
       var m = me();
       return rpc("duel_emote", {
@@ -195,6 +204,9 @@
         ? { tries: d.p1_tries, ms: d.p1_ms, done: !!d.p1_done, won: !!d.p1_won }
         : { tries: d.p2_tries, ms: d.p2_ms, done: !!d.p2_done, won: !!d.p2_won };
       d.oppEmote = d.side === 2 ? (d.p1_emote || "") : (d.p2_emote || "");
+      // présence de l'adversaire : où il en est, et quand il a été vu
+      d.oppEtat = d.side === 2 ? (d.p1_etat || "") : (d.p2_etat || "");
+      d.oppVu   = d.side === 2 ? (d.p1_vu   || null) : (d.p2_vu   || null);
       // classement Elo : calculé et écrit par la base, jamais par le client
       d.myElo    = d.side === 2 ? d.p2_elo : d.p1_elo;
       d.oppElo   = d.side === 2 ? d.p1_elo : d.p2_elo;

@@ -1644,3 +1644,32 @@ $$;
 
 grant execute on function royale_moves(text,uuid,int,text) to anon, authenticated;
 grant execute on function royale_state(text)               to anon, authenticated;
+
+-- =====================================================================
+-- v2.5 — Présence des joueurs pendant une revanche
+--
+-- Une revanche crée un NOUVEAU duel, où l'adversaire n'existe pas tant
+-- qu'il n'a pas choisi son mot. Pendant ce temps, l'ancien duel reste le
+-- seul lien entre les deux joueurs : chacun y signale où il en est
+-- (résultats, choix du mot, attente) et quand il a été vu pour la
+-- dernière fois — assez pour savoir s'il est parti.
+-- =====================================================================
+alter table duels add column if not exists p1_etat text;
+alter table duels add column if not exists p1_vu   timestamptz;
+alter table duels add column if not exists p2_etat text;
+alter table duels add column if not exists p2_vu   timestamptz;
+
+create or replace function duel_presence(p_code text, p_id uuid, p_etat text)
+returns void language plpgsql security definer as $$
+declare v_etat text := lower(btrim(coalesce(p_etat,'')));
+begin
+  if v_etat not in ('resultat','choix','attente','jeu') then return; end if;
+  update duels set
+    p1_etat = case when p1_id = p_id then v_etat else p1_etat end,
+    p1_vu   = case when p1_id = p_id then now()  else p1_vu   end,
+    p2_etat = case when p2_id = p_id then v_etat else p2_etat end,
+    p2_vu   = case when p2_id = p_id then now()  else p2_vu   end
+  where id = upper(btrim(p_code)) and (p1_id = p_id or p2_id = p_id);
+end $$;
+
+grant execute on function duel_presence(text,uuid,text) to anon, authenticated;
