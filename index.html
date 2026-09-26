@@ -15,13 +15,13 @@
 <meta property="og:title" content="Mot en Six — trouve le mot caché en 6 essais">
 <meta property="og:description" content="Mot du jour, grammaire et orthographe du jour, duels, Battle Royale et mode Junior. Gratuit, sans publicité, jouable hors-ligne.">
 <meta property="og:url" content="https://killianjourneau.github.io/Motus/">
-<meta property="og:image" content="https://killianjourneau.github.io/Motus/icons/apercu.png?v=2.4.1">
+<meta property="og:image" content="https://killianjourneau.github.io/Motus/icons/apercu.png?v=2.4.0">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Mot en Six — trouve le mot caché en 6 essais">
 <meta name="twitter:description" content="Mot du jour, grammaire et orthographe du jour, duels et Battle Royale.">
-<meta name="twitter:image" content="https://killianjourneau.github.io/Motus/icons/apercu.png?v=2.4.1">
+<meta name="twitter:image" content="https://killianjourneau.github.io/Motus/icons/apercu.png?v=2.4.0">
 <link rel="canonical" href="https://killianjourneau.github.io/Motus/">
 <script type="application/ld+json">
 {
@@ -206,6 +206,9 @@
     border-radius:11px; padding:9px 12px; margin-bottom:6px; }
   .gram-revue .q{ flex:1; font-size:12.5px; color:var(--ink-dim); }
   .gram-revue .a{ font-weight:800; font-size:13px; }
+  .duel-presence{ text-align:center; font-size:13.5px; line-height:1.5; background:var(--cell);
+    border-radius:12px; padding:10px 12px; margin:8px 0; }
+  .duel-presence small{ color:var(--ink-dim); font-size:11.5px; }
   .roy-code{ text-align:center; font-size:30px; font-weight:800; letter-spacing:7px;
     background:var(--cell); border-radius:13px; padding:12px; margin-bottom:10px; }
   .roy-j{ display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:11px;
@@ -1078,6 +1081,8 @@
         <div class="duel-code" id="duelCodeShow">—</div>
         <button class="btn ghost" id="duelShare">Partager le code</button>
         <div class="duel-msg" id="duelWait">En attente d'un adversaire…</div>
+        <div class="duel-presence" id="duelPresence" style="display:none"></div>
+        <div class="roy-emotes" id="duelWaitEmotes" style="display:none"></div>
         <button class="btn ghost" id="duelCheck">Vérifier maintenant</button>
       </div>
 
@@ -1117,23 +1122,23 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=2.4.1"></script>
-<script src="./dico/motus-grammaire.js?v=2.4.1"></script>
-<script src="./dico/motus-ortho.js?v=2.4.1"></script>
-<script src="./dico/motus-prenoms.js?v=2.4.1"></script>
-<script src="./dico/motus-prenoms-info.js?v=2.4.1"></script>
-<script src="./dico/motus-maladies.js?v=2.4.1"></script>
-<script src="./dico/motus-maladies-info.js?v=2.4.1"></script>
-<script src="./dico/motus-villes.js?v=2.4.1"></script>
-<script src="./dico/motus-villes-info.js?v=2.4.1"></script>
-<script src="./dico/motus-persos.js?v=2.4.1"></script>
-<script src="./dico/motus-persos-info.js?v=2.4.1"></script>
-<script src="./dico/motus-persos-split.js?v=2.4.1"></script>
-<script src="./dico/motus-race.js?v=2.4.1"></script>
-<script src="./dico/motus-expert.js?v=2.4.1"></script>
-<script src="./profiles/config.js?v=2.4.1"></script>
-<script src="./profiles/profile.js?v=2.4.1"></script>
-<script src="./duel/duel.js?v=2.4.1"></script>
+<script src="./dico/motus-words.js?v=2.4.0"></script>
+<script src="./dico/motus-grammaire.js?v=2.4.0"></script>
+<script src="./dico/motus-ortho.js?v=2.4.0"></script>
+<script src="./dico/motus-prenoms.js?v=2.4.0"></script>
+<script src="./dico/motus-prenoms-info.js?v=2.4.0"></script>
+<script src="./dico/motus-maladies.js?v=2.4.0"></script>
+<script src="./dico/motus-maladies-info.js?v=2.4.0"></script>
+<script src="./dico/motus-villes.js?v=2.4.0"></script>
+<script src="./dico/motus-villes-info.js?v=2.4.0"></script>
+<script src="./dico/motus-persos.js?v=2.4.0"></script>
+<script src="./dico/motus-persos-info.js?v=2.4.0"></script>
+<script src="./dico/motus-persos-split.js?v=2.4.0"></script>
+<script src="./dico/motus-race.js?v=2.4.0"></script>
+<script src="./dico/motus-expert.js?v=2.4.0"></script>
+<script src="./profiles/config.js?v=2.4.0"></script>
+<script src="./profiles/profile.js?v=2.4.0"></script>
+<script src="./duel/duel.js?v=2.4.0"></script>
 <script>
 (() => {
   "use strict";
@@ -1185,7 +1190,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "2.4.1";
+  const VERSION = "2.4.0";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -3629,6 +3634,7 @@
         else {
           duelWaitMsg="En attente de ton adversaire…";
           duelShowWait("Revanche — s'il a quitté, renvoie-lui ce code :");
+          duelPresenceTick();            // état de l'adversaire dès l'arrivée
         }
         $("duelGo").disabled=false;
       }).catch(e=>{ duelSetMsg(duelErr(e), true); $("duelGo").disabled=false; });
@@ -3927,6 +3933,83 @@
     box.classList.add("show");
     const b=$("duelAcceptRematch"); if(b) b.addEventListener("click", duelStartRematch);
   }
+  /* ---------------------------------------------------------------
+     PRÉSENCE PENDANT UNE REVANCHE
+     Pendant qu'on attend l'adversaire sur le NOUVEAU duel, il n'y existe
+     pas encore : l'ancien duel est le seul lien. Chacun y signale où il en
+     est toutes les 8 s, et y lit où en est l'autre. Les émotes transitent
+     aussi par l'ancien duel, que les deux joueurs partagent.
+     --------------------------------------------------------------- */
+  const PRESENCE_MS = 8000, PARTI_MS = 30000;
+  let duelPresenceT = null;
+
+  function duelMonEtat(){
+    if(duelMode === "rematch" && duelRematchOldCode){
+      // étape 1 = je choisis mon mot ; sinon j'attends l'autre
+      const choix = $("duelStep1") && $("duelStep1").style.display !== "none";
+      return { code: duelRematchOldCode, etat: choix ? "choix" : "attente" };
+    }
+    if(mode === "duel" && duelCode && duelStarted && ended) return { code: duelCode, etat: "resultat" };
+    if(mode === "duel" && duelCode && duelStarted) return { code: duelCode, etat: "jeu" };
+    return null;
+  }
+
+  function duelPresenceTick(){
+    const e = duelMonEtat();
+    if(e && window.Duel && Duel.presence) Duel.presence(e.code, e.etat);
+    // on n'affiche l'état de l'autre QUE pendant l'attente d'une revanche
+    if(!(duelMode === "rematch" && duelRematchOldCode && e && e.etat === "attente")){
+      $("duelPresence").style.display = "none";
+      $("duelWaitEmotes").style.display = "none";
+      return;
+    }
+    Duel.fetch(duelRematchOldCode).then(d=>{
+      if(!d) return;
+      duelAfficherPresence(d);
+    }).catch(()=>{});
+  }
+
+  function duelAfficherPresence(d){
+    const box = $("duelPresence");
+    const nom = escapeHtml((d.opp && d.opp.pseudo) || "Ton adversaire");
+    const ilya = d.oppVu ? (Date.now() - new Date(d.oppVu).getTime()) : Infinity;
+    let txt;
+    if(ilya > PARTI_MS){
+      txt = '🔴 <b>' + nom + '</b> semble avoir quitté le jeu.'
+          + '<br><small>Renvoie-lui le code, ou lance un nouveau duel.</small>';
+    } else if(d.oppEtat === "choix"){
+      txt = '🟢 <b>' + nom + '</b> a accepté et choisit son mot…';
+    } else if(d.oppEtat === "resultat"){
+      txt = '🟡 <b>' + nom + '</b> est encore sur l\'écran des résultats — il n\'a pas encore accepté.';
+    } else {
+      txt = '🟡 <b>' + nom + '</b> est en ligne.';
+    }
+    box.innerHTML = txt;
+    box.style.display = "";
+
+    // messages : dernière émote reçue de l'autre, et barre pour répondre
+    if(d.oppEmote && d.oppEmote !== duelPresenceDerniere){
+      duelPresenceDerniere = d.oppEmote;
+      const i = parseInt(String(d.oppEmote).split(":")[0], 10);
+      const em = DUEL_EMOTES[i];
+      if(em) toast(nom.replace(/<[^>]*>/g,"") + " : " + em.e + " " + em.t, 2600);
+    }
+    const bar = $("duelWaitEmotes");
+    if(!bar.dataset.pret){
+      bar.dataset.pret = "1";
+      bar.innerHTML = DUEL_EMOTES.map((m,i)=>
+        '<button class="roy-em" data-i="'+i+'" title="'+m.t+'">'+m.e+'</button>').join("");
+      bar.querySelectorAll(".roy-em").forEach(b=> b.addEventListener("click", ()=>{
+        // même format que le Duel : « indice:horodatage », pour que deux
+        // envois identiques restent distincts
+        Duel.emote(duelRematchOldCode, b.dataset.i + ":" + Date.now());
+        toast("Envoyé : " + DUEL_EMOTES[+b.dataset.i].e, 1400);
+      }));
+    }
+    bar.style.display = "";
+  }
+  let duelPresenceDerniere = "";
+
   function duelStartRematch(){
     duelRematchOldCode = duelCode;
     duelMode = "rematch";
@@ -5763,6 +5846,7 @@
     }catch(e){}
   }, 1600);
   setTimeout(notifDaily, 2500);   // après l'installation de l'écran
+  duelPresenceT = setInterval(duelPresenceTick, PRESENCE_MS);
   // rattrapage du classement « Aujourd'hui » pour les exercices déjà faits
   setTimeout(()=>{ gramEnvoyer("gram"); gramEnvoyer("ortho"); }, 2800);
   persoLoadApproved();
