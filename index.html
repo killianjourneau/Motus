@@ -15,13 +15,13 @@
 <meta property="og:title" content="Mot en Six — trouve le mot caché en 6 essais">
 <meta property="og:description" content="Mot du jour, grammaire et orthographe du jour, duels, Battle Royale et mode Junior. Gratuit, sans publicité, jouable hors-ligne.">
 <meta property="og:url" content="https://killianjourneau.github.io/Motus/">
-<meta property="og:image" content="https://killianjourneau.github.io/Motus/icons/apercu.png?v=2.4.1">
+<meta property="og:image" content="https://killianjourneau.github.io/Motus/icons/apercu.png?v=2.4.0">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Mot en Six — trouve le mot caché en 6 essais">
 <meta name="twitter:description" content="Mot du jour, grammaire et orthographe du jour, duels et Battle Royale.">
-<meta name="twitter:image" content="https://killianjourneau.github.io/Motus/icons/apercu.png?v=2.4.1">
+<meta name="twitter:image" content="https://killianjourneau.github.io/Motus/icons/apercu.png?v=2.4.0">
 <link rel="canonical" href="https://killianjourneau.github.io/Motus/">
 <script type="application/ld+json">
 {
@@ -1117,23 +1117,23 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=2.4.1"></script>
-<script src="./dico/motus-grammaire.js?v=2.4.1"></script>
-<script src="./dico/motus-ortho.js?v=2.4.1"></script>
-<script src="./dico/motus-prenoms.js?v=2.4.1"></script>
-<script src="./dico/motus-prenoms-info.js?v=2.4.1"></script>
-<script src="./dico/motus-maladies.js?v=2.4.1"></script>
-<script src="./dico/motus-maladies-info.js?v=2.4.1"></script>
-<script src="./dico/motus-villes.js?v=2.4.1"></script>
-<script src="./dico/motus-villes-info.js?v=2.4.1"></script>
-<script src="./dico/motus-persos.js?v=2.4.1"></script>
-<script src="./dico/motus-persos-info.js?v=2.4.1"></script>
-<script src="./dico/motus-persos-split.js?v=2.4.1"></script>
-<script src="./dico/motus-race.js?v=2.4.1"></script>
-<script src="./dico/motus-expert.js?v=2.4.1"></script>
-<script src="./profiles/config.js?v=2.4.1"></script>
-<script src="./profiles/profile.js?v=2.4.1"></script>
-<script src="./duel/duel.js?v=2.4.1"></script>
+<script src="./dico/motus-words.js?v=2.4.0"></script>
+<script src="./dico/motus-grammaire.js?v=2.4.0"></script>
+<script src="./dico/motus-ortho.js?v=2.4.0"></script>
+<script src="./dico/motus-prenoms.js?v=2.4.0"></script>
+<script src="./dico/motus-prenoms-info.js?v=2.4.0"></script>
+<script src="./dico/motus-maladies.js?v=2.4.0"></script>
+<script src="./dico/motus-maladies-info.js?v=2.4.0"></script>
+<script src="./dico/motus-villes.js?v=2.4.0"></script>
+<script src="./dico/motus-villes-info.js?v=2.4.0"></script>
+<script src="./dico/motus-persos.js?v=2.4.0"></script>
+<script src="./dico/motus-persos-info.js?v=2.4.0"></script>
+<script src="./dico/motus-persos-split.js?v=2.4.0"></script>
+<script src="./dico/motus-race.js?v=2.4.0"></script>
+<script src="./dico/motus-expert.js?v=2.4.0"></script>
+<script src="./profiles/config.js?v=2.4.0"></script>
+<script src="./profiles/profile.js?v=2.4.0"></script>
+<script src="./duel/duel.js?v=2.4.0"></script>
 <script>
 (() => {
   "use strict";
@@ -1185,7 +1185,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "2.4.1";
+  const VERSION = "2.4.0";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -2352,6 +2352,18 @@
         rpg:"Quête (combats)"
       };
       // parties par mode, triées — solo, Junior et Quête réunis
+      // Canaux de diffusion : chaque visiteur suivi via ?src=xxx compte
+      // une fois sous "mode:xxx". C'est la seule façon de savoir lequel de
+      // vos partages amène réellement des joueurs.
+      const sources = Object.keys(total).filter(c=>c.startsWith("mode:"))
+        .map(c=>({ nom:c.slice(5), n:total[c] })).sort((a,b)=>b.n-a.n);
+      const maxS = Math.max(1, ...sources.map(s=>s.n));
+      const listeSources = sources.map(s=>{
+        const pct = Math.round(s.n/maxS*100);
+        return '<div class="bar"><span class="k" style="width:104px;text-align:left;font-size:11px">'+s.nom+'</span>'
+             + '<div class="t" style="width:'+Math.max(pct,8)+'%">'+s.n+'</div></div>';
+      }).join("");
+
       const modes = Object.keys(total).filter(c=>c.startsWith("partie:"))
         .map(c=>{ const id=c.slice(7); return { nom:NOMS_MODE[id]||id, parties:total[c], gagnees:total["gagne:"+id]||0 }; })
         .sort((a,b)=>b.parties-a.parties);
@@ -2395,6 +2407,7 @@
         +   '<div class="st-row"><span>Part de joueurs qui reviennent</span><b>'+fidelite+' %</b></div>'
         +   (totDH ? '<div class="st-row"><span>Habitués parmi les visiteurs du jour</span><b>'+partHabitue+' %</b></div>' : '')
         + '</div>'
+        + (listeSources ? '<div class="dist-title">D\'où viennent les nouveaux visiteurs</div><div class="dist">'+listeSources+'</div>' : '')
         + (listeModes ? '<div class="dist-title">Parties par mode · taux de réussite</div><div class="dist">'+listeModes+'</div>' : '')
         + (finiRpg ? '<div class="st-block"><div class="st-row"><span>🏆 Aventures terminées (Quête)</span><b>'+finiRpg+'</b></div></div>' : '')
         + '<p class="perso-hint">Aucun identifiant n\'est enregistré : ce sont des compteurs par jour, rien de plus.</p>';
@@ -5667,6 +5680,16 @@
     const rc = (q.get("race")||"").trim().toUpperCase();
     const df = (q.get("defense")||"").trim();
     const cp = (q.get("compte")||"").trim();
+    /* Traçage de la SOURCE d'un visiteur : ?src=reddit, ?src=ifprofs, etc.
+       Mesuré UNE SEULE FOIS par appareil (le tout premier lien suivi compte,
+       pas les visites suivantes), sous "mode:xxx" — motif déjà autorisé côté
+       serveur. Sans identifiant ni donnée personnelle : juste un compteur
+       par canal, pour savoir enfin lequel amène vraiment des joueurs. */
+    const src = (q.get("src")||"").trim().toLowerCase().replace(/[^a-z]/g,"").slice(0,12);
+    if(src && !store.get("motus.srcVu", false)){
+      store.set("motus.srcVu", true);
+      setTimeout(()=>{ if(window.Audience && Audience.configured()) Audience.ping("mode:"+src); }, 1200);
+    }
     const br = (q.get("royale")||"").trim().toUpperCase();
     if(!dc && !rc && !df && !cp && !br) return;
     try{ history.replaceState(null,"",location.pathname); }catch(e){}   // pas de re-déclenchement au rechargement
