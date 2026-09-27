@@ -92,6 +92,8 @@
     color:var(--ink); font-size:15px; font-weight:800; cursor:pointer;
     box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
   .choix button.on{ background:var(--red); color:#fff; box-shadow:none; }
+  .tour-suivant{ display:inline-block; margin-top:6px; font-size:.85em; font-weight:800;
+    color:var(--accent); }
   .score.duo{ justify-content:center; gap:14px; }
   .joueur{ display:flex; align-items:center; gap:5px; padding:6px 11px; border-radius:12px;
     background:var(--cell); font-weight:800; font-size:14px; opacity:.45; transition:.2s; }
@@ -275,7 +277,7 @@
     </div>
   </div>
 
-<script src="./dico/motus-enfant.js?v=2.5.1"></script>
+<script src="./dico/motus-enfant.js?v=2.4.0"></script>
 <script>
 (function(){
   "use strict";
@@ -405,18 +407,28 @@
     var isWord = (level==="expert");
     var total = (level==="moyen") ? 9 : isWord ? 6 : pick([4,6]);
     var proche = (level==="moyen" || isWord);
+    /* Deux catégories qui se chevauchent ne doivent jamais se faire face :
+       trois oiseaux avec une POULE comme intrus, alors qu'une poule EST un
+       oiseau, rendait la réponse attendue discutable. La règle vaut dans
+       les deux sens et à tous les niveaux. */
+    var compatibles = function(a, b){
+      var xa = (CATS[a] && CATS[a].x) || [], xb = (CATS[b] && CATS[b].x) || [];
+      return xa.indexOf(b) < 0 && xb.indexOf(a) < 0;
+    };
     var voisines = function(c){
-      return Object.keys(CATS).filter(function(o){ return o!==c && byCat(o).length && group(o)===group(c); });
+      return Object.keys(CATS).filter(function(o){
+        return o!==c && byCat(o).length && group(o)===group(c) && compatibles(c,o); });
+    };
+    var lointaines = function(c){
+      return Object.keys(CATS).filter(function(o){
+        return o!==c && byCat(o).length && group(o)!==group(c) && compatibles(c,o); });
     };
     var cats = Object.keys(CATS).filter(function(c){
       if(byCat(c).length < total) return false;
-      return proche ? voisines(c).length > 0 : true;
+      return (proche ? voisines(c) : lointaines(c)).length > 0;
     });
     var c = pick(cats);
-    var others = proche
-      ? voisines(c)
-      : Object.keys(CATS).filter(function(o){ return o!==c && byCat(o).length && group(o)!==group(c); });
-    if(!others.length) others = Object.keys(CATS).filter(function(o){ return o!==c && byCat(o).length; });
+    var others = proche ? voisines(c) : lointaines(c);
     var oc = pick(others);
     var same = shuffle(byCat(c).slice()).slice(0, total-1);
     var odd  = pick(byCat(oc));
@@ -706,10 +718,12 @@
      ======================================================= */
   function win(msg){
     if(duo()){
-      pts[tour]++; paintScore(); vibrate([12,40,12]);
-      $("ask").innerHTML = msg;
+      locked = true;
+      pts[tour]++; vibrate([12,40,12]);
       joueurSuivant();
-      setTimeout(newRound, 1400);
+      paintScore();
+      $("ask").innerHTML = msg + '<br><span class="tour-suivant">Au tour de ' + AVATARS[tour] + '</span>';
+      programmerManche(1600);
       return;
     }
     stars++; coups++; paintScore(); vibrate([12,40,12]);
@@ -729,9 +743,16 @@
         setTimeout(function(){ endRun(target); }, 1600);
         return;
       }
-      $("ask").innerHTML = elimine(tour) ? (msg + " " + AVATARS[tour] + " n'a plus de cœurs.") : msg;
+      /* La grille doit être VERROUILLÉE pendant la pause : sinon le joueur
+         suivant pouvait répondre sur la grille de l'autre, et deux manches
+         se retrouvaient programmées — d'où le décalage entre le joueur
+         affiché et celui qui jouait réellement. */
+      locked = true;
+      const avant = elimine(tour) ? (msg + " " + AVATARS[tour] + " n'a plus de cœurs.") : msg;
       joueurSuivant();
-      setTimeout(newRound, 1600);
+      paintScore();                        // bandeau à jour APRÈS le changement de joueur
+      $("ask").innerHTML = avant + '<br><span class="tour-suivant">Au tour de ' + AVATARS[tour] + '</span>';
+      programmerManche(1800);
       return;
     }
     lives--; paintScore(); vibrate([30,60,30]);
@@ -745,7 +766,13 @@
     $("ask").innerHTML = msg;
   }
 
+  let mancheT = null;
+  function programmerManche(ms){
+    clearTimeout(mancheT);
+    mancheT = setTimeout(newRound, ms);
+  }
   function newRound(){
+    clearTimeout(mancheT);
     locked = false; hide();
     if(game==="intrus")       roundIntrus();
     else if(game==="compter") roundCompter();
