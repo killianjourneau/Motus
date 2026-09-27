@@ -277,12 +277,44 @@ module.exports = function ({ groupe, verifie, ok, egal, vide, RACINE }) {
     vide(pb, "leurres invalides");
   });
 
+  verifie("exercices : les phrases restent correctes une fois complétées (élision)", () => {
+    // « le hôtel », « ce arbre », « de eau »… : l'exercice enseignerait une faute.
+    // Le h aspiré n'élide pas : « le hibou », « la hache ».
+    const ASPIRE = ["hibou","hache","haricot","hêtre","héros","hérisson","haie","hall","hamster",
+                    "hareng","haine","hasard","hauteur","haut","honte","hockey","homard","housse","huit","hangar"];
+    const voy = (m) => {
+      const b = m.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      return /^[aeiouy]/.test(b) || (b[0] === "h" && ASPIRE.indexOf(m.toLowerCase()) < 0);
+    };
+    const ELIDE = ["le","la","de","je","me","te","se","ne","que","ce","ma","ta","sa","du","au","si"];
+    const fautes = [];
+    [["motus-ortho.js","MOTUS_ORTHO"],["motus-grammaire.js","MOTUS_GRAMMAIRE"]].forEach(([f,k]) => {
+      charger([f])[k].forEach(x => {
+        const avant = (x.p.split("___")[0].trim().split(/\s+/).pop() || "").toLowerCase();
+        const mot = x.r[0].split(/[\s']/)[0];
+        if (voy(mot) && ELIDE.indexOf(avant) >= 0) fautes.push(x.p.replace("___", x.r[0]));
+      });
+    });
+    vide(fautes, "élision manquante");
+  });
+
+  verifie("orthographe : aucun leurre n'est une graphie admise (réforme de 1990)", () => {
+    // Le circonflexe sur i et u peut disparaître : « gout », « chaine » sont
+    // corrects. Les proposer comme fautes compterait faux une bonne réponse.
+    const GARDE = ["dû","mûr","sûr","jeûne","crû"];
+    const pb = charger(["motus-ortho.js"]).MOTUS_ORTHO.filter(x => {
+      const r = x.r[0], rect = r.replace(/î/g, "i").replace(/û/g, "u");
+      return GARDE.indexOf(r) < 0 && rect !== r && x.c.indexOf(rect) >= 0;
+    }).map(x => x.r[0]);
+    vide(pb, "leurre admis par la réforme");
+  });
+
   verifie("les bibliothèques quotidiennes ont assez de réserve", () => {
     // l'entraînement libre tournerait en rond trop vite en dessous
     const g = charger(["motus-grammaire.js"]).MOTUS_GRAMMAIRE;
     const o = charger(["motus-ortho.js"]).MOTUS_ORTHO;
     ok(g.length >= 150, "grammaire : " + g.length + " exercices, 150 attendus");
-    ok(o.length >= 130, "orthographe : " + o.length + " exercices, 130 attendus");
+    ok(o.length >= 180, "orthographe : " + o.length + " exercices, 180 attendus");
     egal(new Set(g.map(x => x.p)).size, g.length, "phrases de grammaire uniques");
     egal(new Set(o.map(x => x.p)).size, o.length, "phrases d'orthographe uniques");
   });
