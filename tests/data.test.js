@@ -287,6 +287,21 @@ module.exports = function ({ groupe, verifie, ok, egal, vide, RACINE }) {
     egal(new Set(o.map(x => x.p)).size, o.length, "phrases d'orthographe uniques");
   });
 
+  verifie("Junior : bibliothèque cohérente et sans chevauchement", () => {
+    const J = charger(["motus-enfant.js"]).MOTUS_ENFANT;
+    const mots = J.images.map(x => x.m), ems = J.images.map(x => x.e);
+    egal(new Set(mots).size, mots.length, "mots uniques");
+    egal(new Set(ems).size, ems.length, "émojis uniques");
+    vide(J.images.filter(x => !J.cats[x.c]).map(x => x.m), "images sans catégorie déclarée");
+    vide(J.images.filter(x => !/^[A-Z]+$/.test(x.m)).map(x => x.m), "mots hors majuscules sans accent");
+    const liens = [];
+    Object.keys(J.cats).forEach(c => (J.cats[c].x || []).forEach(o => { if (!J.cats[o]) liens.push(c + "→" + o); }));
+    vide(liens, "exclusions vers des catégories inexistantes");
+    // émojis trop récents : carré vide sur beaucoup de téléphones
+    vide(J.images.filter(x => /[\u{1FAB7}-\u{1FABF}\u{1FAC6}-\u{1FACF}\u{1FADA}-\u{1FAFF}\u{1F6DD}-\u{1F6DF}\u{1FA7B}-\u{1FA7F}\u{1FAAD}-\u{1FAAF}\u{1FAE0}-\u{1FAE8}\u{1FAF0}-\u{1FAF8}]/u.test(x.e)).map(x => x.m),
+         "émojis trop récents");
+  });
+
   verifie("tous les fichiers de données sont dans le cache hors-ligne", () => {
     const sw  = fs.readFileSync(path.join(RACINE, "sw.js"), "utf8");
     const idx = fs.readFileSync(path.join(RACINE, "index.html"), "utf8");
