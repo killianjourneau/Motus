@@ -1,0 +1,57 @@
+name: Annonces Discord
+
+# Publie dans votre salon Discord, sans aucun bot à héberger :
+#  - chaque matin, les exercices du jour (et le mot de la veille, masqué) ;
+#  - après chaque « Nouvelle version » réussie, l'annonce de la mise à jour.
+#
+# Nécessite UN secret : Settings → Secrets and variables → Actions →
+# New repository secret → nom DISCORD_WEBHOOK, valeur = l'adresse du webhook.
+# Sans ce secret, rien n'est envoyé et rien n'échoue.
+
+on:
+  schedule:
+    - cron: "0 6 * * *"          # 6 h UTC = 8 h à Paris en été, 7 h en hiver
+  workflow_run:
+    workflows: ["Nouvelle version"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      quoi:
+        description: "Annonce à envoyer"
+        required: true
+        default: jour
+        type: choice
+        options: [jour, version]
+
+permissions:
+  contents: read
+
+jobs:
+  annoncer:
+    runs-on: ubuntu-latest
+    # après une nouvelle version : seulement si elle a réussi
+    if: >-
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main                 # la version tout juste publiée
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+
+      - name: Envoyer l'annonce
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          SITE_URL: ${{ secrets.SITE_URL }}        # facultatif
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            QUOI=version
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            QUOI="${{ inputs.quoi }}"
+          else
+            QUOI=jour
+          fi
+          node scripts/discord.js "$QUOI"
