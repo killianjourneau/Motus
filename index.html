@@ -14,15 +14,15 @@
 <meta property="og:locale" content="fr_FR">
 <meta property="og:title" content="Mot en Six — trouve le mot caché en 6 essais">
 <meta property="og:description" content="Mot du jour, grammaire et orthographe du jour, duels, Battle Royale et mode Junior. Gratuit, sans publicité, jouable hors-ligne.">
-<meta property="og:url" content="https://killianjourneau.github.io/Motus/">
-<meta property="og:image" content="https://killianjourneau.github.io/Motus/icons/apercu.png?v=2.5.2">
+<meta property="og:url" content="https://mot-en-six.gamesbyneur.workers.dev/">
+<meta property="og:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.5.2">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Mot en Six — trouve le mot caché en 6 essais">
 <meta name="twitter:description" content="Mot du jour, grammaire et orthographe du jour, duels et Battle Royale.">
-<meta name="twitter:image" content="https://killianjourneau.github.io/Motus/icons/apercu.png?v=2.5.2">
-<link rel="canonical" href="https://killianjourneau.github.io/Motus/">
+<meta name="twitter:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.5.2">
+<link rel="canonical" href="https://mot-en-six.gamesbyneur.workers.dev/">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -30,8 +30,8 @@
   "name": "Mot en Six",
   "alternateName": "MOTENSIX",
   "description": "Jeu de mots en français : trouver le mot caché en six essais. Mot du jour, duels en ligne, quatre thèmes documentés, aventure solo et mode enfant.",
-  "url": "https://killianjourneau.github.io/Motus/",
-  "image": "https://killianjourneau.github.io/Motus/icons/apercu.png",
+  "url": "https://mot-en-six.gamesbyneur.workers.dev/",
+  "image": "https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png",
   "inLanguage": "fr",
   "genre": ["Jeu de mots", "Puzzle"],
   "playMode": ["SinglePlayer", "MultiPlayer"],
@@ -206,6 +206,11 @@
     border-radius:11px; padding:9px 12px; margin-bottom:6px; }
   .gram-revue .q{ flex:1; font-size:12.5px; color:var(--ink-dim); }
   .gram-revue .a{ font-weight:800; font-size:13px; }
+  #horsLigne{ position:fixed; left:50%; top:calc(env(safe-area-inset-top,0px) + 6px); transform:translate(-50%,-140%);
+    background:var(--cell); color:var(--ink); box-shadow:inset 0 0 0 1.5px var(--cell-edge), 0 6px 20px rgba(0,0,0,.35);
+    padding:6px 13px; border-radius:20px; font-size:12px; font-weight:700; z-index:500;
+    transition:transform .3s; pointer-events:none; white-space:nowrap; }
+  #horsLigne.show{ transform:translate(-50%,0); }
   .duel-presence{ text-align:center; font-size:13.5px; line-height:1.5; background:var(--cell);
     border-radius:12px; padding:10px 12px; margin:8px 0; }
   .duel-presence small{ color:var(--ink-dim); font-size:11.5px; }
@@ -221,9 +226,13 @@
   .roy-r.observable{ cursor:pointer; }
   .roy-r.observable:active{ transform:scale(.98); }
   #roySpy{ margin:10px 0; }
-  .spy-time{ float:right; margin-right:8px; font-variant-numeric:tabular-nums; font-weight:800; }
-  .spy-time.urgent{ color:var(--red); }
-  .spy-x{ float:right; border:none; background:none; color:var(--ink-dim); font-size:15px;
+  /* Battle Royale uniquement : le Duel utilise aussi .spy-time, et un
+     « float » global y faisait passer le premier mot à côté du temps
+     restant, écrasé. En-tête en flex : rien ne peut plus flotter. */
+  #roySpy .spy-t{ display:flex; align-items:center; gap:8px; }
+  #roySpy .spy-time{ margin-left:auto; font-variant-numeric:tabular-nums; font-weight:800; }
+  #roySpy .spy-time.urgent{ color:var(--red); }
+  .spy-x{ border:none; background:none; color:var(--ink-dim); font-size:15px;
     cursor:pointer; padding:0 2px; line-height:1; }
   .roy-compte{ display:block; font-size:44px; font-weight:800; line-height:1.1;
     color:var(--red); font-variant-numeric:tabular-nums; }
@@ -827,8 +836,9 @@
       <div class="dist-title">Contenu</div>
       <p style="text-align:center;margin-bottom:6px" id="aboutCounts"></p>
       <div class="dist-title">Nouveautés</div>
-      <p style="text-align:center;font-size:13px;color:var(--ink-dim)">🧠 Mémorisation · 🧸 Mot en Six Junior · Mode à deux joueurs · Défense &amp; Journal de guerre</p>
+      <p style="text-align:center;font-size:13px;color:var(--ink-dim)">✍️ Grammaire &amp; 🔤 Orthographe du jour · 👑 Battle Royale · 🧸 Junior enrichi</p>
       <button class="btn" id="btnRulesFromAbout">📖 Règles du jeu</button>
+      <a class="btn ghost" href="./decouvrir.html" style="display:block;text-align:center;text-decoration:none">🌐 Présentation du jeu</a>
       <button class="btn" id="btnShareFromAbout">📤 Partager le jeu</button>
       <button class="btn ghost" data-close>Fermer</button>
       <p class="mention">© Killian Journeau — tous droits réservés.<br>
@@ -1384,11 +1394,60 @@
      un repère visuel, sans avoir à relancer le mode pour le savoir. */
   /* Défense : deux alertes que rien ne signalait sans ouvrir le panneau —
      l'absence de mot posé, et une défense tombée depuis la dernière visite. */
+  /* ---------------------------------------------------------------
+     CONNEXION
+     Le jeu ignorait qu'il pouvait être hors ligne : chaque fonction en
+     ligne tentait sa requête, et un échec passait pour un résultat vide
+     (« aucune défense », « classement vide »…). Désormais :
+       - enLigne() dit si le réseau est disponible ;
+       - exigeConnexion() bloque proprement une fonction qui en a besoin ;
+       - un indicateur signale le hors-ligne ;
+       - au retour du réseau, on rattrape ce qui était en attente.
+     --------------------------------------------------------------- */
+  function enLigne(){ return navigator.onLine !== false; }
+  function exigeConnexion(quoi){
+    if(enLigne()) return true;
+    toast("📡 " + quoi + " demande une connexion. Les modes solo et les exercices du jour restent disponibles.", 3800);
+    return false;
+  }
+  function majIndicateurReseau(){
+    let e = $("horsLigne");
+    if(!e){
+      e = document.createElement("div"); e.id = "horsLigne";
+      e.textContent = "📡 Hors ligne — multijoueur et classements en pause";
+      document.body.appendChild(e);
+    }
+    e.classList.toggle("show", !enLigne());
+  }
+  window.addEventListener("offline", majIndicateurReseau);
+  window.addEventListener("online", ()=>{
+    majIndicateurReseau();
+    toast("Connexion retrouvée ✓", 1800);
+    // rattrapage : résultats du jour, profil, état de la défense
+    if(window.Profile && Profile.rattraper) Profile.rattraper(true);
+    gramEnvoyer("gram"); gramEnvoyer("ortho");
+    majPastilleDefense();
+  });
+
+  /* Défense : on retient le dernier état confirmé par le serveur, pour
+     l'afficher hors ligne au lieu de conclure qu'il n'y a pas de mot. */
+  function defMineConnu(d){
+    if(d && d.horsLigne){
+      const c = store.get("motus.defMine", null);
+      return { d: (c && c.id) ? c : null, horsLigne: true, connu: !!c };
+    }
+    store.set("motus.defMine", d && d.id ? d : { aucune: true });
+    return { d: d && d.id ? d : null, horsLigne: false, connu: true };
+  }
+
   function majPastilleDefense(){
     const b = $("modeDefense"); if(!b || !defAvailable()) return;
-    Defense.mine().then(d=>{
+    Defense.mine().then(brut=>{
+      const r = defMineConnu(brut), d = r.d;
       b.classList.remove("vide","perce");
       const sub = $("modeDefenseSub");
+      // hors ligne et rien de connu : on n'affirme RIEN
+      if(r.horsLigne && !r.connu){ if(sub) sub.textContent = "Protège ton mot"; return; }
       if(!d || !d.id){
         b.classList.add("vide");
         if(sub) sub.textContent = "Pose un mot !";
@@ -1867,6 +1926,7 @@
   function defShowStep(n){ [1,2,3,4].forEach(i=>{ const e=$("defStep"+i); if(e) e.style.display=(i===n)?"":"none"; }); }
 
   function defOpen(){
+    if(!exigeConnexion("La Défense")) return;
     if(!defAvailable()){ toast("Le mode Défense nécessite la connexion au serveur"); return; }
     defShowStep(1); defSetMsg("");
     openOverlay("defOverlay");
@@ -1876,8 +1936,19 @@
   function defRefresh(){
     $("defMine").innerHTML = '<div class="t">Ma défense</div><div class="s">Chargement…</div>';
     $("defTargets").innerHTML = '<div class="def-none">Chargement…</div>';
-    Defense.mine().then(d=>{ defMineCache=d; defDrawMine(d); defDrawFeed(); });
-    Defense.targets(20).then(defDrawTargets);
+    Defense.mine().then(brut=>{
+      const r = defMineConnu(brut);
+      if(r.horsLigne){
+        // on montre ce qu'on sait, sans proposer de poser un mot
+        $("defMine").innerHTML = '<div class="t">Ma défense</div><div class="s">📡 Hors ligne — '
+          + (r.d ? 'ton mot de ' + (r.d.len||'?') + ' lettres est toujours posé' + (r.d.broken ? ', mais il est tombé.' : '.')
+                 : 'état inconnu pour l\'instant.') + '</div>';
+        $("defTargets").innerHTML = '<div class="def-none">Les défenses à percer reviendront avec la connexion.</div>';
+        return;
+      }
+      defMineCache = r.d; defDrawMine(r.d); defDrawFeed();
+    });
+    Defense.targets(20).then(t=>{ if(enLigne()) defDrawTargets(t); });
   }
 
   function defDrawMine(d){
@@ -2219,6 +2290,7 @@
   }
 
   function persoOpen(){
+    if(!exigeConnexion("Proposer un mot")) return;
     if(!window.Persos || !Persos.configured()){ toast("Les propositions nécessitent la connexion au serveur"); return; }
     $("persoName").value=""; $("persoNote").value=""; $("persoMsg").textContent="";
     $("persoStep1").style.display="";
@@ -2783,7 +2855,7 @@
       + "Un mot de " + d.len + " lettres, " + d.wins + " attaque" + (d.wins>1?"s":"")
       + " déjà repoussée" + (d.wins>1?"s":"") + "."
       + (acc ? "\n« " + acc + " »" : "")
-      + "\nSauras-tu le percer ? " + SHARE_URL + "?defense=1";
+      + "\nSauras-tu le percer ? " + SHARE_URL + "?defense=1&src=partdef";
     if(navigator.share) navigator.share({text:txt}).catch(()=>copy(txt)); else copy(txt);
   }
 
@@ -3049,6 +3121,7 @@
   }
 
   function raceOpen(){
+    if(!exigeConnexion("La Course")) return;
     if(!window.Race || !Race.configured){ toast("La course nécessite la base de données"); return; }
     raceStopWatch(); duelClosePicker();
     if(raceActive()){ raceShowStep(0); openOverlay("raceOverlay"); return; }
@@ -3152,7 +3225,7 @@
       if(d.ready){ raceShowOpponent(d); return; }
       if(raceMode==="rematch"){
         raceWaitMsg="En attente de ton adversaire…";
-        raceShowWait("Revanche — s'il a quitté, renvoie-lui ce code :");
+        raceShowWait("Revanche — " + pronomAdv().sil + " a quitté, renvoie-lui ce code :");
       } else {
         mpRemember("race", d.id);
         raceWaitMsg="En attente d'un adversaire…";
@@ -3206,6 +3279,7 @@
   }
 
   function raceShowOpponent(d){
+    retenirAdv(d);
     // seul instant où l'adversaire apparaît : c'est ici qu'on prévient
     if(!raceOppVu){
       raceOppVu = true;
@@ -3483,6 +3557,7 @@
   function duelShowStep(n){ [0,1,2,3,4].forEach(i=>{ const e=$("duelStep"+i); if(e) e.style.display = (i===n)?"":"none"; }); }
 
   function duelOpen(){
+    if(!exigeConnexion("Le Duel")) return;
     if(!window.Duel || !Duel.configured){ toast("Le duel nécessite la base de données"); return; }
     duelStopWatch(); duelClosePicker();
     if(duelActive()){ duelShowStep(0); openOverlay("duelOverlay"); return; }
@@ -3633,7 +3708,7 @@
         if(d.ready){ duelShowOpponent(d); }
         else {
           duelWaitMsg="En attente de ton adversaire…";
-          duelShowWait("Revanche — s'il a quitté, renvoie-lui ce code :");
+          duelShowWait("Revanche — " + pronomAdv().sil + " a quitté, renvoie-lui ce code :");
           duelPresenceTick();            // état de l'adversaire dès l'arrivée
         }
         $("duelGo").disabled=false;
@@ -3748,6 +3823,7 @@
   }
 
   function duelShowOpponent(d){
+    retenirAdv(d);
     $("oppName").textContent = d.opp.pseudo || "Anonyme";
     $("oppLevel").textContent = "Niveau " + (d.opp.level||1)
       + (d.oppElo ? " · ⚔️ " + d.oppElo : "");
@@ -3860,8 +3936,19 @@
     for(let i=0;i<n;i++){ if(res[i]==="correct") continue; if(pool[guess[i]]>0){ res[i]="present"; pool[guess[i]]--; } }
     return res;
   }
+  /* Pronom choisi par l'adversaire dans son profil (« il » par défaut).
+     On retient le dernier adversaire rencontré : pendant une revanche, le
+     nouveau duel ne le connaît pas encore. */
+  let dernierAdvId = null;
+  function retenirAdv(d){ if(d && d.opp && d.opp.id) dernierAdvId = d.opp.id; }
+  function pronomAdv(id){
+    const p = (window.Profile && Profile.pronomDe) ? Profile.pronomDe(id || dernierAdvId) : "il";
+    return { il: p, Il: p === "elle" ? "Elle" : "Il", e: p === "elle" ? "e" : "", sil: p === "elle" ? "si elle" : "s'il" };
+  }
+
   function duelDrawSpy(d){
     const box=$("duelSpy"); if(!box || !d) return;
+    retenirAdv(d);
     const word = d.myWord || "";
     const brut = (d.oppMoves || []);
     // la ligne en cours de frappe est marquée « ~ » : elle ne doit pas être
@@ -3871,7 +3958,7 @@
     if(!word){ box.classList.remove("show"); return; }
     const opp = ((d.opp && d.opp.pseudo) || "Ton adversaire").replace(/[<>]/g,"");
     const fini = d.his && d.his.done;
-    let html = '<div class="spy-t">' + (fini ? "Sa partie" : "Il joue en ce moment") + " · " + opp
+    let html = '<div class="spy-t">' + (fini ? "Sa partie" : pronomAdv(d.opp && d.opp.id).Il + " joue en ce moment") + " · " + opp
       + duelOppTimeHtml(d) + "</div>";
     if(!list.length && !live){
       html += '<div class="spy-none">' + (fini ? "Il n\'a proposé aucun mot." : "Il n\'a pas encore proposé de mot…") + "</div>";
@@ -3970,6 +4057,7 @@
   }
 
   function duelAfficherPresence(d){
+    retenirAdv(d);
     const box = $("duelPresence");
     const nom = escapeHtml((d.opp && d.opp.pseudo) || "Ton adversaire");
     const ilya = d.oppVu ? (Date.now() - new Date(d.oppVu).getTime()) : Infinity;
@@ -3980,7 +4068,8 @@
     } else if(d.oppEtat === "choix"){
       txt = '🟢 <b>' + nom + '</b> a accepté et choisit son mot…';
     } else if(d.oppEtat === "resultat"){
-      txt = '🟡 <b>' + nom + '</b> est encore sur l\'écran des résultats — il n\'a pas encore accepté.';
+      const pr = pronomAdv(d.opp && d.opp.id);
+      txt = '🟡 <b>' + nom + '</b> est encore sur l\'écran des résultats — ' + pr.il + ' n\'a pas encore accepté' + pr.e + '.';
     } else {
       txt = '🟡 <b>' + nom + '</b> est en ligne.';
     }
@@ -4713,7 +4802,7 @@
       const c = gramConf();
       const txt = c.titre + " n°" + gramNum() + " — " + gramScore + "/" + GRAM_NB
         + "\n" + c.icone.repeat(gramScore) + "▫️".repeat(GRAM_NB-gramScore)
-        + "\nUn exercice par jour :\n" + SHARE_URL;
+        + "\nUn exercice par jour :\n" + SHARE_URL + "?mode=" + gramMode + "&src=part" + gramMode;
       if(navigator.share) navigator.share({text:txt}).catch(()=>copy(txt)); else copy(txt);
     });
   }
@@ -4751,6 +4840,7 @@
   }
 
   function royOuvrir(){
+    if(!exigeConnexion("La Battle Royale")) return;
     if(!royDispo()){ toast("Le multijoueur demande une connexion au serveur."); return; }
     royEtape("roySetup"); royMsg("");
     $("royCode").value = "";
@@ -5252,6 +5342,7 @@
   }
 
   function memoOuvrirClassement(){
+    if(!exigeConnexion("Le classement")) return;
     const box = $("memoTopListe");
     box.innerHTML = '<p class="sub">Chargement…</p>';
     openOverlay("memoTopOverlay");
@@ -5436,7 +5527,7 @@
       const total = defiTimes.reduce((a,b)=>a+b,0);
       const line = defiTries.map(t => t>0 ? t+"/6" : "X").join(" · ");
       return `Mot en Six — Défi du jour #${defiNum}\n${defiFailed?"":"✅ "}${line} en ${fmtTime(total)} / 15:00\n`
-           + `3 mots, 15 minutes. Tu fais mieux ?\n${SHARE_URL}`;
+           + `3 mots, 15 minutes. Tu fais mieux ?\n${SHARE_URL}?mode=defi&src=partdefi`;
     }
     const tries = won ? guesses.length : "X";
     const grid = rowStates.map(st => st.map(s => s==="correct"?"🟥":s==="present"?"🟡":"⬛").join("")).join("\n");
@@ -5444,7 +5535,7 @@
     /* La grille seule parle aux joueurs habitués — mais pas à quelqu'un qui
        découvre. Une ligne suffit à transformer un partage en invitation. */
     return `Mot en Six #${dailyNum} — ${tries}/6 en ${fmtTime(t)}\n${grid}\n`
-         + `Le mot du jour, en 6 essais. À toi :\n${SHARE_URL}`;
+         + `Le mot du jour, en 6 essais. À toi :\n${SHARE_URL}?mode=daily&src=partjour`;
   }
   function share(){
     const text=shareText();
@@ -5572,7 +5663,7 @@
   $("royShare").addEventListener("click", ()=>{
     // lien direct vers LA SALLE, pas vers l'accueil du jeu : le code est
     // pré-rempli à l'ouverture, il ne reste qu'à valider
-    const lien = SHARE_URL + "?royale=" + royCodeCourant;
+    const lien = SHARE_URL + "?royale=" + royCodeCourant + "&src=partroyale";
     const txt = "Rejoins ma partie Battle Royale sur Mot en Six !\nCode : " + royCodeCourant;
     if(navigator.share) navigator.share({ text: txt, url: lien }).catch(()=>copy(txt+"\n"+lien));
     else copy(txt+"\n"+lien);
@@ -5643,7 +5734,7 @@
     setTimeout(()=>{ if(!raceRow || !raceRow.ready) $("raceWait").textContent=raceWaitMsg; }, 1500);
   });
   $("raceShare").addEventListener("click", ()=>{
-    const txt = "Course Mot en Six ! Code : " + raceCode + "\n" + SHARE_URL + "?race=" + raceCode;
+    const txt = "Course Mot en Six ! Code : " + raceCode + "\n" + SHARE_URL + "?race=" + raceCode + "&src=partcourse";
     if(navigator.share) navigator.share({text:txt}).catch(()=>copy(txt)); else copy(txt);
   });
 
@@ -5670,7 +5761,7 @@
   });
   $("duelAgain").addEventListener("click", ()=>{ clearDuel(); duelStopWatch(); duelFresh(); });
   $("duelShare").addEventListener("click", ()=>{
-    const txt = "Duel Mot en Six ! Code : " + duelCode + "\n" + SHARE_URL + "?duel=" + duelCode;
+    const txt = "Duel Mot en Six ! Code : " + duelCode + "\n" + SHARE_URL + "?duel=" + duelCode + "&src=partduel";
     if(navigator.share) navigator.share({text:txt}).catch(()=>copy(txt)); else copy(txt);
   });
 
@@ -5680,8 +5771,9 @@
        deux fois. Le lien va UNIQUEMENT dans "url". */
     const texte = "Mot en Six — trouve le mot caché en six essais.\n"
       + "Gratuit, sans publicité, jouable hors-ligne.";
-    if(navigator.share){ navigator.share({ text: texte, url: SHARE_URL }).catch(()=>copyShare(texte+"\n"+SHARE_URL)); }
-    else copyShare(texte+"\n"+SHARE_URL);
+    const lienJeu = SHARE_URL + "?src=partjeu";
+    if(navigator.share){ navigator.share({ text: texte, url: lienJeu }).catch(()=>copyShare(texte+"\n"+lienJeu)); }
+    else copyShare(texte+"\n"+lienJeu);
   });
   function copyShare(texte){
     try{ navigator.clipboard.writeText(texte); toast("Lien copié — colle-le où tu veux !"); }
@@ -5774,7 +5866,18 @@
       setTimeout(()=>{ if(window.Audience && Audience.configured()) Audience.ping("mode:"+src); }, 1200);
     }
     const br = (q.get("royale")||"").trim().toUpperCase();
-    if(!dc && !rc && !df && !cp && !br) return;
+    /* ?mode=gram : ouvre directement un mode. Sert aux raccourcis de
+       l'icône (appui long) et aux liens de diffusion ciblés. On passe par
+       le bouton du menu lui-même : toute sa logique s'applique. */
+    const md = (q.get("mode")||"").trim().toLowerCase().replace(/[^a-z]/g,"");
+    if(md && md !== "junior"){
+      const bouton = document.querySelector('.mode-item[data-mode="'+md+'"]');
+      if(bouton) setTimeout(()=>bouton.click(), 400);
+    } else if(md === "junior"){
+      location.href = "./enfant.html";
+      return;
+    }
+    if(!dc && !rc && !df && !cp && !br && !md) return;
     try{ history.replaceState(null,"",location.pathname); }catch(e){}   // pas de re-déclenchement au rechargement
     setTimeout(()=>{
       if(cp){                          // lien « récupérer mon compte »
@@ -5846,9 +5949,13 @@
     }catch(e){}
   }, 1600);
   setTimeout(notifDaily, 2500);   // après l'installation de l'écran
+  majIndicateurReseau();
   duelPresenceT = setInterval(duelPresenceTick, PRESENCE_MS);
   // rattrapage du classement « Aujourd'hui » pour les exercices déjà faits
-  setTimeout(()=>{ gramEnvoyer("gram"); gramEnvoyer("ortho"); }, 2800);
+  setTimeout(()=>{
+    gramEnvoyer("gram"); gramEnvoyer("ortho");
+    if(window.Profile && Profile.rattraper) Profile.rattraper(false);   // résultats du jour en attente
+  }, 2800);
   persoLoadApproved();
   const last = store.get("motus.last","free");
   if(last==="duel"){ const a=duelActive(); if(a) duelResume(a); else startFree("normal"); }
@@ -5867,5 +5974,6 @@
   }
 })();
 </script>
+<noscript><p><a href="./decouvrir.html">Découvrir Mot en Six, le jeu de mots en français</a></p></noscript>
 </body>
 </html>
