@@ -1,18 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://killianjourneau.github.io/Motus/</loc>
+    <loc>https://mot-en-six.gamesbyneur.workers.dev/</loc>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://killianjourneau.github.io/Motus/rpg.html</loc>
+    <loc>https://mot-en-six.gamesbyneur.workers.dev/rpg.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://killianjourneau.github.io/Motus/enfant.html</loc>
+    <loc>https://mot-en-six.gamesbyneur.workers.dev/enfant.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mot-en-six.gamesbyneur.workers.dev/decouvrir.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
   </url>
 </urlset>

@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mot en Six — jeu de mots en français, gratuit et sans publicité</title>
+<meta name="description" content="Trouve le mot du jour en six essais, entraîne-toi avec la grammaire et l'orthographe du jour, défie tes amis en duel ou en Battle Royale. Mode Junior pour les enfants. Gratuit, sans inscription, sans publicité, jouable hors ligne.">
+<link rel="canonical" href="https://mot-en-six.gamesbyneur.workers.dev/decouvrir.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Mot en Six — le jeu de mots en français">
+<meta property="og:description" content="Mot du jour, grammaire et orthographe du jour, duels et Battle Royale. Gratuit, sans publicité.">
+<meta property="og:url" content="https://mot-en-six.gamesbyneur.workers.dev/decouvrir.html">
+<meta property="og:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.5.2">
+<meta property="og:locale" content="fr_FR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#071633">
+<link rel="icon" href="./icons/icon-192.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    { "@type": "Question", "name": "Mot en Six est-il gratuit ?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Oui, entièrement : pas d'abonnement, pas d'achat, pas de publicité." } },
+    { "@type": "Question", "name": "Faut-il créer un compte ?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Non. On joue tout de suite, sans inscription ni adresse e-mail. Un pseudo suffit pour apparaître dans les classements." } },
+    { "@type": "Question", "name": "Peut-on jouer hors ligne ?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Oui. Une fois installé, le jeu fonctionne sans connexion pour tous les modes solo, le mot du jour, la grammaire et l'orthographe du jour. Le multijoueur et les classements demandent une connexion." } },
+    { "@type": "Question", "name": "Est-ce adapté aux enfants ?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Oui. Le mode Junior propose quatre jeux en images, sans lecture obligatoire : trouver l'intrus, compter, la mémoire et les lettres, seul ou à deux." } },
+    { "@type": "Question", "name": "Peut-on l'utiliser en classe ou pour apprendre le français ?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Oui. La grammaire et l'orthographe du jour expliquent chaque réponse, et un mode d'entraînement sans fin permet de continuer après les exercices quotidiens." } }
+  ]
+}
+</script>
+<style>
+  :root{ --bg:#071633; --cell:#10305f; --edge:#1d477f; --ink:#fff; --dim:#8aa6cf; --red:#e23a44; --yel:#ffcb2e; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--ink); font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+        padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
+  main{ max-width:720px; margin:0 auto; padding:28px 18px 60px; }
+  .logo{ display:flex; gap:6px; justify-content:center; margin:8px 0 18px; }
+  .logo span{ width:38px; height:38px; border-radius:9px; display:grid; place-items:center; font-weight:800; font-size:20px; }
+  .r{ background:var(--red); } .y{ background:var(--yel); color:#14233c; } .n{ background:var(--cell); box-shadow:inset 0 0 0 2px var(--edge); }
+  h1{ text-align:center; font-size:clamp(24px,6vw,34px); line-height:1.2; margin:0 0 10px; }
+  .accroche{ text-align:center; color:var(--dim); margin:0 0 22px; }
+  .jouer{ display:block; width:100%; max-width:360px; margin:0 auto 34px; text-align:center; background:var(--red); color:#fff;
+          text-decoration:none; font-weight:800; font-size:19px; padding:15px; border-radius:14px; }
+  h2{ font-size:21px; margin:34px 0 10px; }
+  .mode{ background:var(--cell); border-radius:14px; padding:14px 16px; margin:10px 0; }
+  .mode b{ display:block; font-size:17px; margin-bottom:2px; }
+  .mode p{ margin:0; color:var(--dim); font-size:15px; }
+  .mode a{ color:var(--yel); font-weight:700; text-decoration:none; }
+  details{ background:var(--cell); border-radius:12px; padding:12px 16px; margin:8px 0; }
+  summary{ font-weight:700; cursor:pointer; }
+  details p{ color:var(--dim); margin:8px 0 0; }
+  footer{ text-align:center; color:var(--dim); font-size:13px; margin-top:40px; }
+  footer a{ color:var(--dim); }
+</style>
+</head>
+<body>
+<main>
+  <div class="logo" aria-hidden="true">
+    <span class="r">M</span><span class="y">O</span><span class="n">T</span>
+    <span class="y">E</span><span class="r">N</span><span class="r">S</span><span class="y">I</span><span class="n">X</span>
+  </div>
+
+  <h1>Le jeu de mots en français, gratuit et sans publicité</h1>
+  <p class="accroche">Un mot à trouver en six essais chaque jour, des exercices de français,
+    des défis entre amis — et un espace pour les enfants.</p>
+  <a class="jouer" href="./?src=seo">▶ Jouer maintenant</a>
+
+  <h2>Les rendez-vous du jour</h2>
+  <div class="mode"><b>📅 Le mot du jour</b>
+    <p>Le même mot pour tout le monde, à trouver en six essais. Les lettres bien placées
+      s'allument en rouge, les lettres mal placées en jaune. <a href="./?mode=daily&src=seo">Jouer →</a></p></div>
+  <div class="mode"><b>✍️ La grammaire du jour</b>
+    <p>Trois phrases à compléter : accords, conjugaison, homophones. Chaque réponse est
+      expliquée. <a href="./?mode=gram&src=seo">S'entraîner →</a></p></div>
+  <div class="mode"><b>🔤 L'orthographe du jour</b>
+    <p>Trois mots, quatre graphies possibles : à toi de reconnaître la bonne. Accents,
+      consonnes doubles, lettres muettes. <a href="./?mode=ortho&src=seo">S'entraîner →</a></p></div>
+  <div class="mode"><b>🔥 Le défi du jour</b>
+    <p>Trois mots à trouver en quinze minutes, sans droit à l'erreur.</p></div>
+
+  <h2>Jouer avec les autres</h2>
+  <div class="mode"><b>⚔️ Duel</b>
+    <p>Chacun choisit un mot pour l'autre, et le premier qui trouve gagne. Un code suffit
+      pour inviter un ami. <a href="./?mode=duel&src=seo">Lancer un duel →</a></p></div>
+  <div class="mode"><b>👑 Battle Royale</b>
+    <p>Quatre joueurs, quatre manches, un classement en direct.</p></div>
+  <div class="mode"><b>⌨️ Course et 🛡️ Défense</b>
+    <p>Une course de vitesse entre deux joueurs, ou un mot à protéger des attaques des autres.</p></div>
+
+  <h2>Pour les enfants</h2>
+  <div class="mode"><b>🧸 Mot en Six Junior</b>
+    <p>Quatre jeux en images, sans lecture obligatoire : l'intrus, compter, la mémoire et
+      les lettres. Seul ou à deux, trois niveaux. <a href="./enfant.html?src=seo">Découvrir →</a></p></div>
+
+  <h2>Et aussi</h2>
+  <div class="mode"><b>🗺️ La Quête</b>
+    <p>Une aventure solo : chaque combat se gagne en trouvant un mot.</p></div>
+  <div class="mode"><b>🧠 Mémorisation, 🪢 Pendu, thèmes</b>
+    <p>Retenir six mots, deviner lettre à lettre, ou jouer sur les prénoms, les villes
+      et les personnages.</p></div>
+
+  <h2>Questions fréquentes</h2>
+  <details><summary>Est-ce vraiment gratuit ?</summary>
+    <p>Oui, entièrement : pas d'abonnement, pas d'achat, pas de publicité.</p></details>
+  <details><summary>Faut-il créer un compte ?</summary>
+    <p>Non. On joue tout de suite, sans inscription ni adresse e-mail. Un pseudo suffit pour
+      apparaître dans les classements.</p></details>
+  <details><summary>Peut-on jouer hors ligne ?</summary>
+    <p>Oui. Une fois installé, tous les modes solo et les exercices du jour fonctionnent sans
+      connexion. Le multijoueur et les classements demandent une connexion.</p></details>
+  <details><summary>Comment l'installer sur mon téléphone ?</summary>
+    <p>Ouvre le jeu dans ton navigateur, puis choisis « Ajouter à l'écran d'accueil » (ou
+      « Installer l'application »). Il s'ouvre ensuite comme une vraie application.</p></details>
+  <details><summary>Peut-on l'utiliser en classe ou pour apprendre le français ?</summary>
+    <p>Oui. La grammaire et l'orthographe du jour expliquent chaque réponse, et un mode
+      d'entraînement sans fin permet de continuer après les exercices du jour.</p></details>
+
+  <a class="jouer" href="./?src=seo" style="margin-top:34px">▶ Jouer maintenant</a>
+  <footer>Mot en Six · <a href="./">mot-en-six.gamesbyneur.workers.dev</a></footer>
+</main>
+</body>
+</html>

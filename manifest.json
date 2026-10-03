@@ -1,7 +1,7 @@
 {
-  "name": "Mot en Six",
-  "short_name": "MotEnSix",
-  "description": "Devinez le mot caché en 6 essais.",
+  "name": "Mot en Six — jeu de mots en français",
+  "short_name": "Mot en Six",
+  "description": "Le jeu de mots en français : un mot à trouver en six essais chaque jour, la grammaire et l'orthographe du jour, des duels, une Battle Royale à quatre et un mode Junior pour les enfants. Gratuit, sans publicité, jouable hors ligne.",
   "lang": "fr",
   "dir": "ltr",
   "start_url": "./",
@@ -12,7 +12,8 @@
   "theme_color": "#071633",
   "categories": [
     "games",
-    "education"
+    "education",
+    "word"
   ],
   "icons": [
     {
@@ -28,10 +29,63 @@
       "purpose": "any"
     },
     {
-      "src": "./icons/icon-512.png",
+      "src": "./icons/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "./icons/icon-maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    }
+  ],
+  "id": "./",
+  "shortcuts": [
+    {
+      "name": "Mot du jour",
+      "short_name": "Mot du jour",
+      "url": "./?mode=daily&src=raccourci",
+      "icons": [
+        {
+          "src": "./icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Grammaire du jour",
+      "short_name": "Grammaire",
+      "url": "./?mode=gram&src=raccourci",
+      "icons": [
+        {
+          "src": "./icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Orthographe du jour",
+      "short_name": "Orthographe",
+      "url": "./?mode=ortho&src=raccourci",
+      "icons": [
+        {
+          "src": "./icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Défier un ami",
+      "short_name": "Duel",
+      "url": "./?mode=duel&src=raccourci",
+      "icons": [
+        {
+          "src": "./icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ]
 }
