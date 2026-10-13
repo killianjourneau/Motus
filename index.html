@@ -15,13 +15,13 @@
 <meta property="og:title" content="Mot en Six — trouve le mot caché en 6 essais">
 <meta property="og:description" content="Mot du jour, grammaire et orthographe du jour, duels, Battle Royale et mode Junior. Gratuit, sans publicité, jouable hors-ligne.">
 <meta property="og:url" content="https://mot-en-six.gamesbyneur.workers.dev/">
-<meta property="og:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.5.4">
+<meta property="og:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.6.0">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Mot en Six — trouve le mot caché en 6 essais">
 <meta name="twitter:description" content="Mot du jour, grammaire et orthographe du jour, duels et Battle Royale.">
-<meta name="twitter:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.5.4">
+<meta name="twitter:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.6.0">
 <link rel="canonical" href="https://mot-en-six.gamesbyneur.workers.dev/">
 <script type="application/ld+json">
 {
@@ -211,6 +211,57 @@
     padding:6px 13px; border-radius:20px; font-size:12px; font-weight:700; z-index:500;
     transition:transform .3s; pointer-events:none; white-space:nowrap; }
   #horsLigne.show{ transform:translate(-50%,0); }
+  /* ---------- Halloween ---------- */
+  :root.halloween:not([data-theme="light"]){
+    --bg:#140b22; --bg-2:#1e1033; --cell:#2a1745; --cell-edge:#43265f;
+    --absent:#1f1233; --key:#3a2160; --key-edge:#55307f; --ink-dim:#b9a3d9;
+  }
+  :root.halloween{ --red:#f0681a; }                 /* lettre bien placée : orange citrouille */
+  :root.halloween:not([data-accent]){ --accent:#f0681a; }
+  :root.halloween:not([data-theme="light"]) body{
+    background:
+      radial-gradient(circle at 86% 7%, rgba(255,214,120,.18) 0 30px, transparent 31px),
+      radial-gradient(ellipse at 50% 115%, rgba(240,104,26,.20), transparent 55%),
+      radial-gradient(120% 90% at 50% 0%, var(--bg-2) 0%, var(--bg) 60%);
+    background-attachment:fixed;
+  }
+  .hw-chauve{ position:fixed; top:8%; left:-40px; font-size:22px; z-index:1; pointer-events:none;
+    opacity:.55; animation:hwvol 26s linear infinite; }
+  .hw-chauve.b{ top:22%; font-size:16px; animation-duration:34s; animation-delay:-14s; opacity:.4; }
+  @keyframes hwvol{ 0%{ transform:translate(0,0) } 25%{ transform:translate(30vw,-18px) }
+    50%{ transform:translate(60vw,12px) } 75%{ transform:translate(90vw,-10px) } 100%{ transform:translate(115vw,0) } }
+  .hw-cat{ color:#f0681a !important; }
+  .hw-item{ box-shadow:inset 0 0 0 1.5px #f0681a !important; }
+  .hw-theme-btn{ display:block; margin:6px auto 2px; border:none; background:none; color:var(--ink-dim);
+    font-size:12px; font-weight:700; text-decoration:underline; cursor:pointer; }
+
+  #bbBox{ display:flex; flex-direction:column; gap:8px; padding:4px 2px; position:relative;
+    align-self:stretch; width:100%; max-width:520px; margin:0 auto; flex:1; min-height:0; }
+  .bb-hud{ display:flex; justify-content:space-between; font-weight:800; font-size:16px; padding:0 4px; }
+  .bb-zone{ position:relative; overflow:hidden; border-radius:14px; background:var(--bg-2);
+    box-shadow:inset 0 0 0 1.5px var(--cell-edge); height:320px; }
+  .bb-zone::after{ content:""; position:absolute; left:0; right:0; bottom:0; height:3px;
+    background:linear-gradient(90deg,transparent,#f0681a,transparent); }
+  .bb-b{ position:absolute; top:0; transform:translateX(-50%); display:flex; flex-direction:column;
+    align-items:center; pointer-events:none; will-change:transform; }
+  .bb-b .e{ font-size:30px; line-height:1; filter:drop-shadow(0 2px 4px rgba(0,0,0,.4)); }
+  .bb-b .m{ margin-top:2px; background:var(--cell); color:var(--ink); border-radius:8px; padding:2px 7px;
+    font-weight:800; font-size:14px; letter-spacing:1px; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
+  .bb-b .m b{ color:#f0681a; }
+  .bb-b.vise .m{ box-shadow:inset 0 0 0 2px #f0681a; }
+  .bb-b.pris{ animation:bbpris .35s ease-out forwards; }
+  @keyframes bbpris{ to{ opacity:0; transform:translateX(-50%) scale(1.8); } }
+  .bb-saisie{ min-height:38px; text-align:center; font-size:22px; font-weight:800; letter-spacing:4px;
+    background:var(--cell); border-radius:11px; padding:6px; }
+  .bb-saisie.faux{ animation:shake .3s; color:var(--red); }
+  .bb-ecran{ position:absolute; inset:0; display:none; flex-direction:column; align-items:center;
+    justify-content:center; gap:10px; text-align:center; background:rgba(10,5,20,.88); border-radius:14px;
+    padding:18px; z-index:5; }
+  .bb-ecran.show{ display:flex; }
+  .bb-ecran h3{ margin:0; font-size:24px; }
+  .bb-ecran p{ margin:0; color:var(--ink-dim); font-size:14px; line-height:1.5; }
+  .bb-ecran .gros{ font-size:44px; font-weight:800; color:#f0681a; }
+  .bb-ecran .btn{ width:100%; max-width:280px; }
   .duel-presence{ text-align:center; font-size:13.5px; line-height:1.5; background:var(--cell);
     border-radius:12px; padding:10px 12px; margin:8px 0; }
   .duel-presence small{ color:var(--ink-dim); font-size:11.5px; }
@@ -697,6 +748,14 @@
         <button class="mode-item nouveau" data-mode="gram" id="modeGram"><span class="mi">✍️</span><b>Grammaire du jour</b><i>Une phrase à compléter</i></button>
         <button class="mode-item nouveau" data-mode="ortho" id="modeOrtho"><span class="mi">🔤</span><b>Orthographe du jour</b><i>Trois mots à écrire</i></button>
       </div>
+      <div id="hwSection" style="display:none">
+        <div class="mode-cat hw-cat">🎃 Halloween · jusqu'au 15 novembre</div>
+        <div class="mode-grid">
+          <button class="mode-item nouveau hw-item" data-mode="peur" id="modePeur"><span class="mi">🎃</span><b>Mot terrifiant</b><i>Le mot du jour d'Halloween</i></button>
+          <button class="mode-item nouveau hw-item" data-mode="bonbons" id="modeBonbons"><span class="mi">🍬</span><b>Bonbons</b><i>Attrape-les en tapant</i></button>
+        </div>
+        <button class="hw-theme-btn" id="hwThemeBtn" type="button"></button>
+      </div>
       <div class="mode-cat">Classique</div>
       <div class="mode-grid">
         <button class="mode-item" data-mode="court"><span class="mi">🐤</span><b>Court</b><i>4-5 lettres</i></button>
@@ -730,6 +789,16 @@
   <main><div id="board" role="grid" aria-label="Grille de jeu"></div>
   <!-- Mémorisation : affichage des mots, puis saisie de mémoire -->
   <!-- Grammaire du jour : phrase à compléter -->
+  <div id="bbBox" style="display:none">
+    <div class="bb-hud">
+      <span id="bbScore">🍬 0</span>
+      <span id="bbVies">❤️❤️❤️</span>
+    </div>
+    <div class="bb-zone" id="bbZone"></div>
+    <div class="bb-saisie" id="bbSaisie"></div>
+    <div class="bb-ecran" id="bbEcran"></div>
+  </div>
+
   <div id="gramBox" style="display:none">
     <div class="gram-tete">
       <span class="gram-num" id="gramNum"></span>
@@ -836,7 +905,7 @@
       <div class="dist-title">Contenu</div>
       <p style="text-align:center;margin-bottom:6px" id="aboutCounts"></p>
       <div class="dist-title">Nouveautés</div>
-      <p style="text-align:center;font-size:13px;color:var(--ink-dim)">✍️ Grammaire &amp; 🔤 Orthographe du jour · 👑 Battle Royale · 🧸 Junior enrichi</p>
+      <p style="text-align:center;font-size:13px;color:var(--ink-dim)">🎃 Halloween jusqu'au 15 novembre : Mot terrifiant &amp; Bonbons · ✍️ Grammaire &amp; 🔤 Orthographe du jour</p>
       <button class="btn" id="btnRulesFromAbout">📖 Règles du jeu</button>
       <a class="btn ghost" href="./decouvrir.html" style="display:block;text-align:center;text-decoration:none">🌐 Présentation du jeu</a>
       <button class="btn" id="btnShareFromAbout">📤 Partager le jeu</button>
@@ -1132,23 +1201,24 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=2.5.4"></script>
-<script src="./dico/motus-grammaire.js?v=2.5.4"></script>
-<script src="./dico/motus-ortho.js?v=2.5.4"></script>
-<script src="./dico/motus-prenoms.js?v=2.5.4"></script>
-<script src="./dico/motus-prenoms-info.js?v=2.5.4"></script>
-<script src="./dico/motus-maladies.js?v=2.5.4"></script>
-<script src="./dico/motus-maladies-info.js?v=2.5.4"></script>
-<script src="./dico/motus-villes.js?v=2.5.4"></script>
-<script src="./dico/motus-villes-info.js?v=2.5.4"></script>
-<script src="./dico/motus-persos.js?v=2.5.4"></script>
-<script src="./dico/motus-persos-info.js?v=2.5.4"></script>
-<script src="./dico/motus-persos-split.js?v=2.5.4"></script>
-<script src="./dico/motus-race.js?v=2.5.4"></script>
-<script src="./dico/motus-expert.js?v=2.5.4"></script>
-<script src="./profiles/config.js?v=2.5.4"></script>
-<script src="./profiles/profile.js?v=2.5.4"></script>
-<script src="./duel/duel.js?v=2.5.4"></script>
+<script src="./dico/motus-words.js?v=2.6.0"></script>
+<script src="./dico/motus-grammaire.js?v=2.6.0"></script>
+<script src="./dico/motus-halloween.js?v=2.6.0"></script>
+<script src="./dico/motus-ortho.js?v=2.6.0"></script>
+<script src="./dico/motus-prenoms.js?v=2.6.0"></script>
+<script src="./dico/motus-prenoms-info.js?v=2.6.0"></script>
+<script src="./dico/motus-maladies.js?v=2.6.0"></script>
+<script src="./dico/motus-maladies-info.js?v=2.6.0"></script>
+<script src="./dico/motus-villes.js?v=2.6.0"></script>
+<script src="./dico/motus-villes-info.js?v=2.6.0"></script>
+<script src="./dico/motus-persos.js?v=2.6.0"></script>
+<script src="./dico/motus-persos-info.js?v=2.6.0"></script>
+<script src="./dico/motus-persos-split.js?v=2.6.0"></script>
+<script src="./dico/motus-race.js?v=2.6.0"></script>
+<script src="./dico/motus-expert.js?v=2.6.0"></script>
+<script src="./profiles/config.js?v=2.6.0"></script>
+<script src="./profiles/profile.js?v=2.6.0"></script>
+<script src="./duel/duel.js?v=2.6.0"></script>
 <script>
 (() => {
   "use strict";
@@ -1200,7 +1270,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "2.5.4";
+  const VERSION = "2.6.0";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -1264,7 +1334,7 @@
   };
   let gaveUp = false;   // vrai uniquement en cas d'abandon volontaire, jamais après 6 essais épuisés
   let hintCols = [], hintsThisGame = 0;
-  const HINT_MODES = ["court","normal","long","prenoms","maladies","villes","persos","daily","defi","pendu","memo"];
+  const HINT_MODES = ["court","normal","long","prenoms","maladies","villes","persos","daily","defi","pendu","memo","peur"];
   const HINT_MAX_PER_WORD = 2;
   // duel
   // course à l'écriture
@@ -1474,6 +1544,11 @@
     const g = store.get("motus.gram", null);
     const gram = $("modeGram");
     if(gram) gram.classList.toggle("fait", !!(g && g.day===jour && g.fini));
+
+    const pr = store.get("motus.peur", null), pe = $("modePeur");
+    if(pe) pe.classList.toggle("fait", !!(pr && pr.day===jour && pr.done));
+    const bb = store.get("motus.bonbons", null), bo = $("modeBonbons");
+    if(bo) bo.classList.toggle("fait", !!(bb && bb.day===jour && bb.fini));
 
     const o = store.get("motus.ortho", null);
     const ortho = $("modeOrtho");
@@ -1711,6 +1786,7 @@
 
   /* ---------- Saisie ---------- */
   function handleKey(a){
+    if(mode==="bonbons"){ bbTouche(a); return; }
     if(over) return;
     if(mode==="pendu"){
       if(/^[A-Z]$/.test(a)) penduGuess(a);
@@ -1820,7 +1896,7 @@
     setTimeout(()=>finishRow(guess===answer), (len-1)*180+520);
   }
 
-  const MODE_FACTOR = { court:0.8, normal:1, long:1.4, daily:1.1, defi:1.2, prenoms:0.9, maladies:1.1, villes:1.1, duel:1.2, race:1.2, expert:1.5, defense:1.3, pendu:1.0 };
+  const MODE_FACTOR = { court:0.8, normal:1, long:1.4, daily:1.1, peur:1.2, defi:1.2, prenoms:0.9, maladies:1.1, villes:1.1, duel:1.2, race:1.2, expert:1.5, defense:1.3, pendu:1.0 };
   function awardXp(win){
     if(!window.Profile) return;
     const f = MODE_FACTOR[mode] || 1;
@@ -1831,7 +1907,7 @@
     const noYellow = win && !rowStates.some(st => st.indexOf("present") >= 0);
     // longueur réelle jouée (le défi et le mot du jour empruntent un autre mode)
     const sub = (mode==="defi")  ? DEFI_STEPS[Math.min(defiStep, DEFI_STEPS.length-1)]
-              : (mode==="daily") ? "normal"
+              : (mode==="daily" || mode==="peur") ? "normal"
               : mode;
     // Villes : une capitale commence par « Capitale » ; une ville française
     // porte sa région entre parenthèses, une ville étrangère n'en a pas.
@@ -1854,6 +1930,11 @@
     if(mode==="daily"){
       Profile.submitDaily({ game:"motus", day:dailyKey, tries: win?guesses.length:6, won:win });
       if(win) grantHintOnce("daily", dailyKey);
+    }
+    if(mode==="peur"){
+      Profile.submitDaily({ game:"peur", day:peurKey, tries: win?guesses.length:6, won:win });
+      if(Profile.halloweenDone) Profile.halloweenDone({ kind:"peur", won:win });
+      if(win) grantHintOnce("peur", peurKey);
     }
   }
 
@@ -4497,7 +4578,7 @@
   }
   function timerValue(){ return tTimer ? tElapsed + (Date.now()-tStart) : tElapsed; }
   function updateHud(){
-    const names={court:"Court",normal:"Normal",long:"Long",expert:"Expert",daily:"Mot du jour",defi:"Défi du jour",prenoms:"Prénoms",maladies:"Maladies",villes:"Villes",duel:"Duel",race:"Course",defense:"Défense",pendu:"Le Pendu",memo:"Mémorisation",royale:"Battle Royale",gram:"Grammaire du jour",ortho:"Orthographe du jour"};
+    const names={court:"Court",normal:"Normal",long:"Long",expert:"Expert",daily:"Mot du jour",defi:"Défi du jour",prenoms:"Prénoms",maladies:"Maladies",villes:"Villes",duel:"Duel",race:"Course",defense:"Défense",pendu:"Le Pendu",memo:"Mémorisation",royale:"Battle Royale",gram:"Grammaire du jour",ortho:"Orthographe du jour",peur:"Mot terrifiant",bonbons:"Bonbons"};
     let label = names[mode]||"";
     if(mode==="race") label = "Course · " + raceThemeName(raceTheme);
     if(mode==="expert") label = "Expert" + (expertRare ? " · mots rares" : "");
@@ -4515,6 +4596,11 @@
     if(mode==="daily"){
       store.set("motus.daily", {day:dailyKey, guesses, done:over, won, ms:timerValue()});
       store.set("motus.last","daily");
+    } else if(mode==="peur"){
+      store.set("motus.peur", {day:peurKey, guesses, done:over, won, ms:timerValue()});
+      store.set("motus.last","peur");
+    } else if(mode==="bonbons"){
+      return;                                   // le mini-jeu gère sa propre sauvegarde
     } else if(mode==="defi"){
       store.set("motus.defi", {day:defiKey, step:defiStep, guesses, over, won,
                                times:defiTimes, tries:defiTries, failed:defiFailed, ms:timerValue()});
@@ -4531,6 +4617,9 @@
 
   /* ---------- Démarrage d'une partie ---------- */
   function startFree(m){
+    bbArreter();
+    if(m==="peur"){ enterPeur(); return; }
+    if(m==="bonbons"){ bbOuvrir(); return; }
     if(m==="pendu"){ penduStart(); return; }
     if(m==="memo"){ memoStart(); return; }
     if(m==="gram"){ gramStart("gram"); return; }
@@ -4542,6 +4631,247 @@
     setupBoardForAnswer(); loadDico(len); setActiveSeg(m);
     timerReset(); updateHud(); save();
   }
+
+  /* ---------------------------------------------------------------
+     HALLOWEEN — du 13 octobre au 15 novembre
+     Deux rendez-vous quotidiens, les mêmes pour tout le monde :
+       - « Mot terrifiant » : un mot du jour tiré d'un dictionnaire
+         d'Halloween, sans jamais répéter un mot pendant l'événement ;
+       - « Bonbons » : des bonbons tombent, on tape leur mot pour les
+         attraper avant qu'ils ne touchent le sol.
+     Tout s'éteint de lui-même après la date de fin.
+     --------------------------------------------------------------- */
+  const HW = window.MOTUS_HALLOWEEN || null;
+  function hwActif(){
+    if(!HW) return false;
+    const k = todayKey();
+    return k >= HW.debut && k <= HW.fin;
+  }
+  function hwJour(){
+    const [y,m,d] = todayKey().split("-").map(Number), [y0,m0,d0] = HW.debut.split("-").map(Number);
+    return Math.round((Date.UTC(y,m-1,d) - Date.UTC(y0,m0-1,d0)) / 86400000);
+  }
+  /* Hasard reproductible : même graine = même suite, sur tous les appareils. */
+  function hwHasard(graine){
+    let a = graine >>> 0;
+    return function(){
+      a = (a + 0x6D2B79F5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function hwMelange(liste, graine){
+    const r = hwHasard(graine), l = liste.slice();
+    for(let i=l.length-1; i>0; i--){ const j = Math.floor(r()*(i+1)); [l[i],l[j]] = [l[j],l[i]]; }
+    return l;
+  }
+
+  /* --- thème : actif par défaut pendant l'événement, désactivable --- */
+  function hwThemeVoulu(){ return hwActif() && store.get("motus.hwTheme", true) !== false; }
+  function hwAppliquerTheme(){
+    const on = hwThemeVoulu();
+    document.documentElement.classList.toggle("halloween", on);
+    document.querySelectorAll(".hw-chauve").forEach(e=>e.remove());
+    if(on){
+      ["","b"].forEach(c=>{ const e=document.createElement("div"); e.className="hw-chauve "+c; e.textContent="🦇"; document.body.appendChild(e); });
+    }
+    const sec = $("hwSection"); if(sec) sec.style.display = hwActif() ? "" : "none";
+    const bt = $("hwThemeBtn"); if(bt) bt.textContent = on ? "🎃 Décor d'Halloween : activé" : "🎃 Décor d'Halloween : désactivé";
+  }
+
+  /* ================= MOT TERRIFIANT ================= */
+  let peurKey = "", peurNum = 0;
+  function peurWord(){
+    const l = hwMelange(HW.mots, 31102026);
+    return l[hwJour() % l.length];          // 84 mots pour 34 jours : jamais deux fois le même
+  }
+  function enterPeur(){
+    if(!hwActif()){ toast("L'événement d'Halloween est terminé 🎃", 2400); startFree("normal"); return; }
+    mode="peur"; guesses=[]; rowStates=[]; ended=false;
+    peurKey = todayKey(); peurNum = hwJour() + 1; answer = peurWord();
+    setupBoardForAnswer(); loadDico(len); setActiveSeg("peur");
+    let d = store.get("motus.peur", null);
+    if(!d || d.day!==peurKey){ d={day:peurKey,guesses:[],done:false,won:false}; store.set("motus.peur",d); }
+    if(d.guesses.length){ replay(d.guesses); }
+    over = d.done || row>=MAX_ROWS; ended = over;
+    if(!over){ col=1; setCell(row,0,answer[0]); tileAt(row,0).classList.add("correct"); }
+    store.set("motus.last","peur");
+    updateHud();
+    if(over) timerStop();
+    else if(d.guesses.length>0) timerStart(d.ms||0);
+    else timerReset();
+    if(d.done) showEnd(d.won, true);
+  }
+
+  /* ================= BONBONS ================= */
+  const BB_VIES = 3, BB_EMO = ["🍬","🍭","🍫","🍡","🎃","🍩","🧁","🍪"];
+  let bbEnJeu=false, bbOfficiel=false, bbScore=0, bbVies=BB_VIES, bbBuf="", bbListe=[], bbRaf=0,
+      bbHasard=null, bbMots=[], bbProchain=0, bbT=0, bbDernier=0, bbIdx=0, bbHauteur=320;
+
+  function bbEtatJour(){
+    const s2 = store.get("motus.bonbons", null);
+    return (s2 && s2.day === todayKey()) ? s2 : null;
+  }
+  function bbOuvrir(){
+    if(!hwActif()){ toast("L'événement d'Halloween est terminé 🎃", 2400); startFree("normal"); return; }
+    bbArreter();
+    mode="bonbons"; over=false; ended=false; won=false; guesses=[]; rowStates=[];
+    clearInterval(memoTick); clearInterval(memoSaisieTick);
+    board.style.display="none"; board.style.pointerEvents="none";
+    ["memoBox","gramBox","penduBox"].forEach(id=>{ const e=$(id); if(e) e.style.display="none"; });
+    $("timer").style.display="none";
+    keyboard.style.display="";
+    resetKeyboardColors();
+    $("bbBox").style.display="";
+    setActiveSeg("bonbons"); updateHud();
+    store.set("motus.last","free");
+    // une partie officielle interrompue compte avec le score atteint
+    const j = bbEtatJour();
+    if(j && j.commence && !j.fini){ bbConclureOfficiel(j.score||0); }
+    bbAccueil();
+  }
+  function bbAccueil(){
+    bbVider();
+    $("bbScore").textContent = "🍬 0"; $("bbVies").textContent = "❤️".repeat(BB_VIES);
+    $("bbSaisie").textContent = "";
+    const j = bbEtatJour();
+    const e = $("bbEcran");
+    e.innerHTML = '<h3>🍬 Bonbons</h3>'
+      + '<p>Des bonbons tombent du ciel. <b>Tape le mot</b> écrit sous chacun pour l\'attraper avant qu\'il ne touche le sol.<br>'
+      + 'Trois bonbons perdus, et la partie s\'arrête.</p>'
+      + (j && j.fini
+          ? '<p>Ta partie du jour : <b>' + j.score + ' bonbon' + (j.score>1?"s":"") + '</b>. Tu peux t\'entraîner, ça ne compte plus.</p>'
+            + '<button class="btn" id="bbGo">S\'entraîner</button>'
+          : '<p>La partie du jour est <b>la même pour tous</b> et ne se joue qu\'une fois.</p>'
+            + '<button class="btn" id="bbGo">C\'est parti !</button>');
+    e.classList.add("show");
+    $("bbGo").addEventListener("click", ()=> bbDemarrer(!(j && j.fini)));
+  }
+  function bbMesurer(){
+    // la zone occupe tout l'espace libre jusqu'au clavier
+    const z = $("bbZone"); if(!z) return;
+    const haut = z.getBoundingClientRect().top;
+    const bas = keyboard.getBoundingClientRect().top || window.innerHeight;
+    bbHauteur = Math.max(200, Math.round(bas - haut - 60));
+    z.style.height = bbHauteur + "px";
+  }
+  function bbDemarrer(officiel){
+    bbOfficiel = officiel; bbEnJeu = true; bbScore = 0; bbVies = BB_VIES; bbBuf = ""; bbIdx = 0;
+    // partie du jour : même graine pour tous ; entraînement : au hasard
+    const graine = officiel ? (hwJour()+1) * 7919 : Math.floor(Math.random()*1e9);
+    bbHasard = hwHasard(graine);
+    bbMots = hwMelange(HW.bonbons, graine);
+    if(officiel) store.set("motus.bonbons", { day: todayKey(), score: 0, commence: true, fini: false });
+    $("bbEcran").classList.remove("show");
+    bbVider(); bbMesurer(); bbMajHud(); bbMajSaisie();
+    bbT = 0; bbProchain = 0; bbDernier = performance.now();
+    bbRaf = requestAnimationFrame(bbBoucle);
+  }
+  function bbVider(){ bbListe.forEach(b=>b.el.remove()); bbListe = []; }
+  function bbArreter(){
+    bbEnJeu = false; cancelAnimationFrame(bbRaf); bbVider();
+    const b = $("bbBox"); if(b) b.style.display = "none";
+  }
+  function bbMajHud(){
+    $("bbScore").textContent = "🍬 " + bbScore;
+    $("bbVies").textContent = "❤️".repeat(bbVies) + "🖤".repeat(BB_VIES - bbVies);
+  }
+  function bbMajSaisie(){
+    $("bbSaisie").textContent = bbBuf || " ";
+    bbListe.forEach(b=>{
+      const ok = bbBuf && b.mot.startsWith(bbBuf);
+      b.el.classList.toggle("vise", !!ok);
+      b.lab.innerHTML = ok ? "<b>" + b.mot.slice(0,bbBuf.length) + "</b>" + b.mot.slice(bbBuf.length) : b.mot;
+    });
+  }
+  function bbNouveau(){
+    const mot = bbMots[bbIdx++ % bbMots.length];
+    const el = document.createElement("div"); el.className = "bb-b";
+    el.innerHTML = '<span class="e">' + BB_EMO[Math.floor(bbHasard()*BB_EMO.length)] + '</span><span class="m"></span>';
+    const lab = el.querySelector(".m"); lab.textContent = mot;
+    el.style.left = (20 + bbHasard()*60) + "%";
+    $("bbZone").appendChild(el);
+    // vitesse : la chute dure 9 s au début, puis de moins en moins
+    const duree = Math.max(3.6, 9 - bbScore*0.18);
+    bbListe.push({ mot, el, lab, y: -40, v: (bbHauteur + 40) / duree });
+    bbMajSaisie();
+  }
+  function bbBoucle(maintenant){
+    if(!bbEnJeu) return;
+    const dt = Math.min(0.05, (maintenant - bbDernier) / 1000);   // un onglet en arrière-plan ne fait pas tout tomber d'un coup
+    bbDernier = maintenant; bbT += dt;
+    if(bbT >= bbProchain){
+      bbNouveau();
+      bbProchain = bbT + Math.max(1.0, 2.4 - bbScore*0.05);
+    }
+    for(let i=bbListe.length-1; i>=0; i--){
+      const b = bbListe[i];
+      b.y += b.v * dt;
+      b.el.style.transform = "translateX(-50%) translateY(" + b.y + "px)";
+      if(b.y > bbHauteur - 34){                     // touché le sol
+        b.el.remove(); bbListe.splice(i,1);
+        bbVies--; son("absent"); vibrate(30); bbMajHud();
+        if(bbVies <= 0){ bbFin(); return; }
+        bbMajSaisie();
+      }
+    }
+    bbRaf = requestAnimationFrame(bbBoucle);
+  }
+  function bbTouche(a){
+    if(!bbEnJeu) return;
+    if(a === "back"){ bbBuf = bbBuf.slice(0,-1); bbMajSaisie(); return; }
+    if(a === "enter"){ bbBuf = ""; bbMajSaisie(); return; }
+    if(!/^[A-Z]$/.test(a)) return;
+    const essai = bbBuf + a;
+    // aucune cible ne commence ainsi : la lettre est refusée, sans pénalité
+    if(!bbListe.some(b=>b.mot.startsWith(essai))){
+      const s2 = $("bbSaisie"); s2.classList.remove("faux"); void s2.offsetWidth; s2.classList.add("faux");
+      son("refuse"); return;
+    }
+    bbBuf = essai; son("touche");
+    // le plus bas des bonbons portant ce mot est attrapé
+    const pris = bbListe.filter(b=>b.mot === bbBuf).sort((x,y)=>y.y-x.y)[0];
+    if(pris){
+      bbListe.splice(bbListe.indexOf(pris),1);
+      pris.el.classList.add("pris"); setTimeout(()=>pris.el.remove(), 400);
+      bbScore++; bbBuf = ""; son("correct", 2); bbMajHud();
+      if(bbOfficiel){ const j = bbEtatJour(); if(j){ j.score = bbScore; store.set("motus.bonbons", j); } }
+    }
+    bbMajSaisie();
+  }
+  function bbConclureOfficiel(score){
+    store.set("motus.bonbons", { day: todayKey(), score, commence: true, fini: true });
+    if(window.Profile){
+      if(Profile.halloweenDone) Profile.halloweenDone({ kind:"bonbons", score });
+      if(Profile.submitDaily) Profile.submitDaily({ game:"bonbons", day: todayKey(), tries: score, won: score >= 10 });
+    }
+    mesure("partie:bonbons"); if(score >= 10) mesure("gagne:bonbons");
+    if(score >= 10) grantHintOnce("bonbons", todayKey());
+    majPastillesDuJour();
+  }
+  function bbFin(){
+    bbEnJeu = false; cancelAnimationFrame(bbRaf);
+    son(bbScore >= 10 ? "gagne" : "perdu");
+    if(bbOfficiel) bbConclureOfficiel(bbScore);
+    const j = bbEtatJour();
+    const e = $("bbEcran");
+    e.innerHTML = '<h3>' + (bbScore >= 10 ? "Quelle récolte !" : "Le sac est rempli…") + '</h3>'
+      + '<div class="gros">🍬 ' + bbScore + '</div>'
+      + '<p>' + (bbOfficiel ? "Ta partie du jour est enregistrée." : "Entraînement — ta partie du jour : " + (j ? j.score : 0) + " bonbon" + (j && j.score>1?"s":"") + ".") + '</p>'
+      + '<button class="btn" id="bbEncore">S\'entraîner</button>'
+      + (bbOfficiel ? '<button class="btn ghost" id="bbPartage">📤 Partager</button>' : '');
+    e.classList.add("show");
+    $("bbEncore").addEventListener("click", ()=> bbDemarrer(false));
+    const pt = $("bbPartage");
+    if(pt) pt.addEventListener("click", ()=>{
+      const txt = "🎃 Mot en Six — Bonbons d'Halloween n°" + (hwJour()+1) + "\n🍬 × " + bbScore
+        + "\nAttrape-les avant qu'ils tombent :\n" + SHARE_URL + "?mode=bonbons&src=partbonbons";
+      if(navigator.share) navigator.share({text:txt}).catch(()=>copy(txt)); else copy(txt);
+    });
+  }
+  window.addEventListener("resize", ()=>{ if(mode==="bonbons") bbMesurer(); });
 
   /* ---------------------------------------------------------------
      GRAMMAIRE DU JOUR
@@ -5514,7 +5844,7 @@
     else timerReset();                                        // mot pas encore entamé
   }
 
-  const MODE_LABELS={daily:"📅 Mot du jour",defi:"🔥 Défi du jour",court:"🐤 Court",normal:"🎯 Normal",long:"🐘 Long",expert:"🎓 Expert",prenoms:"👶 Prénoms",maladies:"🩺 Maladies",villes:"🏙️ Villes",duel:"⚔️ Duel",race:"⌨️ Course",defense:"🛡️ Défense",pendu:"🪢 Le Pendu",memo:"🧠 Mémorisation",royale:"👑 Battle Royale",gram:"✍️ Grammaire du jour",ortho:"🔤 Orthographe du jour"};
+  const MODE_LABELS={daily:"📅 Mot du jour",defi:"🔥 Défi du jour",court:"🐤 Court",normal:"🎯 Normal",long:"🐘 Long",expert:"🎓 Expert",prenoms:"👶 Prénoms",maladies:"🩺 Maladies",villes:"🏙️ Villes",duel:"⚔️ Duel",race:"⌨️ Course",defense:"🛡️ Défense",pendu:"🪢 Le Pendu",memo:"🧠 Mémorisation",royale:"👑 Battle Royale",gram:"✍️ Grammaire du jour",ortho:"🔤 Orthographe du jour",peur:"🎃 Mot terrifiant",bonbons:"🍬 Bonbons"};
   function setActiveSeg(m){
     $("modeBtnLabel").textContent = MODE_LABELS[m] || m;
     document.querySelectorAll(".mode-item").forEach(b=>b.classList.toggle("active", b.dataset.mode===m));
@@ -5530,6 +5860,11 @@
            + `3 mots, 15 minutes. Tu fais mieux ?\n${SHARE_URL}?mode=defi&src=partdefi`;
     }
     const tries = won ? guesses.length : "X";
+    if(mode==="peur"){
+      const g = rowStates.map(st => st.map(s => s==="correct"?"🎃":s==="present"?"🟣":"⬛").join("")).join("\n");
+      return `🎃 Mot terrifiant #${peurNum} — ${tries}/6 en ${fmtTime(timerValue())}\n${g}\n`
+           + `Le mot du jour d'Halloween sur Mot en Six :\n${SHARE_URL}?mode=peur&src=partpeur`;
+    }
     const grid = rowStates.map(st => st.map(s => s==="correct"?"🟥":s==="present"?"🟡":"⬛").join("")).join("\n");
     const t = timerValue();
     /* La grille seule parle aux joueurs habitués — mais pas à quelqu'un qui
@@ -5565,7 +5900,7 @@
   function showEnd(win, isDaily){
     if(!win) son("perdu");
     refreshStats();
-    const daily = isDaily || mode==="daily";
+    const daily = isDaily || mode==="daily" || mode==="peur";
     $("endTitle").textContent = win ? "Bravo !" : "Dommage…";
     $("endSub").innerHTML = (win
       ? `Trouvé en ${guesses.length} essai${guesses.length>1?"s":""} · <b>${fmtTime(timerValue())}</b>`
@@ -5613,7 +5948,7 @@
     // revenir à un duel en cours ne doit jamais demander de confirmation
     if(m==="duel" && duelActive()){ switchMode(m); return; }
     if(m==="race" && raceActive()){ switchMode(m); return; }
-    const risque = mode!=="daily" && mode!=="defi" && mode!=="duel" && mode!=="race" && !ended && rowHasInput();
+    const risque = mode!=="daily" && mode!=="peur" && mode!=="bonbons" && mode!=="defi" && mode!=="duel" && mode!=="race" && !ended && rowHasInput();
     if(risque) askConfirm("Changer de mode ?", "La partie en cours sera perdue.", ()=>switchMode(m));
     else switchMode(m);
   }
@@ -5623,7 +5958,10 @@
     if(m!=="duel"){ duelClosePicker(); duelStopWatch(); }
     if(m!=="race"){ raceStopWatch(); const rh=$("raceHud"); if(rh) rh.classList.remove("show"); }
     if(m!=="duel" && m!=="race") duelEmoteBtnShow(false);
+    if(m!=="bonbons") bbArreter();             // quitter le mini-jeu arrête sa boucle
     if(m==="daily") enterDaily();
+    else if(m==="peur") enterPeur();
+    else if(m==="bonbons") bbOuvrir();
     else if(m==="defi") enterDefi();
     else if(m==="expert") expertOpen();
     else if(m==="duel") duelOpen();
@@ -5793,6 +6131,8 @@
   $("btnNew").addEventListener("click", ()=>{
     closeOverlays();
     if(mode==="daily"){ switchMode("normal"); return; }        // le mot du jour est unique : on lance un mot au hasard
+    if(mode==="peur"){ switchMode("normal"); return; }
+    if(mode==="bonbons"){ bbOuvrir(); return; }
     if(mode==="defi"){ switchMode("normal"); return; }         // le défi est unique aussi
     if(mode==="expert"){ startFree("expert"); return; }        // relance directe, sans rappeler les règles
     if(mode==="duel"){ duelOpen(); return; }                   // le duel se relance depuis sa fenêtre
@@ -5949,6 +6289,10 @@
     }catch(e){}
   }, 1600);
   setTimeout(notifDaily, 2500);   // après l'installation de l'écran
+  hwAppliquerTheme();
+  $("hwThemeBtn").addEventListener("click", ()=>{
+    store.set("motus.hwTheme", !hwThemeVoulu()); hwAppliquerTheme();
+  });
   majIndicateurReseau();
   duelPresenceT = setInterval(duelPresenceTick, PRESENCE_MS);
   // rattrapage du classement « Aujourd'hui » pour les exercices déjà faits
@@ -5961,6 +6305,7 @@
   if(last==="duel"){ const a=duelActive(); if(a) duelResume(a); else startFree("normal"); }
   else if(last==="race"){ const a=raceActive(); if(a) raceResume(a); else startFree("normal"); }
   else if(last==="daily"){ enterDaily(); }
+  else if(last==="peur"){ if(hwActif()) enterPeur(); else startFree("normal"); }
   else if(last==="defi"){ enterDefi(); }
   else {
     const f = store.get("motus.free",null);
