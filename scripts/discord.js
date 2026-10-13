@@ -15,7 +15,7 @@ const fs = require("fs");
 const path = require("path");
 
 const RACINE = path.join(__dirname, "..");
-const SITE = (process.env.SITE_URL || "https://killianjourneau.github.io/Motus/").replace(/\/?$/, "/");
+const SITE = (process.env.SITE_URL || "https://mot-en-six.gamesbyneur.workers.dev/").replace(/\/?$/, "/");
 const TEST = process.argv.includes("--test");
 const QUOI = process.argv[2] || "jour";
 
@@ -43,6 +43,18 @@ function motDuJour(num, pool) {
 
 function lien(src) { return SITE + "?src=" + src; }
 
+/* Pendant l'événement d'Halloween, deux lignes de plus dans l'annonce. */
+function halloween(d) {
+  try {
+    const w = {};
+    new Function("window", fs.readFileSync(path.join(RACINE, "dico", "motus-halloween.js"), "utf8"))(w);
+    const H = w.MOTUS_HALLOWEEN, k = cleDuJour(d);
+    if (!H || k < H.debut || k > H.fin) return [];
+    return ["🎃 **Mot terrifiant** — le mot du jour d'Halloween",
+            "🍬 **Bonbons** — attrape-les avant qu'ils ne tombent"];
+  } catch (e) { return []; }
+}
+
 function annonceJour() {
   const pool = motsNormaux();
   const maintenant = new Date();
@@ -55,6 +67,7 @@ function annonceJour() {
     "✍️ **Grammaire du jour** — trois phrases à compléter",
     "🔤 **Orthographe du jour** — trois mots à bien écrire",
     "🔥 **Défi du jour** — trois mots en quinze minutes",
+    ...halloween(maintenant),
     "",
     // balise spoiler Discord : masqué tant qu'on ne clique pas dessus
     "Le mot d'hier était ||" + hier + "|| (clique pour le révéler)",
