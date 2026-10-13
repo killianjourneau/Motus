@@ -334,6 +334,21 @@ module.exports = function ({ groupe, verifie, ok, egal, vide, RACINE }) {
          "émojis trop récents");
   });
 
+  verifie("Halloween : chaque mot terrifiant est accepté par le dictionnaire", () => {
+    // sinon le joueur qui tape la bonne réponse se la verrait refuser
+    const H = charger(["motus-halloween.js"]).MOTUS_HALLOWEEN;
+    const absents = H.mots.filter(m => {
+      const f = path.join(RACINE, "dico", "dico-" + String(m.length).padStart(2, "0") + ".txt");
+      return !fs.existsSync(f) || fs.readFileSync(f, "utf8").split("\n").indexOf(m) < 0;
+    });
+    vide(absents, "mots absents du dictionnaire");
+    vide(H.mots.filter(m => m.length < 6 || m.length > 8), "longueur hors 6-8 lettres");
+    vide(H.bonbons.filter(m => !/^[A-Z]+$/.test(m)), "mots de bonbons hors A-Z");
+    // assez de mots pour ne jamais répéter pendant l'événement
+    const jours = (Date.parse(H.fin) - Date.parse(H.debut)) / 86400000 + 1;
+    ok(new Set(H.mots).size >= jours, H.mots.length + " mots pour " + jours + " jours");
+  });
+
   verifie("tous les fichiers de données sont dans le cache hors-ligne", () => {
     const sw  = fs.readFileSync(path.join(RACINE, "sw.js"), "utf8");
     const idx = fs.readFileSync(path.join(RACINE, "index.html"), "utf8");
