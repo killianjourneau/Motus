@@ -44,6 +44,7 @@
              memoTotal:0, memoReussites:0, memoBest:60, memoSerie:0, memoBestSerie:0,
              royParties:0, royVictoires:0, royPodiums:0, royMeilleurTotal:0,
              gramJours:0, gramParfaits:0, gramSerie:0, gramBestSerie:0, gramBonnes:0, gramDernier:"",
+             hwPeur:0, hwPeurWin:0, hwBonbonsTotal:0, hwBonbonsBest:0, hwJours:[],
              orthoJours:0, orthoParfaits:0, orthoSerie:0, orthoBestSerie:0, orthoBonnes:0, orthoDernier:"",
              hyph:0, night:0, dawn:0, wknd:0, days:[], dayBest:0,
              defiFast:0, dailyOne:0, allDiff:0, longFast:0, comeback:0, noYellow:0,
@@ -122,6 +123,15 @@
     {id:"qsec8", e:"🕵️", n:"Fin limier",          d:"Percer 8 secrets de créatures",         c:"Quête", t:function(b){return b.qSecrets>=8;}, p:[function(b){return b.qSecrets;},8]},
     {id:"qbest", e:"📖", n:"Bestiaire nourri",    d:"Rencontrer 20 créatures différentes",   c:"Quête", t:function(b){return b.qMonstres>=20;}, p:[function(b){return b.qMonstres;},20]},
     {id:"qlvl",  e:"⚔️", n:"Apprenti confirmé",   d:"Atteindre le niveau 10 en Quête",       c:"Quête", t:function(b){return b.qNiveau>=10;}, p:[function(b){return b.qNiveau;},10]},
+    // Saison : badges d'événement, obtenables seulement pendant l'événement
+    // mais conservés pour toujours ensuite.
+    {id:"hw1",   e:"🎃", n:"Premier frisson",     d:"Jouer un Mot terrifiant (Halloween)",   c:"Saison", t:function(b){return b.hwPeur>=1;}, p:[function(b){return b.hwPeur;},1]},
+    {id:"hw5",   e:"👻", n:"Chasseur de fantômes", d:"Trouver 5 Mots terrifiants",           c:"Saison", t:function(b){return b.hwPeurWin>=5;}, p:[function(b){return b.hwPeurWin;},5]},
+    {id:"hw15",  e:"🧛", n:"Seigneur de la nuit", d:"Trouver 15 Mots terrifiants",           c:"Saison", t:function(b){return b.hwPeurWin>=15;}, p:[function(b){return b.hwPeurWin;},15]},
+    {id:"hwj10", e:"🦇", n:"Nuits blanches",      d:"Jouer 10 jours pendant Halloween",      c:"Saison", t:function(b){return (b.hwJours||[]).length>=10;}, p:[function(b){return (b.hwJours||[]).length;},10]},
+    {id:"hwb50", e:"🍬", n:"Gourmand",            d:"Attraper 50 bonbons au total",          c:"Saison", t:function(b){return b.hwBonbonsTotal>=50;}, p:[function(b){return b.hwBonbonsTotal;},50]},
+    {id:"hwb25", e:"🍭", n:"Sac plein",           d:"Attraper 25 bonbons en une partie",     c:"Saison", t:function(b){return b.hwBonbonsBest>=25;}, p:[function(b){return b.hwBonbonsBest;},25]},
+    {id:"hwb300",e:"🍫", n:"Insatiable",          d:"Attraper 300 bonbons au total",         c:"Saison", t:function(b){return b.hwBonbonsTotal>=300;}, p:[function(b){return b.hwBonbonsTotal;},300]},
     {id:"or1",   e:"🔤", n:"Premier mot",        d:"Faire 1 Orthographe du jour",          c:"Orthographe", t:function(b){return b.orthoJours>=1;}, p:[function(b){return b.orthoJours;},1]},
     {id:"or10",  e:"📖", n:"Bon orthographe",     d:"Faire 10 Orthographes du jour",        c:"Orthographe", t:function(b){return b.orthoJours>=10;}, p:[function(b){return b.orthoJours;},10]},
     {id:"orp",   e:"💎", n:"Zéro faute",          d:"Un sans-faute en Orthographe",         c:"Orthographe", t:function(b){return b.orthoParfaits>=1;}, p:[function(b){return b.orthoParfaits;},1]},
@@ -304,11 +314,49 @@
                                      emblemAt: state.emblemAt || 0,
                                      hintEarned: state.hintEarned || 0,
                                      hintSpent: state.hintSpent || 0,
-                                     hintGrants: state.hintGrants || {} },
+                                     hintGrants: state.hintGrants || {},
+                                     pronom: state.pronom || "il",
+                                     pronomAt: state.pronomAt || 0 },
                              updated_at: state.updated_at })
     }).catch(function () {});
   }
   var pushTimer;
+  /* File des résultats du jour non transmis (mot du jour, défi, grammaire,
+     orthographe joués hors ligne). Un seul résultat par jeu et par jour. */
+  var CLE_FILE = "motus.dailyQueue";
+  function lireFile() { try { return JSON.parse(localStorage.getItem(CLE_FILE) || "[]"); } catch (e) { return []; } }
+  function ecrireFile(f) { try { localStorage.setItem(CLE_FILE, JSON.stringify(f.slice(-30))); } catch (e) {} }
+  function mettreEnAttente(o) {
+    var f = lireFile().filter(function (x) { return !(x.game === o.game && x.day === o.day); });
+    f.push({ game: o.game, day: o.day, tries: o.tries, won: !!o.won });
+    ecrireFile(f);
+  }
+  function envoyerJour(o) {
+    // submitDailyBrut renvoie déjà vrai ou faux
+    return window.Profile.submitDailyBrut(o).then(function (ok) { return ok === true; });
+  }
+
+  function majPronom() {
+    var p = state.pronom === "elle" ? "elle" : "il";
+    Array.prototype.forEach.call(document.querySelectorAll(".pronom-choix button"),
+      function (b) { b.classList.toggle("on", b.dataset.pr === p); });
+  }
+  var pronoms = {}, pronomsEnCours = {};
+  function pronomDe(id) {
+    if (!id) return "il";
+    if (id === state.id) return state.pronom === "elle" ? "elle" : "il";
+    if (pronoms[id]) return pronoms[id];
+    if (configured && !pronomsEnCours[id] && navigator.onLine !== false) {
+      pronomsEnCours[id] = true;
+      fetchRemote(id).then(function (r) {
+        // un échec n'est PAS mis en cache : on retentera plus tard
+        if (r) pronoms[id] = (r.data && r.data.pronom === "elle") ? "elle" : "il";
+        delete pronomsEnCours[id];
+      });
+    }
+    return "il";                 // par défaut, comme demandé
+  }
+
   function pushDebounced() { clearTimeout(pushTimer); pushTimer = setTimeout(pushRemote, 300); }
   function fetchRemote(id) {
     if (!configured) return Promise.resolve(null);
@@ -359,6 +407,10 @@
     // appareil ne remontait jamais sur l'autre.
     var remAt = d.emblemAt || 0, locAt = state.emblemAt || 0;
     if (d.emblem && remAt > locAt) { state.emblem = d.emblem; state.emblemAt = remAt; }
+    // pronom : le choix le plus récent gagne, comme pour l'emblème
+    if ((d.pronom === "il" || d.pronom === "elle") && (d.pronomAt || 0) > (state.pronomAt || 0)) {
+      state.pronom = d.pronom; state.pronomAt = d.pronomAt;
+    }
     else if (!state.emblem && d.emblem) state.emblem = d.emblem;
 
     // Jetons d'indice : deux cumuls monotones, fusionnés par max — le solde
@@ -487,6 +539,12 @@
 .prof-sync summary{ cursor:pointer; font-weight:700; color:var(--ink); margin-bottom:6px; }
 #syncCode{ flex:1; font-size:11px; word-break:break-all; color:var(--ink-dim); background:var(--cell); padding:8px 10px; border-radius:8px; }
 .prof-sync .btn{ width:auto; padding:0 14px; height:40px; margin:0; font-size:13px; flex:none; }
+.pronom-line{ display:flex; align-items:center; justify-content:space-between; gap:10px;
+  margin:8px 0 4px; font-size:12.5px; color:var(--ink-dim); font-weight:600; }
+.pronom-choix{ display:flex; gap:4px; flex:none; }
+.pronom-choix button{ border:none; border-radius:9px; background:var(--cell); color:var(--ink-dim);
+  box-shadow:inset 0 0 0 1.5px var(--cell-edge); font-weight:800; font-size:14px; padding:7px 14px; cursor:pointer; }
+.pronom-choix button.on{ background:var(--accent); color:#fff; box-shadow:none; }
 #savePseudo{ width:auto; padding:0 16px; height:44px; margin:0; flex:none; }
 .refresh-btn{ width:100%; height:38px; margin:0 0 12px; font-size:13px; }
 .refresh-btn.spin{ opacity:.6; pointer-events:none; }
@@ -526,6 +584,9 @@
       <div class="prof-row">
         <input id="pseudoInput" placeholder="Ton pseudo" maxlength="16" autocomplete="off" autocapitalize="words" spellcheck="false">
         <button class="btn" id="savePseudo">OK</button>
+      </div>
+      <div class="pronom-line"><span>Les autres joueurs parlent de toi en disant</span>
+        <div class="pronom-choix"><button data-pr="il">il</button><button data-pr="elle">elle</button></div>
       </div>
       <div class="emb-line"><span class="ee" id="embEmoji">🎖️</span><div><b id="embName">Aucun emblème</b><br><span>Choisis-le dans l'onglet Badges</span></div></div>
       <div class="prof-level">
@@ -580,6 +641,8 @@
         <button class="rk-tab" data-td="defi">🔥 Défi</button>
         <button class="rk-tab" data-td="gram">✍️ Gram.</button>
         <button class="rk-tab" data-td="ortho">🔤 Ortho.</button>
+        <button class="rk-tab hw-tab" data-td="peur" style="display:none">🎃 Peur</button>
+        <button class="rk-tab hw-tab" data-td="bonbons" style="display:none">🍬 Bonbons</button>
       </div>
       <button class="btn ghost refresh-btn" id="btnRefreshToday">↻ Actualiser</button>
       <div id="todayStats"></div>
@@ -623,6 +686,13 @@
       b.addEventListener("click", function () { showTab(b.getAttribute("data-tab")); });
     });
 
+    Array.prototype.forEach.call(document.querySelectorAll(".pronom-choix button"), function (b) {
+      b.addEventListener("click", function () {
+        state.pronom = b.dataset.pr === "elle" ? "elle" : "il";
+        state.pronomAt = Date.now();
+        saveLocal(); pushDebounced(); majPronom();
+      });
+    });
     el("savePseudo").addEventListener("click", function () { setPseudo(el("pseudoInput").value); });
     el("pseudoInput").addEventListener("keydown", function (e) { if (e.key === "Enter") setPseudo(el("pseudoInput").value); });
     el("copyCode").addEventListener("click", function () {
@@ -730,6 +800,11 @@
       // n'aurait rien à sélectionner
       var tabs = el("todayTabs");
       if (tabs) tabs.style.display = ((window.Profile.game || "motus") === "motus") ? "" : "none";
+      // onglets d'Halloween : seulement pendant l'événement
+      var hw = window.MOTUS_HALLOWEEN, j = todayStr();
+      var actif = !!(hw && j >= hw.debut && j <= hw.fin);
+      Array.prototype.forEach.call(document.querySelectorAll("#todayTabs .hw-tab"),
+        function (x) { x.style.display = actif ? "" : "none"; });
       loadToday();
     }
   }
@@ -741,6 +816,7 @@
     set("pXpText", li.inLevel + " / " + li.span + " XP  (encore " + li.toNext + ")");
     set("pGames", state.games); set("pWins", state.wins); set("pXp", state.xp);
     var pi = el("pseudoInput"); if (pi && document.activeElement !== pi) pi.value = state.pseudo || "";
+    majPronom();
     var sc = el("syncCode"); if (sc) sc.textContent = state.id;
     peindreCompte();
     var bd = BADGE_BY_ID[state.emblem];
@@ -875,7 +951,14 @@
   }
 
   var rankMode = "xp";
+  function horsLigneMsg(box, done) {
+    if (navigator.onLine !== false) return false;
+    box.innerHTML = '<div class="muted">📡 Hors ligne — le classement reviendra avec la connexion.</div>';
+    if (done) done();
+    return true;
+  }
   function loadRank(done) {
+    if (horsLigneMsg(el("leaderboard"), done)) { el("myRank").innerHTML = ""; return; }
     var box = el("leaderboard"), mr = el("myRank");
     if (!configured) { mr.textContent = ""; box.innerHTML = '<div class="muted">Classement disponible une fois la base configurée.</div>'; if (done) done(); return; }
     mr.textContent = "…"; box.innerHTML = '<div class="muted">Chargement…</div>';
@@ -971,12 +1054,17 @@
     motus: { art:"le ", label:"mot du jour",         barres:"essais", unite:function(n){ return n + " essai" + (n>1?"s":""); } },
     defi:  { art:"le ", label:"défi du jour",        barres:"fautes", unite:function(n){ return n===0 ? "sans faute" : n + " raté" + (n>1?"s":""); } },
     gram:  { art:"la ", label:"grammaire du jour",   barres:"fautes", unite:function(n){ return n===0 ? "sans faute" : n + " faute" + (n>1?"s":""); } },
+    peur:    { art:"le ", label:"mot terrifiant", barres:"essais", unite:function(n){ return n + " essai" + (n>1?"s":""); } },
+    // plus il y a de bonbons, mieux c'est : classement décroissant
+    bonbons: { art:"les ", label:"bonbons du jour", barres:"aucune", ordre:"desc",
+               unite:function(n){ return n + " bonbon" + (n>1?"s":""); } },
     ortho: { art:"l'",  label:"orthographe du jour", barres:"fautes", unite:function(n){ return n===0 ? "sans faute" : n + " faute" + (n>1?"s":""); } }
   };
   var todayMode = "motus";
 
   function loadToday(done) {
     var box = el("todayStats");
+    if (horsLigneMsg(box, done)) return;
     var jeu = window.Profile.game || "motus";
     // le sélecteur n'a de sens que pour Motus : un autre jeu garde le sien
     var g = (jeu === "motus") ? todayMode : jeu, d = todayStr();
@@ -988,7 +1076,7 @@
     var base = API + "/rest/v1/daily_results?game=eq." + g + "&day=eq." + d;
     Promise.all([
       fetch(base + "&select=won,tries", { headers: headers(), cache: "no-store" }).then(function (r) { return r.ok ? r.json() : Promise.reject(); }),
-      fetch(base + "&won=eq.true&select=pseudo,tries&order=tries.asc,created_at.asc&limit=10", { headers: headers(), cache: "no-store" }).then(function (r) { return r.ok ? r.json() : []; })
+      fetch(base + "&won=eq.true&select=pseudo,tries&order=tries." + (conf.ordre === "desc" ? "desc" : "asc") + ",created_at.asc&limit=10", { headers: headers(), cache: "no-store" }).then(function (r) { return r.ok ? r.json() : []; })
     ]).then(function (res) {
       var rows = res[0], top = res[1];
       var total = rows.length, solved = rows.filter(function (x) { return x.won; }).length;
@@ -996,7 +1084,7 @@
       var html = '<div class="today-head"><div class="today-big">' + total + '</div><div class="today-sub">' +
                  (total > 1 ? "joueurs ont tenté " : "joueur a tenté ") + label + "</div></div>";
       html += '<div class="dist-title">' + pct + "% de réussite (" + solved + "/" + total + ")</div>";
-      if (g === "motus") {
+      if (conf.barres === "essais") {
         var dist = {}; for (var i = 1; i <= 6; i++) dist[i] = 0;
         rows.forEach(function (x) { if (x.won && x.tries >= 1 && x.tries <= 6) dist[x.tries]++; });
         var max = Math.max(1, dist[1], dist[2], dist[3], dist[4], dist[5], dist[6]);
@@ -1025,7 +1113,7 @@
       }).join("") + "</div>";
       box.innerHTML = html;
     }).catch(function () {
-      box.innerHTML = '<div class="muted">Stats du jour indisponibles.<br>(La table <b>daily_results</b> existe-t-elle ?)</div>';
+      box.innerHTML = '<div class="muted">Statistiques du jour indisponibles pour le moment.</div>';
     }).then(function () { if (done) done(); });
   }
 
@@ -1300,6 +1388,24 @@
        le mot du jour. La série se casse si un jour est sauté. */
     /* Sert les deux exercices quotidiens : le préfixe des compteurs change,
        la logique de série est identique. */
+    /* Halloween : kind = "peur" (mot terrifiant) ou "bonbons". Les jours
+       joués sont comptés une seule fois chacun. */
+    halloweenDone: function (o) {
+      o = o || {};
+      var b = state.b, jour = new Date().toISOString().slice(0, 10);
+      if (!Array.isArray(b.hwJours)) b.hwJours = [];
+      if (b.hwJours.indexOf(jour) < 0) b.hwJours.push(jour);
+      if (o.kind === "peur") {
+        b.hwPeur = (b.hwPeur || 0) + 1;
+        if (o.won) b.hwPeurWin = (b.hwPeurWin || 0) + 1;
+      } else if (o.kind === "bonbons") {
+        var n = Math.max(0, o.score || 0);
+        b.hwBonbonsTotal = (b.hwBonbonsTotal || 0) + n;
+        if (n > (b.hwBonbonsBest || 0)) b.hwBonbonsBest = n;
+      }
+      saveLocal(); checkBadges(); pushDebounced(); refreshOpen();
+    },
+
     gramDone: function (o) {
       o = o || {};
       var pre = (o.quel === "ortho") ? "ortho" : "gram";
@@ -1364,6 +1470,32 @@
        idempotent (upsert sur joueur + jeu + jour) : le rejouer est sans risque. */
     submitDaily: function (o) {
       if (!configured || !o) return Promise.resolve(false);
+      return envoyerJour(o).then(function (ok) {
+        if (!ok) mettreEnAttente(o);          // hors ligne : on le garde pour plus tard
+        return ok;
+      });
+    },
+
+    /* Au retour du réseau (et au démarrage) : renvoie les résultats du jour
+       restés en attente, puis le profil complet. */
+    pronomDe: pronomDe,
+
+    rattraper: function (avecProfil) {
+      if (!configured || navigator.onLine === false) return;
+      var file = lireFile();
+      if (file.length) {
+        ecrireFile([]);
+        file.forEach(function (o) {
+          envoyerJour(o).then(function (ok) { if (!ok) mettreEnAttente(o); });
+        });
+      }
+      // le profil complet, seulement au RETOUR du réseau : au démarrage, la
+      // synchronisation normale doit d'abord récupérer une éventuelle
+      // progression faite sur un autre appareil
+      if (avecProfil) pushRemote();
+    },
+
+    submitDailyBrut: function (o) {
       return fetch(API + "/rest/v1/daily_results?on_conflict=player_id,game,day", {
         method: "POST",
         headers: headers({ "Prefer": "resolution=merge-duplicates,return=minimal" }),
