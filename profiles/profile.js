@@ -1056,7 +1056,7 @@
     gram:  { art:"la ", label:"grammaire du jour",   barres:"fautes", unite:function(n){ return n===0 ? "sans faute" : n + " faute" + (n>1?"s":""); } },
     peur:    { art:"le ", label:"mot terrifiant", barres:"essais", unite:function(n){ return n + " essai" + (n>1?"s":""); } },
     // plus il y a de bonbons, mieux c'est : classement décroissant
-    bonbons: { art:"les ", label:"bonbons du jour", barres:"aucune", ordre:"desc",
+    bonbons: { art:"les ", label:"bonbons du jour", barres:"aucune", ordre:"desc", score:true,
                unite:function(n){ return n + " bonbon" + (n>1?"s":""); } },
     ortho: { art:"l'",  label:"orthographe du jour", barres:"fautes", unite:function(n){ return n===0 ? "sans faute" : n + " faute" + (n>1?"s":""); } }
   };
@@ -1076,14 +1076,23 @@
     var base = API + "/rest/v1/daily_results?game=eq." + g + "&day=eq." + d;
     Promise.all([
       fetch(base + "&select=won,tries", { headers: headers(), cache: "no-store" }).then(function (r) { return r.ok ? r.json() : Promise.reject(); }),
-      fetch(base + "&won=eq.true&select=pseudo,tries&order=tries." + (conf.ordre === "desc" ? "desc" : "asc") + ",created_at.asc&limit=10", { headers: headers(), cache: "no-store" }).then(function (r) { return r.ok ? r.json() : []; })
+      // jeu à score (bonbons) : chaque participant est classé, pas
+      // seulement ceux qui ont « réussi » — sinon un score de 9 disparaissait
+      fetch(base + (conf.score ? "" : "&won=eq.true") + "&select=pseudo,tries&order=tries." + (conf.ordre === "desc" ? "desc" : "asc") + ",created_at.asc&limit=10", { headers: headers(), cache: "no-store" }).then(function (r) { return r.ok ? r.json() : []; })
     ]).then(function (res) {
       var rows = res[0], top = res[1];
       var total = rows.length, solved = rows.filter(function (x) { return x.won; }).length;
       var pct = total ? Math.round(solved / total * 100) : 0;
       var html = '<div class="today-head"><div class="today-big">' + total + '</div><div class="today-sub">' +
                  (total > 1 ? "joueurs ont tenté " : "joueur a tenté ") + label + "</div></div>";
-      html += '<div class="dist-title">' + pct + "% de réussite (" + solved + "/" + total + ")</div>";
+      if (conf.score) {
+        var sc = rows.map(function (x) { return x.tries || 0; });
+        var best = sc.length ? Math.max.apply(null, sc) : 0;
+        var moy = sc.length ? Math.round(sc.reduce(function (a, b) { return a + b; }, 0) / sc.length) : 0;
+        html += '<div class="dist-title">Record du jour : ' + conf.unite(best) + " · moyenne : " + conf.unite(moy) + "</div>";
+      } else {
+        html += '<div class="dist-title">' + pct + "% de réussite (" + solved + "/" + total + ")</div>";
+      }
       if (conf.barres === "essais") {
         var dist = {}; for (var i = 1; i <= 6; i++) dist[i] = 0;
         rows.forEach(function (x) { if (x.won && x.tries >= 1 && x.tries <= 6) dist[x.tries]++; });
@@ -1105,7 +1114,7 @@
         html += "</div>";
       }
       html += '<div class="dist-title">Top du jour</div>';
-      if (!top.length) html += '<div class="muted">Personne n\'a encore trouvé aujourd\'hui.</div>';
+      if (!top.length) html += '<div class="muted">' + (conf.score ? "Personne n\'a encore joué aujourd\'hui." : "Personne n\'a encore trouvé aujourd\'hui.") + '</div>';
       else html += '<div class="lb">' + top.map(function (p, i) {
         var nm = (p.pseudo && p.pseudo.trim()) ? p.pseudo : "Anonyme";
         var t = (p.tries == null) ? "trouvé" : conf.unite(p.tries);
