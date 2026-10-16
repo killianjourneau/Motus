@@ -1673,3 +1673,97 @@ begin
 end $$;
 
 grant execute on function duel_presence(text,uuid,text) to anon, authenticated;
+
+-- =====================================================================
+-- v2.5 — Annonce Discord des parties publiques en recherche de joueurs
+--
+-- La base appelle elle-même le webhook Discord (extension pg_net) dès
+-- qu'une partie PUBLIQUE s'ouvre. Deux garde-fous :
+--   1. l'adresse du webhook vit dans une table PRIVÉE, illisible depuis le
+--      jeu — le dépôt étant public, elle ne doit jamais apparaître ailleurs ;
+--   2. une annonce qui échoue ne doit JAMAIS empêcher de créer une partie :
+--      toute erreur est ignorée, et un délai minimum évite d'inonder le salon.
+-- Tant que la ligne de configuration n'est pas remplie, rien n'est envoyé.
+-- =====================================================================
+create extension if not exists pg_net;
+
+create table if not exists discord_config (
+  id          int primary key default 1 check (id = 1),   -- une seule ligne
+  webhook     text,
+  site        text default 'https://mot-en-six.gamesbyneur.workers.dev/',
+  delai_min   int  default 5,          -- minutes minimum entre deux annonces
+  derniere    timestamptz
+);
+alter table discord_config enable row level security;
+-- volontairement AUCUNE policy : ni lecture ni écriture depuis le jeu
+
+create or replace function discord_annoncer(p_texte text)
+returns void language plpgsql security definer as $$
+declare c discord_config;
+begin
+  select * into c from discord_config where id = 1;
+  if c.webhook is null or c.webhook = '' then return; end if;
+  -- anti-inondation : pas plus d'une annonce toutes les N minutes
+  if c.derniere is not null
+     and now() < c.derniere + make_interval(mins => coalesce(c.delai_min, 5)) then return; end if;
+  update discord_config set derniere = now() where id = 1;
+  perform net.http_post(
+    url     := c.webhook,
+    body    := jsonb_build_object('content', p_texte, 'username', 'Mot en Six',
+                                  'allowed_mentions', jsonb_build_object('parse', '[]'::jsonb)),
+    headers := '{"Content-Type":"application/json"}'::jsonb
+  );
+exception when others then
+  -- quoi qu'il arrive côté Discord, la partie doit pouvoir se créer
+  null;
+end $$;
+
+create or replace function discord_partie_duel()
+returns trigger language plpgsql security definer as $$
+declare v_site text; v_nom text := coalesce(nullif(btrim(new.p1_pseudo),''), 'Un joueur');
+begin
+  if not coalesce(new.is_public, false) or new.status <> 'waiting' then return new; end if;
+  select coalesce(site, '') into v_site from discord_config where id = 1;
+  if new.kind = 'race' then
+    perform discord_annoncer('⌨️ **' || v_nom || '** lance une **Course** et cherche un adversaire !'
+      || E'\nCode : **' || new.id || '** 👉 ' || v_site || '?race=' || new.id || '&src=discordlive');
+  else
+    perform discord_annoncer('⚔️ **' || v_nom || '** cherche un adversaire en **Duel** !'
+      || E'\nCode : **' || new.id || '** 👉 ' || v_site || '?duel=' || new.id || '&src=discordlive');
+  end if;
+  return new;
+exception when others then
+  return new;               -- jamais bloquer la création d'une partie
+end $$;
+
+drop trigger if exists discord_duel_ouvert on duels;
+create trigger discord_duel_ouvert after insert on duels
+  for each row execute function discord_partie_duel();
+
+create or replace function discord_partie_royale()
+returns trigger language plpgsql security definer as $$
+declare v_site text;
+begin
+  if not coalesce(new.is_public, false) or new.status <> 'waiting' then return new; end if;
+  select coalesce(site, '') into v_site from discord_config where id = 1;
+  perform discord_annoncer('👑 Une **Battle Royale** ouvre ses portes — 4 joueurs, 4 manches !'
+    || E'\nCode : **' || new.id || '** 👉 ' || v_site || '?royale=' || new.id || '&src=discordlive');
+  return new;
+exception when others then
+  return new;
+end $$;
+
+drop trigger if exists discord_royale_ouverte on royale_rooms;
+create trigger discord_royale_ouverte after insert on royale_rooms
+  for each row execute function discord_partie_royale();
+
+-- =====================================================================
+-- v2.5.3 — Adresse de diffusion : https://mot-en-six.gamesbyneur.workers.dev/
+-- La valeur par défaut ne s'applique qu'aux NOUVELLES lignes : la
+-- configuration déjà enregistrée garderait l'ancienne adresse sans cette
+-- mise à jour. On ne touche qu'à l'ancienne valeur, pour respecter une
+-- adresse que vous auriez réglée vous-même.
+-- =====================================================================
+alter table discord_config alter column site set default 'https://mot-en-six.gamesbyneur.workers.dev/';
+update discord_config set site = 'https://mot-en-six.gamesbyneur.workers.dev/'
+ where site is null or site = 'https://killianjourneau.github.io/Motus/';

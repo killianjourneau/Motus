@@ -471,11 +471,14 @@
     },
 
     /* Ma défense actuelle, ou null si je n'en ai pas encore posé. */
+    /* Réponse du serveur : la défense, ou null s'il n'y en a VRAIMENT pas.
+       Échec réseau : { horsLigne: true } — surtout pas null, qui faisait
+       croire au joueur hors ligne qu'il n'avait aucun mot posé. */
     mine: function () {
       var m = me();
       return rpc("defense_mine", { p_id: m.id })
         .then(function (row) { return F.parse(row); })
-        .catch(function () { return null; });
+        .catch(function () { return { horsLigne: true }; });
     },
 
     /* Défenses que je peux attaquer maintenant. */
