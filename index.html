@@ -4739,13 +4739,14 @@
     const j = bbEtatJour();
     const e = $("bbEcran");
     e.innerHTML = '<h3>🍬 Bonbons</h3>'
-      + '<p>Des bonbons tombent du ciel. <b>Tape le mot</b> écrit sous chacun pour l\'attraper avant qu\'il ne touche le sol.<br>'
+      + '<p>Des bonbons tombent du ciel. <b>Tape le mot</b> (au clavier ou à l\'écran) écrit sous chacun pour l\'attraper avant qu\'il ne touche le sol.<br>'
       + 'Trois bonbons perdus, et la partie s\'arrête.</p>'
       + (j && j.fini
           ? '<p>Ta partie du jour : <b>' + j.score + ' bonbon' + (j.score>1?"s":"") + '</b>. Tu peux t\'entraîner, ça ne compte plus.</p>'
             + '<button class="btn" id="bbGo">S\'entraîner</button>'
           : '<p>La partie du jour est <b>la même pour tous</b> et ne se joue qu\'une fois.</p>'
-            + '<button class="btn" id="bbGo">C\'est parti !</button>');
+            + '<button class="btn" id="bbGo">C\'est parti !</button>')
+      + '<p style="font-size:12px">Sur ordinateur : Entrée pour commencer.</p>';
     e.classList.add("show");
     $("bbGo").addEventListener("click", ()=> bbDemarrer(!(j && j.fini)));
   }
@@ -4765,6 +4766,7 @@
     bbMots = hwMelange(HW.bonbons, graine);
     if(officiel) store.set("motus.bonbons", { day: todayKey(), score: 0, commence: true, fini: false });
     $("bbEcran").classList.remove("show");
+    if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
     bbVider(); bbMesurer(); bbMajHud(); bbMajSaisie();
     bbT = 0; bbProchain = 0; bbDernier = performance.now();
     bbRaf = requestAnimationFrame(bbBoucle);
@@ -4820,7 +4822,10 @@
     bbRaf = requestAnimationFrame(bbBoucle);
   }
   function bbTouche(a){
-    if(!bbEnJeu) return;
+    if(!bbEnJeu){
+      if(a === "enter"){ const b = $("bbGo") || $("bbEncore"); if(b && $("bbEcran").classList.contains("show")) b.click(); }
+      return;
+    }
     if(a === "back"){ bbBuf = bbBuf.slice(0,-1); bbMajSaisie(); return; }
     if(a === "enter"){ bbBuf = ""; bbMajSaisie(); return; }
     if(!/^[A-Z]$/.test(a)) return;
@@ -5980,12 +5985,28 @@
 
   /* ---------- Événements ---------- */
   document.addEventListener("keydown", e=>{
-    if(document.querySelector(".overlay.open")) return;
-    const k=e.key;
+    if(e.ctrlKey || e.metaKey || e.altKey) return;          // raccourcis du navigateur
+    // une saisie dans un vrai champ (pseudo, code de duel…) ne doit pas jouer
+    // (seulement s'il est visible : un champ masqué qui garderait le focus,
+    // comme celui de la grammaire, ne doit jamais bloquer le clavier du jeu)
+    const t = e.target, champ = t && (t.tagName==="INPUT" || t.tagName==="TEXTAREA" || t.isContentEditable)
+                                 && t.offsetParent !== null;
+    if(champ) return;
+    const bonbons = (mode==="bonbons");
+    if(!bonbons && document.querySelector(".overlay.open")) return;
+    // é, è, ç… du clavier AZERTY comptent comme leur lettre de base
+    let k = e.key;
+    if(k && k.length===1) k = k.normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+    let geree = true;
     if(k==="Enter") handleKey("enter");
     else if(k==="Backspace") handleKey("back");
     else if(/^[a-zA-Z]$/.test(k)) handleKey(k.toUpperCase());
     else if(k==="-" || k==="_") handleKey(DASH);
+    else geree = false;
+    /* Sans ceci, Entrée « cliquait » aussi le bouton ayant gardé le focus
+       (« C'est parti ! » relançait la partie en cours de jeu), et Retour
+       arrière ou Espace pouvaient faire défiler ou quitter la page. */
+    if(geree && bonbons) e.preventDefault();
   });
 
   $("royQuick").addEventListener("click", ()=> royEntrer(Royale.quick(royTirerMots())));

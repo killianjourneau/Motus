@@ -4,7 +4,7 @@ Jeu de mots en français : trouver le mot caché en six essais. Application web
 installable, jouable hors-ligne, sans framework — HTML, CSS et JavaScript
 uniquement.
 
-**Jouer :** https://killianjourneau.github.io/Motus/
+**Jouer :** https://mot-en-six.gamesbyneur.workers.dev/
 
 ## Ce que contient le jeu
 

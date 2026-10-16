@@ -8,4 +8,4 @@ Allow: /
 Disallow: /dico/
 Disallow: /duel/
 
-Sitemap: https://killianjourneau.github.io/Motus/sitemap.xml
+Sitemap: https://mot-en-six.gamesbyneur.workers.dev/sitemap.xml
