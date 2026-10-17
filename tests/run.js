@@ -73,7 +73,8 @@ const FICHIERS = {
   data: "data.test.js",
   jeu:  "jeu.test.js",
   ui:   "ui.test.js",
-  quete:"quete.test.js"
+  quete:"quete.test.js",
+  boutique:"boutique.test.js"
 };
 
 (async () => {

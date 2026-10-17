@@ -17,6 +17,7 @@ quel dans une intégration continue.
 | `jeu.test.js` | Évaluation des lettres, indice, modes à thème | jsdom |
 | `ui.test.js` | Thèmes, notifications, statistiques, accueil | jsdom |
 | `quete.test.js` | Contenu et **équilibrage** de Motus Quête | aucune |
+| `boutique.test.js` | Catalogue, dessins et **économie de jetons** de la boutique du chat | jsdom (en partie) |
 
 `data.test.js` et `quete.test.js` tournent sans rien installer et couvrent
 l'essentiel : commence par eux si tu es pressé.
