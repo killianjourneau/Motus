@@ -356,6 +356,25 @@ module.exports = function ({ groupe, verifie, ok, egal, vide, RACINE }) {
     vide(charges.filter(f => !sw.includes(f)), "chargés par le jeu mais absents du cache");
   });
 
+  verifie("décors : chaque fichier est en cache et porte son propre nom", () => {
+    const sw = fs.readFileSync(path.join(RACINE, "sw.js"), "utf8");
+    const idx = fs.readFileSync(path.join(RACINE, "index.html"), "utf8");
+    ok(idx.includes('<script src="./decors/decors.js?v='), "le moteur des décors n'est pas chargé par index.html");
+    const dossier = path.join(RACINE, "decors");
+    const soucis = [];
+    for (const f of fs.readdirSync(dossier).filter(f => f.endsWith(".js"))) {
+      if (!sw.includes("./decors/" + f)) soucis.push(f + " absent du cache hors ligne (sw.js)");
+      if (f === "decors.js") continue;
+      // le moteur charge decors/<nom>.js : le nom déclaré doit être celui du fichier
+      let declare = null;
+      new Function("Decors", fs.readFileSync(path.join(dossier, f), "utf8"))({ enregistrer: d => { declare = d; } });
+      if (!declare) { soucis.push(f + " n'appelle pas Decors.enregistrer"); continue; }
+      if (declare.nom + ".js" !== f) soucis.push(f + " se déclare « " + declare.nom + " »");
+      if (typeof declare.scene === "function" && typeof declare.scene() !== "string") soucis.push(f + " : scene() doit renvoyer du HTML");
+    }
+    vide(soucis);
+  });
+
   // ------------------------------------------------------------------
   groupe("Syntaxe");
 
