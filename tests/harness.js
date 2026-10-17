@@ -35,10 +35,10 @@ function donneesMini(w) {
   w.MOTUS_RACE = {}; w.MOTUS_EXPERT = {};
 }
 
-function profilSimule(compteurs) {
+function profilSimule(compteurs, profil) {
   const vide = () => {};
   return {
-    state: { id:"joueur-test", pseudo:"Testeur", level:3, emblem:"", b: compteurs || {} },
+    state: Object.assign({ id:"joueur-test", pseudo:"Testeur", level:3, emblem:"", b: compteurs || {} }, profil || {}),
     badges: [{ id:"x", e:"*" }],
     addGame:vide, duelDone:vide, raceDone:vide, raceSolo:vide, giveUp:vide,
     defenseAttackResult:vide, defenseFeedNew:vide, defenseWordSet:vide,
@@ -84,7 +84,7 @@ function demarrer(opt) {
     : Promise.resolve({ ok:false, status:404, text:() => Promise.resolve(""), json:() => Promise.resolve(null) });
 
   donneesMini(w);
-  w.Profile = profilSimule(o.compteurs);
+  w.Profile = profilSimule(o.compteurs, o.profil);
   if (o.avant) o.avant(w, d);
 
   const blocs = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]).filter(s => s.trim());

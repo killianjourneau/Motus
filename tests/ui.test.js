@@ -158,12 +158,17 @@ module.exports = async function ({ groupe, verifie, ignore, ok, egal, vide }) {
   verifie("les compteurs synchronisés sont préférés aux compteurs locaux", async () => {
     const app = demarrer({
       expose:"function motusStatsHTML", noms:NOMS,
-      compteurs:{ dist:[2,9,24,31,12,4], lost:8, msSum:1260000, msCount:82, best:14, mN:40, mP:15 },
+      compteurs:{ dist:[2,9,24,31,12,4], lost:8, msSum:1260000, msCount:82, best:14, mN:40, mP:15, streak:3 },
+      // 94 parties dont 86 gagnées : 4 victoires sans nombre d'essais (Pendu, Course)
+      // ne figurent pas dans la répartition mais comptent bien
+      profil:{ games:94, wins:86 },
       stockage:{ "motus.seen":"true", "motus.tour":"true" }
     });
     await app.attendre(120);
     const t = app.texte(app.w.__t.motusStatsHTML());
-    ok(t.includes("90 parties"), "82 gagnées + 8 perdues attendues, reçu : " + t.slice(0, 60));
+    ok(t.includes("94 parties"), "les 94 parties du profil attendues, reçu : " + t.slice(0, 60));
+    ok(t.includes("91% de réussite"), "86/94 attendu, reçu : " + t.slice(0, 60));
+    ok(t.includes("série 3 (record 14)"), "série du profil attendue, reçu : " + t.slice(0, 80));
     ok(!t.includes("locales à cet appareil"), "l'avertissement local ne devrait pas apparaître");
     ok(t.includes("Par mode"), "le détail par mode est absent");
   });
@@ -184,6 +189,43 @@ module.exports = async function ({ groupe, verifie, ignore, ok, egal, vide }) {
     await app.attendre(120);
     const h = app.w.__t.motusStatsHTML();
     ok(!/NaN|Infinity/.test(h), "valeur non calculable affichée telle quelle");
+  });
+
+  /* Fenêtre de fin du mot du jour : la série se compte en jours d'affilée. */
+  function cleJour(decalage) {
+    const d = new Date(); d.setDate(d.getDate() - decalage);
+    const p = n => String(n).padStart(2, "0");
+    return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+  }
+  async function journal(jours) {
+    const J = {}; for (const [dec, g] of jours) J[cleJour(dec)] = g;
+    const app = demarrer({ expose:"function journalStats", noms:NOMS.concat(["journalStats"]), compteurs:{},
+      stockage:{ "motus.seen":"true", "motus.tour":"true", "motus.journal": JSON.stringify({ motus:J }) } });
+    await app.attendre(80);
+    return app.w.__t.journalStats("motus");
+  }
+
+  verifie("mot du jour : série en jours d'affilée et record", async () => {
+    // aujourd'hui ✓, hier ✓, avant-hier ✗, puis trois jours ✓
+    const j = await journal([[0,1],[1,1],[2,0],[3,1],[4,1],[5,1]]);
+    egal(JSON.stringify(j), JSON.stringify({ joues:6, gagnes:5, serie:2, record:3 }));
+  });
+
+  verifie("mot du jour : pas encore joué aujourd'hui, la série d'hier tient", async () => {
+    egal((await journal([[1,1],[2,1],[3,1]])).serie, 3);
+  });
+
+  verifie("mot du jour : un jour sans jouer remet la série à zéro", async () => {
+    const j = await journal([[2,1],[3,1],[4,1]]);
+    egal(j.serie, 0); egal(j.record, 3);
+  });
+
+  verifie("mot du jour : une défaite aujourd'hui remet la série à zéro", async () => {
+    egal((await journal([[0,0],[1,1],[2,1]])).serie, 0);
+  });
+
+  verifie("mot du jour : des jours non consécutifs ne font pas un record", async () => {
+    egal((await journal([[1,1],[3,1],[5,1],[7,1]])).record, 1);
   });
 
   // ------------------------------------------------------------------
