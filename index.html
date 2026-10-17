@@ -15,13 +15,13 @@
 <meta property="og:title" content="Mot en Six — trouve le mot caché en 6 essais">
 <meta property="og:description" content="Mot du jour, grammaire et orthographe du jour, duels, Battle Royale et mode Junior. Gratuit, sans publicité, jouable hors-ligne.">
 <meta property="og:url" content="https://mot-en-six.gamesbyneur.workers.dev/">
-<meta property="og:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.6.2">
+<meta property="og:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.6.1">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Mot en Six — trouve le mot caché en 6 essais">
 <meta name="twitter:description" content="Mot du jour, grammaire et orthographe du jour, duels et Battle Royale.">
-<meta name="twitter:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.6.2">
+<meta name="twitter:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.6.1">
 <link rel="canonical" href="https://mot-en-six.gamesbyneur.workers.dev/">
 <script type="application/ld+json">
 {
@@ -1183,25 +1183,25 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=2.6.2"></script>
-<script src="./dico/motus-grammaire.js?v=2.6.2"></script>
-<script src="./dico/motus-halloween.js?v=2.6.2"></script>
-<script src="./decors/decors.js?v=2.6.2"></script>
-<script src="./dico/motus-ortho.js?v=2.6.2"></script>
-<script src="./dico/motus-prenoms.js?v=2.6.2"></script>
-<script src="./dico/motus-prenoms-info.js?v=2.6.2"></script>
-<script src="./dico/motus-maladies.js?v=2.6.2"></script>
-<script src="./dico/motus-maladies-info.js?v=2.6.2"></script>
-<script src="./dico/motus-villes.js?v=2.6.2"></script>
-<script src="./dico/motus-villes-info.js?v=2.6.2"></script>
-<script src="./dico/motus-persos.js?v=2.6.2"></script>
-<script src="./dico/motus-persos-info.js?v=2.6.2"></script>
-<script src="./dico/motus-persos-split.js?v=2.6.2"></script>
-<script src="./dico/motus-race.js?v=2.6.2"></script>
-<script src="./dico/motus-expert.js?v=2.6.2"></script>
-<script src="./profiles/config.js?v=2.6.2"></script>
-<script src="./profiles/profile.js?v=2.6.2"></script>
-<script src="./duel/duel.js?v=2.6.2"></script>
+<script src="./dico/motus-words.js?v=2.6.1"></script>
+<script src="./dico/motus-grammaire.js?v=2.6.1"></script>
+<script src="./dico/motus-halloween.js?v=2.6.1"></script>
+<script src="./decors/decors.js?v=2.6.1"></script>
+<script src="./dico/motus-ortho.js?v=2.6.1"></script>
+<script src="./dico/motus-prenoms.js?v=2.6.1"></script>
+<script src="./dico/motus-prenoms-info.js?v=2.6.1"></script>
+<script src="./dico/motus-maladies.js?v=2.6.1"></script>
+<script src="./dico/motus-maladies-info.js?v=2.6.1"></script>
+<script src="./dico/motus-villes.js?v=2.6.1"></script>
+<script src="./dico/motus-villes-info.js?v=2.6.1"></script>
+<script src="./dico/motus-persos.js?v=2.6.1"></script>
+<script src="./dico/motus-persos-info.js?v=2.6.1"></script>
+<script src="./dico/motus-persos-split.js?v=2.6.1"></script>
+<script src="./dico/motus-race.js?v=2.6.1"></script>
+<script src="./dico/motus-expert.js?v=2.6.1"></script>
+<script src="./profiles/config.js?v=2.6.1"></script>
+<script src="./profiles/profile.js?v=2.6.1"></script>
+<script src="./duel/duel.js?v=2.6.1"></script>
 <script>
 (() => {
   "use strict";
@@ -1253,7 +1253,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "2.6.2";
+  const VERSION = "2.6.1";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -1911,10 +1911,12 @@
       sixFail: !win && !gaveUp   // vrai échec après 6 essais épuisés, jamais un abandon
     });
     if(mode==="daily"){
+      journalNoter("motus", dailyKey, win);
       Profile.submitDaily({ game:"motus", day:dailyKey, tries: win?guesses.length:6, won:win });
       if(win) grantHintOnce("daily", dailyKey);
     }
     if(mode==="peur"){
+      journalNoter("peur", peurKey, win);
       Profile.submitDaily({ game:"peur", day:peurKey, tries: win?guesses.length:6, won:win });
       if(Profile.halloweenDone) Profile.halloweenDone({ kind:"peur", won:win });
       if(win) grantHintOnce("peur", peurKey);
@@ -3003,6 +3005,7 @@
       if(penduAnswer.split("").every(c=>penduGuessed.indexOf(c)>=0)){
         // on laisse le temps de VOIR le mot complété : la fenêtre de victoire
         // s'ouvrait dans le même souffle que la dernière lettre
+        over = true;                         // verrou immédiat : plus aucune lettre pendant l'animation
         son("gagne");
         const box = $("penduBox"); if(box) box.classList.add("gagne");
         setTimeout(()=>penduFinish(true), 1100);
@@ -3013,6 +3016,7 @@
       penduRender(); refreshGiveUpUI();
       vibrate([30]);
       if(penduWrong>=PENDU_LIVES){
+        over = true;                         // idem : une lettre tapée ensuite ne peut plus « sauver » la partie
         penduReveal();                       // on montre le mot manqué
         setTimeout(()=>penduFinish(false), 1100);
       }
@@ -3030,11 +3034,14 @@
       if(win && hintsThisGame>0) xp = Math.round(xp * (1 - 0.25*hintsThisGame));
       Profile.addGame({
         won:win, xp, mode:"pendu", sub:"pendu",
-        tries: PENDU_LIVES-penduWrong, ms: timerValue(), answer: penduAnswer,
+        // 0 : des vies restantes ne sont pas des essais. Les compter comme tels
+        // offrait « Coup de génie » (gagner avec 1 vie) et faussait la répartition.
+        tries: 0, ms: timerValue(), answer: penduAnswer,
         hint: hintsThisGame>0, hintCount: hintsThisGame, sixFail: !win && !gaveUp
       });
       if(window.Profile.penduDone) Profile.penduDone({ won:win, wrong:penduWrong, lives:PENDU_LIVES });
     }
+    recordResult(win, 0);
     refreshStats();
     const box = $("penduBox"); if(box) box.classList.remove("gagne");
     $("endTitle").textContent = win ? "Gracié ! 🎉" : "Pendu… 💀";
@@ -4302,6 +4309,7 @@
       if(penduAnswer.split("").every(c=>penduGuessed.indexOf(c)>=0)){
         // on laisse le temps de VOIR le mot complété : la fenêtre de victoire
         // s'ouvrait dans le même souffle que la dernière lettre
+        over = true;                         // verrou immédiat : plus aucune lettre pendant l'animation
         son("gagne");
         const box = $("penduBox"); if(box) box.classList.add("gagne");
         setTimeout(()=>penduFinish(true), 1100);
@@ -4439,8 +4447,79 @@
     store.set("motus.stats", stats);
   }
   function winPct(){ return stats.played ? Math.round(stats.won/stats.played*100) : 0; }
+  /* Fenêtre de fin : trois compteurs, selon ce qui vient d'être joué.
+     - Mot du jour / Mot terrifiant : leurs propres chiffres, et une série en
+       JOURS d'affilée, comme tous les jeux du quotidien. Une manche ratée en
+       Battle Royale ne casse plus la série du mot du jour.
+     - Ailleurs : les chiffres du profil, synchronisés entre appareils — les
+       mêmes que la page Profil et l'écran Statistiques. Les anciens compteurs
+       locaux (motus.stats) ne servent plus qu'en l'absence de profil. */
   function refreshStats(){
-    $("sPlayed").textContent=stats.played; $("sWin").textContent=winPct()+"%"; $("sStreak").textContent=stats.streak;
+    const lab = (i, t) => { const e = document.querySelectorAll("#endOverlay .stat .l")[i]; if(e) e.textContent = t; };
+    const jeu = (mode==="daily") ? "motus" : (mode==="peur") ? "peur" : null;
+    if(jeu){
+      const j = journalStats(jeu);
+      $("sPlayed").textContent = j.joues;
+      $("sWin").textContent = j.joues ? Math.round(j.gagnes/j.joues*100) + "%" : "0%";
+      $("sStreak").textContent = j.serie;
+      lab(0, jeu==="peur" ? "Mots terrifiants" : "Mots du jour");
+      lab(1, "Victoires");
+      lab(2, "Jours d'affilée");
+      $("sStreak").parentNode.title = "Record : " + j.record + " jour" + (j.record>1?"s":"") + " d'affilée";
+      journalSynchroniser(jeu);              // complète avec l'historique du serveur (autres appareils)
+      return;
+    }
+    const P = window.Profile && Profile.state && typeof Profile.state.games === "number" ? Profile.state : null;
+    const jouees = P ? P.games : stats.played, gagnees = P ? P.wins : stats.won;
+    const serie = P ? (P.b.streak || 0) : stats.streak, record = P ? Math.max(P.b.best || 0, serie) : stats.best;
+    $("sPlayed").textContent = jouees;
+    $("sWin").textContent = jouees ? Math.round(gagnees/jouees*100) + "%" : "0%";
+    $("sStreak").textContent = serie;
+    lab(0, "Parties"); lab(1, "Victoires"); lab(2, "Série");
+    $("sStreak").parentNode.title = "Record : " + record + " victoire" + (record>1?"s":"") + " d'affilée";
+  }
+
+  /* ---------- Journal des jeux du jour ----------
+     { motus: {"2026-10-17":1, "2026-10-16":0, …}, peur: {…} } — 1 gagné, 0 perdu.
+     Tenu localement à chaque fin de partie, et complété une fois par jour par
+     l'historique du serveur : la série suit le joueur d'un appareil à l'autre. */
+  function journalNoter(jeu, jour, gagne){
+    const J = store.get("motus.journal", {}) || {};
+    (J[jeu] = J[jeu] || {})[jour] = gagne ? 1 : 0;
+    store.set("motus.journal", J);
+  }
+  // jour précédent d'une clé AAAA-MM-JJ (calcul en UTC : pas de piège d'heure d'été)
+  function veilleDe(k){ const [y,m,d] = k.split("-").map(Number); return new Date(Date.UTC(y,m-1,d-1)).toISOString().slice(0,10); }
+  function journalStats(jeu){
+    const J = (store.get("motus.journal", {}) || {})[jeu] || {};
+    const jours = Object.keys(J).sort();
+    const gagnes = jours.filter(k => J[k] === 1).length;
+    // série en cours : depuis aujourd'hui, ou depuis hier si aujourd'hui n'est pas encore joué
+    let k = todayKey(); if(J[k] === undefined) k = veilleDe(k);
+    let serie = 0; while(J[k] === 1){ serie++; k = veilleDe(k); }
+    // record : la plus longue suite de jours consécutifs gagnés
+    let record = 0, cours = 0, prec = null;
+    jours.forEach(x => {
+      cours = (J[x] !== 1) ? 0 : (prec && veilleDe(x) === prec && J[prec] === 1) ? cours + 1 : 1;
+      if(cours > record) record = cours;
+      prec = x;
+    });
+    return { joues: jours.length, gagnes, serie, record };
+  }
+  const journalSynchro = {};
+  function journalSynchroniser(jeu){
+    const cle = jeu + todayKey();
+    if(journalSynchro[cle] || !window.Profile || !Profile.historiqueJour || !enLigne()) return;
+    journalSynchro[cle] = true;
+    Profile.historiqueJour(jeu).then(h => {
+      if(!h){ journalSynchro[cle] = false; return; }       // échec : on réessaiera
+      const J = store.get("motus.journal", {}) || {}, mien = J[jeu] = J[jeu] || {};
+      let neuf = false;
+      h.forEach(r => { if(r && r.day && mien[r.day] === undefined){ mien[r.day] = r.won ? 1 : 0; neuf = true; } });
+      if(!neuf) return;
+      store.set("motus.journal", J);
+      if($("endOverlay").classList.contains("open") && (mode==="daily" || mode==="peur")) refreshStats();
+    });
   }
   function motusStatsHTML(){
     // Les compteurs du profil sont SYNCHRONISÉS entre appareils, contrairement
@@ -4450,9 +4529,13 @@
     const dSync = Array.isArray(b.dist) && b.dist.some(v=>v>0) ? b.dist : null;
     const dist = dSync ? dSync : [1,2,3,4,5,6].map(i=>stats.dist[i]||0);
     const gagnees = dist.reduce((a,v)=>a+v,0);
-    const perdues = dSync ? (b.lost||0) : (stats.fail||0);
-    const jouees  = dSync ? (gagnees+perdues) : stats.played;
-    const pct     = jouees ? Math.round(gagnees/jouees*100) : 0;
+    /* Parties et taux : les compteurs du profil, complets. L'ancien calcul
+       (victoires de la répartition + défaites) oubliait les victoires sans
+       nombre d'essais — Pendu, Course — tout en comptant leurs défaites. */
+    const P = window.Profile && Profile.state && typeof Profile.state.games === "number" ? Profile.state : null;
+    const jouees  = P ? P.games : stats.played;
+    const pct     = jouees ? Math.round((P ? P.wins : stats.won)/jouees*100) : 0;
+    const serieP  = P ? (b.streak || 0) : stats.streak;
 
     const max = Math.max(1, ...dist);
     const bars = dist.map((v,i)=>{
@@ -4491,7 +4574,7 @@
      .sort((x,y)=>(b[y[1]]||0)-(b[x[1]]||0))
      .map(([n,k])=>`<div class="st-row"><span>${n}</span><b>${b[k]}</b></div>`).join("");
 
-    return `<div class="dist-title">Mot en Six — ${jouees} parties · ${pct}% de réussite · série ${stats.streak} (record ${Math.max(stats.best, b.best||0)})</div>`
+    return `<div class="dist-title">Mot en Six — ${jouees} parties · ${pct}% de réussite · série ${serieP} (record ${Math.max(serieP, P ? (b.best||0) : stats.best)})</div>`
       + `<div class="dist">${bars}</div>`
       + `<div class="st-block">${detail}</div>`
       + (parMode ? `<div class="dist-title">Par mode</div><div class="st-block">${parMode}</div>` : "")
@@ -4678,10 +4761,10 @@
     if(!over){ col=1; setCell(row,0,answer[0]); tileAt(row,0).classList.add("correct"); }
     store.set("motus.last","peur");
     updateHud();
-    if(over) timerStop();
+    if(over){ timerStart(d.ms||0); timerStop(); }
     else if(d.guesses.length>0) timerStart(d.ms||0);
     else timerReset();
-    if(d.done) showEnd(d.won, true);
+    if(d.done) showEnd(d.won, true, true);
   }
 
   /* ================= BONBONS ================= */
@@ -5702,7 +5785,6 @@
       Profile.memoDone({ won:gagne, sec:memoSec, best:memoBest, reussites:memoReussites });
     }
     mesure("partie:memo"); if(gagne) mesure("gagne:memo");
-    recordResult(gagne, gagne ? 1 : 6);
     son(gagne ? "gagne" : "perdu");
 
     // correction visible : ce qu'on a tapé face à ce qu'il fallait
@@ -5793,10 +5875,10 @@
     if(!over){ col=1; setCell(row,0,answer[0]); tileAt(row,0).classList.add("correct"); }
     store.set("motus.last","daily");
     updateHud();
-    if(over) timerStop();
+    if(over){ timerStart(d.ms||0); timerStop(); }       // partie finie : on réaffiche son vrai temps
     else if(d.guesses.length>0) timerStart(d.ms||0);   // reprise en cours de mot
     else timerReset();                                  // mot pas encore entamé
-    if(d.done) showEnd(d.won, true);
+    if(d.done) showEnd(d.won, true, true);
   }
   function setupBoardForAnswer(){
     // en quittant la Mémorisation, on rend le plateau, son chrono et le HUD
@@ -5881,8 +5963,8 @@
   }
 
   let endAgainMode = "normal";
-  function showEnd(win, isDaily){
-    if(!win) son("perdu");
+  function showEnd(win, isDaily, rouvert){
+    if(!win && !rouvert) son("perdu");      // rouvrir un mot du jour perdu ne rejoue pas le son
     refreshStats();
     const daily = isDaily || mode==="daily" || mode==="peur";
     $("endTitle").textContent = win ? "Bravo !" : "Dommage…";
