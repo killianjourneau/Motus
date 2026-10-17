@@ -15,13 +15,13 @@
 <meta property="og:title" content="Mot en Six — trouve le mot caché en 6 essais">
 <meta property="og:description" content="Mot du jour, grammaire et orthographe du jour, duels, Battle Royale et mode Junior. Gratuit, sans publicité, jouable hors-ligne.">
 <meta property="og:url" content="https://mot-en-six.gamesbyneur.workers.dev/">
-<meta property="og:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.6.2">
+<meta property="og:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.6.1">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Mot en Six — trouve le mot caché en 6 essais">
 <meta name="twitter:description" content="Mot du jour, grammaire et orthographe du jour, duels et Battle Royale.">
-<meta name="twitter:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.6.2">
+<meta name="twitter:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.6.1">
 <link rel="canonical" href="https://mot-en-six.gamesbyneur.workers.dev/">
 <script type="application/ld+json">
 {
@@ -211,25 +211,7 @@
     padding:6px 13px; border-radius:20px; font-size:12px; font-weight:700; z-index:500;
     transition:transform .3s; pointer-events:none; white-space:nowrap; }
   #horsLigne.show{ transform:translate(-50%,0); }
-  /* ---------- Halloween ---------- */
-  :root.halloween:not([data-theme="light"]){
-    --bg:#140b22; --bg-2:#1e1033; --cell:#2a1745; --cell-edge:#43265f;
-    --absent:#1f1233; --key:#3a2160; --key-edge:#55307f; --ink-dim:#b9a3d9;
-  }
-  :root.halloween{ --red:#f0681a; }                 /* lettre bien placée : orange citrouille */
-  :root.halloween:not([data-accent]){ --accent:#f0681a; }
-  :root.halloween:not([data-theme="light"]) body{
-    background:
-      radial-gradient(circle at 86% 7%, rgba(255,214,120,.18) 0 30px, transparent 31px),
-      radial-gradient(ellipse at 50% 115%, rgba(240,104,26,.20), transparent 55%),
-      radial-gradient(120% 90% at 50% 0%, var(--bg-2) 0%, var(--bg) 60%);
-    background-attachment:fixed;
-  }
-  .hw-chauve{ position:fixed; top:8%; left:-40px; font-size:22px; z-index:1; pointer-events:none;
-    opacity:.55; animation:hwvol 26s linear infinite; }
-  .hw-chauve.b{ top:22%; font-size:16px; animation-duration:34s; animation-delay:-14s; opacity:.4; }
-  @keyframes hwvol{ 0%{ transform:translate(0,0) } 25%{ transform:translate(30vw,-18px) }
-    50%{ transform:translate(60vw,12px) } 75%{ transform:translate(90vw,-10px) } 100%{ transform:translate(115vw,0) } }
+  /* ---------- Halloween (le décor lui-même est dans decors/halloween.js) ---------- */
   .hw-cat{ color:#f0681a !important; }
   .hw-item{ box-shadow:inset 0 0 0 1.5px #f0681a !important; }
   .hw-theme-btn{ display:block; margin:6px auto 2px; border:none; background:none; color:var(--ink-dim);
@@ -1201,24 +1183,25 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=2.6.2"></script>
-<script src="./dico/motus-grammaire.js?v=2.6.2"></script>
-<script src="./dico/motus-halloween.js?v=2.6.2"></script>
-<script src="./dico/motus-ortho.js?v=2.6.2"></script>
-<script src="./dico/motus-prenoms.js?v=2.6.2"></script>
-<script src="./dico/motus-prenoms-info.js?v=2.6.2"></script>
-<script src="./dico/motus-maladies.js?v=2.6.2"></script>
-<script src="./dico/motus-maladies-info.js?v=2.6.2"></script>
-<script src="./dico/motus-villes.js?v=2.6.2"></script>
-<script src="./dico/motus-villes-info.js?v=2.6.2"></script>
-<script src="./dico/motus-persos.js?v=2.6.2"></script>
-<script src="./dico/motus-persos-info.js?v=2.6.2"></script>
-<script src="./dico/motus-persos-split.js?v=2.6.2"></script>
-<script src="./dico/motus-race.js?v=2.6.2"></script>
-<script src="./dico/motus-expert.js?v=2.6.2"></script>
-<script src="./profiles/config.js?v=2.6.2"></script>
-<script src="./profiles/profile.js?v=2.6.2"></script>
-<script src="./duel/duel.js?v=2.6.2"></script>
+<script src="./dico/motus-words.js?v=2.6.1"></script>
+<script src="./dico/motus-grammaire.js?v=2.6.1"></script>
+<script src="./dico/motus-halloween.js?v=2.6.1"></script>
+<script src="./decors/decors.js?v=2.6.1"></script>
+<script src="./dico/motus-ortho.js?v=2.6.1"></script>
+<script src="./dico/motus-prenoms.js?v=2.6.1"></script>
+<script src="./dico/motus-prenoms-info.js?v=2.6.1"></script>
+<script src="./dico/motus-maladies.js?v=2.6.1"></script>
+<script src="./dico/motus-maladies-info.js?v=2.6.1"></script>
+<script src="./dico/motus-villes.js?v=2.6.1"></script>
+<script src="./dico/motus-villes-info.js?v=2.6.1"></script>
+<script src="./dico/motus-persos.js?v=2.6.1"></script>
+<script src="./dico/motus-persos-info.js?v=2.6.1"></script>
+<script src="./dico/motus-persos-split.js?v=2.6.1"></script>
+<script src="./dico/motus-race.js?v=2.6.1"></script>
+<script src="./dico/motus-expert.js?v=2.6.1"></script>
+<script src="./profiles/config.js?v=2.6.1"></script>
+<script src="./profiles/profile.js?v=2.6.1"></script>
+<script src="./duel/duel.js?v=2.6.1"></script>
 <script>
 (() => {
   "use strict";
@@ -1270,7 +1253,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "2.6.2";
+  const VERSION = "2.6.1";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -4672,11 +4655,7 @@
   function hwThemeVoulu(){ return hwActif() && store.get("motus.hwTheme", true) !== false; }
   function hwAppliquerTheme(){
     const on = hwThemeVoulu();
-    document.documentElement.classList.toggle("halloween", on);
-    document.querySelectorAll(".hw-chauve").forEach(e=>e.remove());
-    if(on){
-      ["","b"].forEach(c=>{ const e=document.createElement("div"); e.className="hw-chauve "+c; e.textContent="🦇"; document.body.appendChild(e); });
-    }
+    if(window.Decors){ if(on) Decors.activer("halloween"); else if(Decors.actif==="halloween") Decors.retirer(); }
     const sec = $("hwSection"); if(sec) sec.style.display = hwActif() ? "" : "none";
     const bt = $("hwThemeBtn"); if(bt) bt.textContent = on ? "🎃 Décor d'Halloween : activé" : "🎃 Décor d'Halloween : désactivé";
   }
