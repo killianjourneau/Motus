@@ -887,7 +887,7 @@
       <div class="dist-title">Contenu</div>
       <p style="text-align:center;margin-bottom:6px" id="aboutCounts"></p>
       <div class="dist-title">Nouveautés</div>
-      <p style="text-align:center;font-size:13px;color:var(--ink-dim)">🎃 Halloween jusqu'au 15 novembre : Mot terrifiant &amp; Bonbons · ✍️ Grammaire &amp; 🔤 Orthographe du jour</p>
+      <p style="text-align:center;font-size:13px;color:var(--ink-dim)">🐈‍⬛ Nouveau : la boutique — adopte Minuit, un chat noir qui vit au-dessus de ta grille · 🎃 Halloween jusqu'au 15 novembre : Mot terrifiant &amp; Bonbons</p>
       <button class="btn" id="btnRulesFromAbout">📖 Règles du jeu</button>
       <a class="btn ghost" href="./decouvrir.html" style="display:block;text-align:center;text-decoration:none">🌐 Présentation du jeu</a>
       <button class="btn" id="btnShareFromAbout">📤 Partager le jeu</button>
@@ -1297,7 +1297,15 @@
     hintEarned = store.get("motus.hintTokens", 0); hintSpent = 0;
     store.set("motus.hintEarned", hintEarned); store.set("motus.hintSpent", hintSpent);
   }
-  function hintBalance(){ return Math.max(0, hintEarned - hintSpent); }
+  function hintBalance(){ return Math.max(0, hintEarned - hintSpent - depenseBoutique()); }
+  /* Boutique du chat : ce qu'elle a coûté = la somme des prix des objets
+     possédés. Lu directement dans le stockage, pour rester juste même si
+     boutique/boutique.js n'a pas pu se charger. */
+  function depenseBoutique(){
+    const o = (store.get("motus.boutique", null) || {}).objets || {};
+    let t = 0; for(const k in o){ const p = +o[k]; if(p > 0 && isFinite(p)) t += p; }
+    return t;
+  }
   function hintSpendOne(){ hintSpent++; store.set("motus.hintSpent", hintSpent); hintSyncPush(); }
   function hintEarnOne(){ hintEarned++; store.set("motus.hintEarned", hintEarned); hintSyncPush(); }
   function hintSyncPush(){
@@ -1314,6 +1322,15 @@
       store.set("motus.hintGrants", loc);
     }
     refreshHintUI();
+  };
+  window.MotusPont = {
+    jetons: () => hintBalance(),
+    majJetons: () => refreshHintUI(),
+    toast: (m, ms) => toast(m, ms),
+    audio: () => audioPret(),
+    fermerTout: () => closeOverlays(),
+    redimensionner: () => { if(len) computeSizing(); },
+    halloween: () => hwActif()
   };
   let gaveUp = false;   // vrai uniquement en cas d'abandon volontaire, jamais après 6 essais épuisés
   let hintCols = [], hintsThisGame = 0;
@@ -1617,7 +1634,9 @@
     // alors sur le bandeau au-dessus (bouton Abandonner compris). On plafonne
     // donc aussi la taille par la hauteur réellement offerte à <main>.
     const mainEl = document.querySelector("main");
-    const availH = (mainEl && mainEl.clientHeight) || Math.round(window.innerHeight*0.5);
+    let availH = (mainEl && mainEl.clientHeight) || Math.round(window.innerHeight*0.5);
+    // le chat de la boutique a sa bande réservée au-dessus de la grille
+    availH -= parseFloat(getComputedStyle(board).marginTop) || 0;
     const tileH = Math.floor((availH - gap*(MAX_ROWS-1)) / MAX_ROWS);
     if(tileH > 0) tile = Math.min(tile, tileH);
     tile = Math.min(tile, 58);
@@ -1940,6 +1959,7 @@
       over=true; ended=true; won=true; timerStop(); vibrate([12,40,12]); son("gagne");
       for(let c=0;c<len;c++) setTimeout(()=>tileAt(row,c).classList.add("jump"), c*70);
       recordResult(true, guesses.length); awardXp(true);
+      if(window.Boutique) Boutique.evenement("victoire");
       if(mode==="defense"){ defFinish(true); setTimeout(()=>showEnd(true), 720); return; }
       if(mode==="royale"){ timerStop(); setTimeout(()=>royFinManche(true), 900); return; }
       if(mode==="duel"){ setTimeout(()=>duelReport(true), 720); return; }
@@ -6401,6 +6421,7 @@
   }
 })();
 </script>
+<script src="./boutique/boutique.js?v=2.6.1"></script>
 <noscript><p><a href="./decouvrir.html">Découvrir Mot en Six, le jeu de mots en français</a></p></noscript>
 </body>
 </html>
