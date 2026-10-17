@@ -125,6 +125,12 @@
     {id:"qlvl",  e:"⚔️", n:"Apprenti confirmé",   d:"Atteindre le niveau 10 en Quête",       c:"Quête", t:function(b){return b.qNiveau>=10;}, p:[function(b){return b.qNiveau;},10]},
     // Saison : badges d'événement, obtenables seulement pendant l'événement
     // mais conservés pour toujours ensuite.
+    // — Compagnon (boutique du chat) —
+    {id:"chat1", e:"🐈‍⬛", n:"Ami des chats",      d:"Adopter un chat noir dans la boutique", c:"Compagnon", t:function(b,s){return !!(s.boutique && s.boutique.objets && ("chat" in s.boutique.objets));}},
+    {id:"chat5", e:"🎩", n:"Chat coquet",         d:"Offrir 5 objets à ton chat",            c:"Compagnon", t:function(b,s){return objetsChat(s)>=5;}, p:[function(b,s){return objetsChat(s);},5]},
+    {id:"chatTout",e:"👑",n:"Chat royal",         d:"Offrir à ton chat tous les objets de la boutique", c:"Compagnon",
+      t:function(b,s){ var C = window.Boutique && Boutique.catalogue; return !!C && C.every(function(x){ return s.boutique && s.boutique.objets && (x.id in s.boutique.objets); }); },
+      p:[function(b,s){return objetsChat(s);}, 18]},
     {id:"hw1",   e:"🎃", n:"Premier frisson",     d:"Jouer un Mot terrifiant (Halloween)",   c:"Saison", t:function(b){return b.hwPeur>=1;}, p:[function(b){return b.hwPeur;},1]},
     {id:"hw5",   e:"👻", n:"Chasseur de fantômes", d:"Trouver 5 Mots terrifiants",           c:"Saison", t:function(b){return b.hwPeurWin>=5;}, p:[function(b){return b.hwPeurWin;},5]},
     {id:"hw15",  e:"🧛", n:"Seigneur de la nuit", d:"Trouver 15 Mots terrifiants",           c:"Saison", t:function(b){return b.hwPeurWin>=15;}, p:[function(b){return b.hwPeurWin;},15]},
@@ -276,6 +282,23 @@
   if (!state.emblem) state.emblem = "";
   state.level = levelFromXp(state.xp);
   function saveLocal() { store.set("motus.profile", state); }
+
+  /* Boutique du chat : objets en union (chacun une fois, au prix payé),
+     tenue, nom et affichage au choix le plus récent. Même règle que
+     boutique/boutique.js — un achat n'est jamais perdu ni compté deux fois. */
+  function fusionBoutique(a, b) {
+    a = a || {}; b = b || {};
+    var r = { objets: {}, porte: a.porte || {}, porteAt: a.porteAt || 0, nom: a.nom || "Minuit", nomAt: a.nomAt || 0,
+              visible: a.visible !== false, visibleAt: a.visibleAt || 0 };
+    [a.objets || {}, b.objets || {}].forEach(function (o) {
+      Object.keys(o).forEach(function (k) { var p = +o[k]; if (!(k in r.objets) && p >= 0 && isFinite(p)) r.objets[k] = p; });
+    });
+    if ((b.porteAt || 0) > r.porteAt) { r.porte = b.porte || {}; r.porteAt = b.porteAt; }
+    if ((b.nomAt || 0) > r.nomAt && b.nom) { r.nom = b.nom; r.nomAt = b.nomAt; }
+    if ((b.visibleAt || 0) > r.visibleAt) { r.visible = b.visible !== false; r.visibleAt = b.visibleAt; }
+    return r;
+  }
+  function objetsChat(s) { var o = (s && s.boutique && s.boutique.objets) || {}; return Object.keys(o).filter(function (k) { return k !== "chat"; }).length; }
   // moment de la dernière partie jouée sur CET appareil : départage les séries à la fusion
   function joue() { state.b.jeuAt = Date.now(); }
 
@@ -326,7 +349,8 @@
                                      hintSpent: state.hintSpent || 0,
                                      hintGrants: state.hintGrants || {},
                                      pronom: state.pronom || "il",
-                                     pronomAt: state.pronomAt || 0 },
+                                     pronomAt: state.pronomAt || 0,
+                                     boutique: state.boutique || null },
                              updated_at: state.updated_at })
     }).catch(function () {});
   }
@@ -436,6 +460,11 @@
     Object.keys(rg).forEach(function (k) { if (!lg[k]) lg[k] = rg[k]; });
     if (window.motusHintsRefresh) {
       try { window.motusHintsRefresh(state.hintEarned, state.hintSpent, lg); } catch (e) {}
+    }
+    // boutique : un achat fait sur un autre appareil rejoint celui-ci
+    if (d.boutique) {
+      state.boutique = fusionBoutique(state.boutique, d.boutique);
+      if (window.motusBoutiqueRefresh) { try { window.motusBoutiqueRefresh(state.boutique); } catch (e) {} }
     }
 
     state.level = levelFromXp(state.xp);
@@ -1397,6 +1426,15 @@
 
     /* Le jeu tient les jetons ; il nous les confie pour qu'ils suivent le
        compte d'un appareil à l'autre. */
+    setBoutique: function (o) {
+      state.boutique = fusionBoutique(state.boutique, o);
+      // un achat local est déjà dans o ; la tenue et le nom de o sont les plus récents
+      if (o) { state.boutique.porte = o.porte || {}; state.boutique.porteAt = o.porteAt || 0;
+               state.boutique.nom = o.nom || "Minuit"; state.boutique.nomAt = o.nomAt || 0;
+               state.boutique.visible = o.visible !== false; state.boutique.visibleAt = o.visibleAt || 0; }
+      saveLocal(); checkBadges(); pushDebounced();
+    },
+
     setHints: function (earned, spent, grants) {
       state.hintEarned = Math.max(state.hintEarned || 0, earned || 0);
       state.hintSpent  = Math.max(state.hintSpent  || 0, spent  || 0);
