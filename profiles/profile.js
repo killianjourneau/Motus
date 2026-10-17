@@ -276,6 +276,16 @@
   if (!state.emblem) state.emblem = "";
   state.level = levelFromXp(state.xp);
   function saveLocal() { store.set("motus.profile", state); }
+  // moment de la dernière partie jouée sur CET appareil : départage les séries à la fusion
+  function joue() { state.b.jeuAt = Date.now(); }
+
+  /* Séries EN COURS : contrairement aux totaux, elles redescendent (une défaite
+     les remet à zéro). Les fusionner en gardant le maximum ressuscitait une
+     série perdue dès la synchronisation suivante. On garde donc la valeur de
+     l'appareil qui a joué en dernier. Les records (best…) restent au maximum. */
+  var EN_COURS = ["streak", "xStreak", "cleanStreak", "memoSerie", "gramSerie", "orthoSerie",
+                  "duelWinStreak", "raceStreak", "defAtkStreak", "defRepelStreak", "penduStreak",
+                  "gramDernier", "orthoDernier"];
 
   function emblemEmoji() { var b = BADGE_BY_ID[state.emblem]; return b ? b.e : ""; }
 
@@ -387,8 +397,13 @@
 
     var d = rem.data || {};
     var rb = d.b || {}, lb = state.b;
+    var distantPlusRecent = (rb.jeuAt || 0) > (lb.jeuAt || 0);
     Object.keys(lb).forEach(function (k) {
       if (k === "days" || k === "modes") return;
+      if (EN_COURS.indexOf(k) >= 0) {
+        if (distantPlusRecent && rb[k] !== undefined) lb[k] = rb[k];
+        return;
+      }
       if (typeof lb[k] === "number") lb[k] = Math.max(lb[k] || 0, rb[k] || 0);
     });
     // jours joués et modes essayés : union
@@ -1156,6 +1171,7 @@
     /* Une partie terminée.
        {won, xp, mode, sub, tries, ms, answer, noYellow} */
     addGame: function (o) {
+      joue();
       o = o || {};
       var b = state.b, now = new Date();
       state.games += (o.gamesInc == null ? 1 : o.gamesInc);
@@ -1249,6 +1265,7 @@
     /* Course terminée. {won, finished, words, lives, ms, theme}
        'won' = a gagné la course ; 'finished' = a recopié toute la suite. */
     raceDone: function (o) {
+      joue();
       o = o || {};
       var b = state.b;
       if (!b.raceThemes) b.raceThemes = [];
@@ -1271,6 +1288,7 @@
 
     /* Attaque terminée (gagnée ou perdue) — côté attaquant. */
     defenseAttackResult: function (o) {
+      joue();
       o = o || {};
       var b = state.b;
       b.defAtkPlay++;
@@ -1287,6 +1305,7 @@
        côté défenseur. À traiter dans l'ordre chronologique (la plus
        ancienne d'abord) pour que la série se calcule correctement. */
     defenseFeedNew: function (list) {
+      joue();
       if (!list || !list.length) return;
       var b = state.b;
       list.forEach(function (a) {
@@ -1323,6 +1342,7 @@
     /* Le Pendu terminé. {won, wrong, lives} — 'wrong' = erreurs commises,
        'lives' = nombre total de vies disponibles pour la partie. */
     penduDone: function (o) {
+      joue();
       o = o || {};
       var b = state.b;
       b.penduPlay++;
@@ -1339,6 +1359,7 @@
 
     /* Duel terminé. {won, perfect, oppId} — 'won' = a gagné le duel, pas juste trouvé le mot. */
     duelDone: function (o) {
+      joue();
       o = o || {};
       var b = state.b;
       if (!b.duelLostTo) b.duelLostTo = [];
@@ -1364,6 +1385,7 @@
 
     /* Défi du jour terminé. {success, ms} */
     defiDone: function (o) {
+      joue();
       o = o || {};
       var b = state.b;
       if (o.success) {
@@ -1400,6 +1422,7 @@
     /* Halloween : kind = "peur" (mot terrifiant) ou "bonbons". Les jours
        joués sont comptés une seule fois chacun. */
     halloweenDone: function (o) {
+      joue();
       o = o || {};
       var b = state.b, jour = new Date().toISOString().slice(0, 10);
       if (!Array.isArray(b.hwJours)) b.hwJours = [];
@@ -1416,6 +1439,7 @@
     },
 
     gramDone: function (o) {
+      joue();
       o = o || {};
       var pre = (o.quel === "ortho") ? "ortho" : "gram";
       var b = state.b, jour = new Date().toISOString().slice(0, 10);
@@ -1431,6 +1455,7 @@
     },
 
     royaleDone: function (o) {
+      joue();
       o = o || {};
       var b = state.b;
       b.royParties = (b.royParties || 0) + 1;
@@ -1441,6 +1466,7 @@
     },
 
     memoDone: function (o) {
+      joue();
       o = o || {};
       var b = state.b;
       b.memoTotal = (b.memoTotal || 0) + 1;
@@ -1502,6 +1528,18 @@
       // synchronisation normale doit d'abord récupérer une éventuelle
       // progression faite sur un autre appareil
       if (avecProfil) pushRemote();
+    },
+
+    /* Historique d'un jeu du jour pour CE joueur : [{day, won}], du plus
+       récent au plus ancien. null en cas d'échec (hors ligne, serveur). */
+    historiqueJour: function (jeu) {
+      if (!configured || !state.id) return Promise.resolve(null);
+      return fetch(API + "/rest/v1/daily_results?player_id=eq." + encodeURIComponent(state.id)
+                   + "&game=eq." + encodeURIComponent(jeu) + "&select=day,won&order=day.desc&limit=400",
+                   { headers: headers(), cache: "no-store" })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (l) { return Array.isArray(l) ? l : null; })
+        .catch(function () { return null; });
     },
 
     submitDailyBrut: function (o) {
