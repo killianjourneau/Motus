@@ -33,6 +33,7 @@
     { id: "grelot",     slot: "cou",    nom: "Collier à grelot",       prix: 3 },
     { id: "papillon",   slot: "cou",    nom: "Nœud papillon",          prix: 4 },
     { id: "echarpe",    slot: "cou",    nom: "Écharpe rayée",          prix: 5 },
+    { id: "medaille",   slot: "cou",    nom: "Médaille d'amitié",      prix: 0, cadeau: true, d: "Offerte par ton chat" },
     { id: "cape",       slot: "dos",    nom: "Cape de vampire",        prix: 8 },
     { id: "ailes",      slot: "dos",    nom: "Ailes de chauve-souris", prix: 10 },
     { id: "coussin",    slot: "maison", nom: "Coussin moelleux",       prix: 4, d: "Pour ses siestes" },
@@ -45,11 +46,22 @@
   var PAR_ID = {};
   CATALOGUE.forEach(function (o) { PAR_ID[o.id] = o; });
 
+  /* La complicité se gagne en jouant avec lui, jour après jour (jamais en
+     jetons). Chaque niveau lui apprend une nouvelle attention. */
+  var NIVEAUX = [
+    { min: 0,   nom: "Nouveau venu", d: "Il se promène, dort, joue et mange au-dessus de ta grille." },
+    { min: 10,  nom: "Copain",       d: "Il te fait la fête quand tu reviens, et te console quand tu perds." },
+    { min: 30,  nom: "Ami",          d: "Il te suit quand tu écris, et t'apporte de petits cadeaux." },
+    { min: 60,  nom: "Complice",     d: "Il vient s'installer près de ta case quand tu réfléchis." },
+    { min: 100, nom: "Inséparable",  d: "Il t'offre sa médaille d'amitié." }
+  ];
+  function niveauDe(c) { var n = 1; NIVEAUX.forEach(function (v, i) { if (c >= v.min) n = i + 1; }); return n; }
+
   var CLE = "motus.boutique";
   var P = function () { return window.MotusPont || {}; };
 
   /* ---------- état ---------- */
-  function vide() { return { objets: {}, porte: {}, porteAt: 0, nom: "Minuit", nomAt: 0, visible: true, visibleAt: 0 }; }
+  function vide() { return { objets: {}, porte: {}, porteAt: 0, nom: "Minuit", nomAt: 0, visible: true, visibleAt: 0, complicite: 0 }; }
   function lire() {
     var e = null;
     try { e = JSON.parse(localStorage.getItem(CLE)); } catch (x) {}
@@ -65,6 +77,7 @@
     ["porteAt", "nomAt", "visibleAt"].forEach(function (k) { if (typeof e[k] === "number") v[k] = e[k]; });
     if (typeof e.nom === "string" && e.nom.trim()) v.nom = e.nom.slice(0, 14);
     if (typeof e.visible === "boolean") v.visible = e.visible;
+    if (typeof e.complicite === "number" && e.complicite >= 0 && isFinite(e.complicite)) v.complicite = Math.floor(e.complicite);
     return v;
   }
   /* Réunit deux états : objets en union, choix (tenue, nom, affichage) au plus récent. */
@@ -74,6 +87,7 @@
     if (b.porteAt > a.porteAt) { a.porte = b.porte; a.porteAt = b.porteAt; }
     if (b.nomAt > a.nomAt) { a.nom = b.nom; a.nomAt = b.nomAt; }
     if (b.visibleAt > a.visibleAt) { a.visible = b.visible; a.visibleAt = b.visibleAt; }
+    a.complicite = Math.max(a.complicite, b.complicite);
     return a;
   }
 
@@ -126,7 +140,24 @@
     });
     return chargement;
   }
-  function etatChat() { return { porte: tenue(etat.porte), maison: maison(), nom: etat.nom }; }
+  function etatChat() { return { porte: tenue(etat.porte), maison: maison(), nom: etat.nom, complicite: etat.complicite, niveau: niveauDe(etat.complicite) }; }
+
+  /* La complicité grandit (le chat en décide : caresses, retrouvailles,
+     victoires… chacune plafonnée par jour, dans boutique/chat.js). */
+  function lien(n) {
+    if (!adopte() || !(n > 0)) return;
+    var avant = niveauDe(etat.complicite);
+    etat.complicite += Math.floor(n);
+    var apres = niveauDe(etat.complicite);
+    if (apres >= 5 && !possede("medaille")) etat.objets.medaille = 0;       // son cadeau, à jamais
+    sauver();
+    if (window.ChatNoir && ChatNoir.actif) ChatNoir.majLien(etat.complicite, apres);
+    if (apres > avant && P().toast) {
+      P().toast(apres >= 5 ? "🏅 " + etat.nom + " t'offre sa médaille d'amitié !"
+                           : "❤ " + etat.nom + " est maintenant ton " + NIVEAUX[apres - 1].nom.toLowerCase() + " !", 3200);
+    }
+    if (ov && ov.classList.contains("open")) rendre();
+  }
   function appliquerChat() {
     var voulu = adopte() && etat.visible;
     var avant = document.documentElement.classList.contains("avec-chat");
@@ -157,6 +188,7 @@
   function acheter(id) {
     var o = PAR_ID[id];
     if (!o || possede(id)) return false;
+    if (o.cadeau) return false;                     // un cadeau ne s'achète pas
     if (o.id !== "chat" && !adopte()) return false;
     if (solde() < o.prix) return false;
     etat.objets[id] = o.prix;
@@ -220,7 +252,17 @@
     ".bq-option{display:flex;justify-content:center;margin:2px 0 4px;}",
     ".bq-option label{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-dim);cursor:pointer;}",
     // la place du chat au-dessus de la grille (le calcul de la taille des cases en tient compte)
-    "html.avec-chat #board{margin-top:var(--chat-place,34px);}"
+    "html.avec-chat #board{margin-top:var(--chat-place,34px);}",
+    "html.avec-chat #penduRow{margin-top:calc(var(--chat-place,34px) + 18px);}",
+    // complicité
+    ".bq-lien-bloc{background:var(--cell);border-radius:13px;padding:10px 12px;margin:4px 0 8px;box-shadow:inset 0 0 0 1.5px var(--cell-edge);text-align:center;}",
+    ".bq-coeurs{font-size:17px;letter-spacing:2px;color:#ff6b9a;}",
+    ".bq-coeurs span{color:var(--ink-dim);opacity:.45;}",
+    ".bq-lien-bloc b{display:block;font-size:14px;margin:2px 0;}",
+    ".bq-jauge{height:6px;border-radius:4px;background:var(--bg);overflow:hidden;margin:6px 0 6px;}",
+    ".bq-jauge i{display:block;height:100%;background:linear-gradient(90deg,#ff6b9a,#ffb36b);border-radius:4px;}",
+    ".bq-lien-bloc p{margin:0;font-size:12.5px;color:var(--ink-dim);line-height:1.4;}",
+    ".bq-lien-bloc p.bq-humeur{margin-top:8px;color:var(--ink);font-weight:600;}"
   ].join("\n");
 
   var ov = null, onglet = "tete", essai = {}, confirmer = null, editionNom = false, cligne = 0;
@@ -290,8 +332,9 @@
     if (!adopte()) {
       var c = PAR_ID.chat, assez = s >= c.prix;
       h += '<p class="bq-intro">Adopte <b>Minuit</b>, un chat noir qui vivra au-dessus de ta grille. ' +
-           'Il se promène, fait la sieste, joue, mange, se roule par terre et guette les chauves-souris. ' +
-           'Il n\'aide pas à trouver les mots : il tient compagnie.</p>';
+           'Il se promène, fait la sieste, joue, guette les chauves-souris… et suit ta partie : il s\'enthousiasme ' +
+           'd\'un bel essai, te console d\'une défaite, mange une croquette à chaque mot trouvé. ' +
+           'Plus vous passez de temps ensemble, plus il devient complice. Il n\'aide pas à trouver les mots : il tient compagnie.</p>';
       h += '<button class="btn bq-adopter" data-acheter="chat"' + '>' +
            (confirmer === "chat" ? "Confirmer l'adoption · 💡 " + c.prix : "Adopter Minuit · 💡 " + c.prix) + '</button>';
       if (!assez) h += '<p class="bq-pied">Encore ' + (c.prix - s) + ' jeton' + (c.prix - s > 1 ? "s" : "") + ' à gagner.</p>';
@@ -300,6 +343,7 @@
       h += '<div class="bq-nom">' + (editionNom
         ? '<input id="bqNom" maxlength="14" value="' + echap(etat.nom) + '" aria-label="Nom du chat"><button data-nom-ok>OK</button>'
         : '<b>' + echap(etat.nom) + '</b><button data-renommer aria-label="Renommer">✏️ Renommer</button>') + '</div>';
+      h += blocLien();
       h += '<div class="bq-option"><label><input type="checkbox" data-visible' + (etat.visible ? " checked" : "") + '> ' +
            echap(etat.nom) + ' se promène au-dessus de la grille</label></div>';
     }
@@ -319,6 +363,27 @@
     }
   }
 
+  function blocLien() {
+    var c = etat.complicite, n = niveauDe(c), N = NIVEAUX[n - 1], suivant = NIVEAUX[n];
+    var coeurs = "";
+    for (var i = 1; i <= 5; i++) coeurs += i <= n ? "♥" : "<span>♥</span>";
+    var part = suivant ? Math.round((c - N.min) / (suivant.min - N.min) * 100) : 100;
+    var h = '<div class="bq-lien-bloc"><div class="bq-coeurs">' + coeurs + '</div>' +
+      '<b>Complicité : ' + N.nom + '</b>' +
+      '<div class="bq-jauge"><i style="width:' + part + '%"></i></div>' +
+      '<p>' + (suivant ? "Prochaine étape — " + suivant.nom + " : " + suivant.d.charAt(0).toLowerCase() + suivant.d.slice(1)
+                       : N.d) + '</p>';
+    var e = window.ChatNoir && ChatNoir.esprit;
+    if (e) {
+      var faim = e.faim > 70 ? "a faim" : e.faim > 45 ? "grignoterait bien" : "est repu";
+      var forme = e.energie < 30 ? "a sommeil" : e.energie > 75 ? "est en pleine forme" : "est tranquille";
+      h += '<p class="bq-humeur">' + echap(etat.nom) + ' ' + faim + ' et ' + forme + ' · 🐟 ' +
+           e.croquettes + ' croquette' + (e.croquettes > 1 ? "s" : "") + ' dans sa gamelle</p>' +
+           '<p style="margin-top:4px">Chaque mot trouvé remplit sa gamelle d\'une croquette. Joue avec lui, caresse-le, reviens le voir : la complicité grandit.</p>';
+    }
+    return h + '</div>';
+  }
+
   function carte(o) {
     var a = possede(o.id), porte = etat.porte[o.slot] === o.id, essaye = essai[o.slot] === o.id && !porte;
     var s = solde(), bouton;
@@ -327,6 +392,8 @@
     } else if (a) {
       bouton = porte ? '<button class="bq-btn second" data-retirer="' + o.slot + '">Retirer</button>'
                      : '<button class="bq-btn" data-porter="' + o.id + '">Mettre</button>';
+    } else if (o.cadeau) {
+      bouton = '<button class="bq-btn pas-assez" data-bloque="cadeau">🔒 Complicité ♥♥♥♥♥</button>';
     } else bouton = boutonPrix(o, s);
     return '<div class="bq-carte' + (porte ? " porte" : "") + (essaye ? " essai" : "") + '" data-essayer="' + o.id + '">' +
       '<div class="vi">' + ChatNoir.vignette(o.id) + '</div><b>' + o.nom + '</b>' + (o.d ? '<i>' + o.d + '</i>' : "") + bouton + '</div>';
@@ -348,7 +415,8 @@
     if (d.nomOk !== undefined) { var i = ov.querySelector("#bqNom"); renommer(i ? i.value : ""); editionNom = false; rendre(); return; }
     if (d.visible !== undefined) { basculerVisible(); rendre(); return; }
     if (d.bloque) {
-      if (P().toast) P().toast(d.bloque === "adopter" ? "Adopte d'abord Minuit 🐈‍⬛"
+      if (P().toast) P().toast(d.bloque === "cadeau" ? "Ce cadeau, " + etat.nom + " te l'offrira quand vous serez inséparables ♥"
+        : d.bloque === "adopter" ? "Adopte d'abord Minuit 🐈‍⬛"
         : "Il te manque " + d.bloque + " jeton" + (+d.bloque > 1 ? "s" : "") + " 💡", 2200);
       return;
     }
@@ -410,7 +478,10 @@
     fusion: fusion,
     get etat() { return etat; },
     // réactions du chat au jeu
-    evenement: function (nom) { if (window.ChatNoir && ChatNoir.actif) ChatNoir.evenement(nom); }
+    evenement: function (nom, info) { if (window.ChatNoir && ChatNoir.actif) ChatNoir.evenement(nom, info); },
+    lien: lien,
+    niveaux: NIVEAUX,
+    niveauDe: niveauDe
   };
   // après une synchronisation : un achat fait sur un autre appareil arrive ici
   window.motusBoutiqueRefresh = function (distant) {

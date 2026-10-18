@@ -68,6 +68,9 @@
       '<circle cx="0" cy="16" r="2.6" fill="#f2c230" stroke="#a87c0e" stroke-width=".5"/><path d="M-1.2,16.6 L1.2,16.6" stroke="#7a5a08" stroke-width=".5"/>',
     papillon: '<path d="M0,13 L-6.5,9.5 L-6.5,16.5 Z M0,13 L6.5,9.5 L6.5,16.5 Z" fill="#f0681a" stroke="#a8450d" stroke-width=".6" stroke-linejoin="round"/>' +
       '<circle cx="0" cy="13" r="1.7" fill="#c8540f"/>',
+    medaille: '<path d="M-9.5,8.5 Q0,14 9.5,8.5 L9.5,11.3 Q0,16.8 -9.5,11.3 Z" fill="#2f6fd6" stroke="#1d4a96" stroke-width=".5"/>' +
+      '<path d="M0,15 C-1.2,13.4 -3.8,13.8 -3.8,16 C-3.8,18.1 -1.5,19.4 0,20.9 C1.5,19.4 3.8,18.1 3.8,16 C3.8,13.8 1.2,13.4 0,15 Z" fill="#f2c230" stroke="#a87c0e" stroke-width=".5"/>' +
+      '<path d="M-1.6,15.6 Q-1.2,14.8 -.4,15.2" fill="none" stroke="#fff6c8" stroke-width=".5"/>',
     echarpe: '<path d="M-10.5,8 Q0,14.5 10.5,8 L11,12.5 Q0,19 -11,12.5 Z" fill="#f0681a" stroke="#a8450d" stroke-width=".5"/>' +
       '<path d="M-6,10.6 L-6.3,15 M0,12 L0,16.5 M6,10.6 L6.3,15" stroke="#6a3aa8" stroke-width="1.6"/>' +
       '<path d="M4,14 L7,25 L11.5,23.5 L8.5,13 Z" fill="#f0681a" stroke="#a8450d" stroke-width=".5"/>' +
@@ -75,7 +78,7 @@
   };
   var EMPLACEMENT = { sorciere:"tete", citrouille:"tete", couronne:"tete", noeud:"tete",
                       masque:"yeux", lunettes:"yeux", vampire:"bouche", sucette:"bouche",
-                      grelot:"cou", papillon:"cou", echarpe:"cou", cape:"dos", ailes:"dos" };
+                      grelot:"cou", papillon:"cou", echarpe:"cou", medaille:"cou", cape:"dos", ailes:"dos" };
 
   /* La tête, de face : c'est elle qui rend le chat attachant, quelle que
      soit la pose du corps. Ordre des calques : cou (derrière), oreilles,
@@ -90,8 +93,8 @@
     };
     var oeil = function (x) {
       return '<ellipse cx="' + x + '" cy="0" rx="3.4" ry="3.9" fill="' + OEIL + '" stroke="#98a524" stroke-width=".4"/>' +
-             '<ellipse cx="' + x + '" cy=".2" rx="1.15" ry="3" fill="#0b0910"/>' +
-             '<circle cx="' + (x + 1.1) + '" cy="-1.5" r=".95" fill="#fff"/>';
+             '<g class="pu"><ellipse cx="' + x + '" cy=".2" rx="1.15" ry="3" fill="#0b0910"/>' +
+             '<circle cx="' + (x + 1.1) + '" cy="-1.5" r=".95" fill="#fff"/></g>';
     };
     return '<g class="cn-tete">' +
       (porte("cou") ? ACC[p.cou] : "") +
@@ -212,6 +215,15 @@
             '<circle cx="-5.5" cy="-2.5" r="3" fill="#9ea3b3" stroke="#6d7284" stroke-width=".7"/><circle cx="-5.5" cy="-2.5" r="1.6" fill="#f2a7bb"/>' +
             '<circle cx="-8.2" cy="2" r=".9" fill="#222"/><circle cx="-9.8" cy="4" r=".9" fill="#e98fa8"/></svg>'
   };
+  var CADEAU = {
+    feuille: '<svg viewBox="-10 -10 20 20"><path d="M0,-9 C5,-6 8.5,-1 6.5,4 C4.5,8 -.5,9.5 -4,6.5 C-8,3 -6.5,-5 0,-9 Z" fill="#e8781e" stroke="#a8450d" stroke-width=".7"/>' +
+             '<path d="M-3,5.5 C-1,1 1.5,-3 2.5,-6.5 M-.8,1.4 L2.6,1.8 M-2.2,3.6 L-4.6,2.4" fill="none" stroke="#a8450d" stroke-width=".6"/><path d="M-3,5.5 L-5.5,9" stroke="#7a3a0c" stroke-width=".9" stroke-linecap="round"/></svg>',
+    plume:   '<svg viewBox="-10 -10 20 20"><path d="M7,-8 C1,-7 -5,-1 -6,6 C-1,5 5,0 7,-8 Z" fill="#d9d2ef" stroke="#8d82a8" stroke-width=".6"/>' +
+             '<path d="M7,-8 C2,-2 -2,3 -8,9" fill="none" stroke="#8d82a8" stroke-width=".7" stroke-linecap="round"/></svg>',
+    bonbon:  '<svg viewBox="-12 -8 24 16"><path d="M-6,0 L-11,-4.5 L-11,4.5 Z M6,0 L11,-4.5 L11,4.5 Z" fill="#ff9ec7" stroke="#c43d7d" stroke-width=".5" stroke-linejoin="round"/>' +
+             '<ellipse rx="6.5" ry="4.8" fill="#ff6fae" stroke="#c43d7d" stroke-width=".6"/><path d="M-3,-4 L1,4.2 M1,-4.6 L4.6,3" stroke="#fff" stroke-width="1.1" opacity=".8"/></svg>'
+  };
+  var NOM_CADEAU = { feuille: "une feuille d'automne", plume: "une plume", bonbon: "un bonbon" };
   function chauveSouris() {
     var g = "M30 16 C24 6 14 3 3 8 C7 10 9 13 8 18 C11 16 14 17 15 21 C18 18 22 18 24 22 C25 19 27 18 30 19 Z";
     var d = g.replace(/(-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?)/g, function (m, x, y) { return (64 - +x) + " " + y; });
@@ -297,6 +309,21 @@
     ".toilette .pa2{transform:rotate(168deg) scaleY(.72);transition:transform .35s;}",
     ".toilette .cn-t{animation:cnLeche .5s ease-in-out infinite alternate;}",
     "@keyframes cnLeche{from{transform:rotate(8deg)}to{transform:rotate(14deg) translateY(1px)}}",
+    // le regard : les pupilles suivent ce qui l'intéresse
+    ".cn-svg .pu{transform:translate(var(--rgx,0px),var(--rgy,0px));transition:transform .35s ease-out;}",
+    // tristesse : tête basse, queue immobile
+    ".triste .cn-t{transform:translateY(2.6px) rotate(-5deg);} .triste .queue{animation:none;}",
+    // inquiétude (Pendu) : queue basse, le corps tendu
+    ".inquiet .queue{animation:none;transform:rotate(-72deg);} .cn-pose-assis.inquiet .queue{transform:rotate(-8deg);}",
+    ".inquiet .tout{transform:translateY(1.5px);}",
+    // bulle d'émotion au-dessus de la tête
+    ".cn-emo{position:absolute;left:50%;top:0;transform:translate(-50%,-100%) scale(.4);opacity:0;pointer-events:none;white-space:nowrap;" +
+      "font:15px/1 system-ui,'Apple Color Emoji','Segoe UI Emoji',sans-serif;background:rgba(255,255,255,.94);color:#222;" +
+      "padding:4px 6px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.3);transition:opacity .2s,transform .25s cubic-bezier(.3,1.6,.6,1);}",
+    ".cn-emo::after{content:'';position:absolute;left:50%;bottom:-4px;margin-left:-4px;border:4px solid transparent;border-bottom:0;border-top-color:rgba(255,255,255,.94);}",
+    ".cn-emo.vu{opacity:1;transform:translate(-50%,-100%) scale(1);}",
+    // cadeaux déposés au bord de la grille
+    ".cn-cadeau{transition:opacity .5s;} .cn-cadeau.pris{opacity:0;}",
     // regard levé (chasse)
     ".guette .cn-t{transform:translateY(-1.5px) rotate(-6deg);}",
     // sieste : respiration lente
@@ -326,6 +353,7 @@
     ".cn-nom.vu{opacity:1;}",
     // objets indépendants
     ".cn-objet{position:absolute;left:0;top:0;will-change:transform;}",
+    ".cn{transition:opacity .35s;}",
     ".cn-objet svg{width:100%;height:100%;display:block;overflow:visible;}",
     ".cn-jouet{transition:opacity .4s;}",
     ".cn-cs .cs-aile{transform-box:view-box;transform-origin:32px 17px;animation:cnCs .2s ease-in-out infinite;}",
@@ -338,34 +366,106 @@
   ].join("\n");
 
   /* =====================================================================
-     VIE
+     VIE — un compagnon, pas un économiseur d'écran
+     ---------------------------------------------------------------------
+     Minuit a des BESOINS qui évoluent avec le temps (énergie, faim, envie
+     de jouer, humeur) : ce sont eux qui décident de ce qu'il fait, pas un
+     simple tirage au sort. Il REMARQUE la partie (il suit des yeux la case
+     où l'on écrit, s'enthousiasme d'un bon essai, console après une
+     défaite, s'inquiète au Pendu), il se SOUVIENT (il fait la fête quand
+     on revient après une absence), et une COMPLICITÉ se construit jour
+     après jour, qui lui fait gagner de nouvelles attentions.
+     Le jeu n'en dépend jamais : rien n'est bloqué, rien n'est puni.
      ===================================================================== */
   var P = function () { return window.MotusPont || {}; };
   var calmeVoulu = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  var scene = null, el = null, sens = null, zzz = null, bulle = null, lanterneEl = null;
-  var etat = { porte: {}, maison: {}, nom: "Minuit" };
-  var x = 0, y = 0, dir = 1, pose = "", classes = "";
-  var H = 40, W = 56, sol = 0, gauche = 0, droite = 300, ancreOk = false;
-  var actif = false, raf = 0, dernier = 0, veille = 0, depuisAncre = 1;
-  var taches = [], generation = 0, interruption = null, debutCalme = Date.now();
+  var scene = null, el = null, sens = null, zzz = null, bulle = null, emo = null, lanterneEl = null;
+  var etat = { porte: {}, maison: {}, nom: "Minuit", complicite: 0, niveau: 1 };
+  var x = 0, y = 0, dir = 1, pose = "", classes = "", actionEnCours = "";
+  var H = 40, W = 56, sol = 0, gauche = 0, droite = 300, ancreOk = false, support = "grille";
+  var actif = false, raf = 0, dernier = 0, depuisAncre = 1, depuisSauve = 0;
+  var taches = [], generation = 0, interruption = null;
   var ANNULE = { annule: true };
 
   function hasard(a, b) { return a + Math.random() * (b - a); }
+  function borne(v) { return Math.max(0, Math.min(100, v)); }
+  function aujourdhui() {
+    var d = new Date(), p = function (n) { return (n < 10 ? "0" : "") + n; };
+    return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+  }
 
-  /* ---------- placement : sur le bord haut de la grille ---------- */
+  /* ---------- l'esprit : besoins et souvenirs ----------
+     energie : se dépense en bougeant, revient en dormant
+     faim    : monte doucement ; chaque mot trouvé remplit sa gamelle
+     ennui   : monte au repos ; jouer et chasser le font retomber
+     humeur  : caresses et victoires la font monter */
+  var CLE_ESPRIT = "motus.chatEsprit";
+  var esprit = null;
+  function chargerEsprit() {
+    var e = null;
+    try { e = JSON.parse(localStorage.getItem(CLE_ESPRIT)); } catch (x) {}
+    var v = { energie: 75, faim: 35, ennui: 30, humeur: 60, croquettes: 1, maj: 0, jour: "", gains: {}, cadeauAt: 0, reclameAt: 0 };
+    if (e && typeof e === "object") for (var k in v) if (typeof e[k] === typeof v[k] && e[k] !== null) v[k] = e[k];
+    return v;
+  }
+  function sauverEsprit() {
+    if (!esprit) return;
+    esprit.maj = Date.now();
+    try { localStorage.setItem(CLE_ESPRIT, JSON.stringify(esprit)); } catch (x) {}
+  }
+  // le temps passe aussi quand on n'est pas là : il s'est reposé, il a un peu faim
+  function rattraper() {
+    var h = esprit.maj ? (Date.now() - esprit.maj) / 3600000 : 0;
+    if (h > 0.02) {
+      esprit.energie = borne(esprit.energie + h * 35);
+      esprit.faim = Math.min(85, esprit.faim + h * 18);
+      esprit.ennui = Math.min(75, esprit.ennui + h * 8);
+      esprit.humeur = borne(esprit.humeur + (55 - esprit.humeur) * Math.min(1, h / 6));
+    }
+    return h;
+  }
+  function besoins(dt) {
+    var dort = pose === "dodo", bouge = classes.indexOf("marche") >= 0, effort = /saute|affut|tape/.test(classes);
+    esprit.energie = borne(esprit.energie + (dort ? 0.30 : effort ? -0.45 : bouge ? -0.10 : -0.025) * dt);
+    esprit.faim = borne(esprit.faim + (dort ? 0.006 : 0.013) * dt);
+    esprit.ennui = borne(esprit.ennui + (dort ? 0.004 : effort ? -1.2 : 0.035) * dt);
+    esprit.humeur += (55 - esprit.humeur) * 0.002 * dt;
+  }
+
+  /* ---------- la complicité : elle se construit, jour après jour ----------
+     Chaque source a son plafond quotidien : revenir chaque jour compte plus
+     que de caresser cent fois le même soir. */
+  var PLAFOND = { visite: 2, caresse: 3, victoire: 4, cadeau: 1, console: 1 };
+  function lien(raison, n) {
+    if (esprit.jour !== aujourdhui()) { esprit.jour = aujourdhui(); esprit.gains = {}; }
+    var g = esprit.gains[raison] || 0, max = PLAFOND[raison] || 1;
+    if (g >= max) return;
+    var d = Math.min(n || 1, max - g);
+    esprit.gains[raison] = g + d;
+    sauverEsprit();
+    if (window.Boutique && Boutique.lien) { try { Boutique.lien(d); } catch (x) {} }
+  }
+
+  /* ---------- placement : sur la grille, ou sur le mot du Pendu ---------- */
+  function surface() {
+    var b = document.getElementById("board");
+    if (b && b.offsetParent !== null && b.style.display !== "none") return { el: b, type: "grille" };
+    var pb = document.getElementById("penduBox"), pr = document.getElementById("penduRow");
+    if (pb && pr && pb.style.display !== "none" && pr.offsetParent !== null) return { el: pr, type: "pendu" };
+    return null;
+  }
   function ancrer() {
-    var board = document.getElementById("board");
-    var vis = board && board.offsetParent !== null && board.style.display !== "none";
-    var r = vis ? board.getBoundingClientRect() : null;
-    if (!r || r.height < 20) { ancreOk = false; return; }
+    var s = surface(), r = s ? s.el.getBoundingClientRect() : null;
+    if (!r || r.height < 20 || r.width < 40) { ancreOk = false; return; }
+    support = s.type;
     var t = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--tile")) || 48;
-    // la place libre entre le bandeau (et le bouton Abandonner) et la grille
+    // la place libre entre ce qui est au-dessus (bandeau, compteur du Pendu) et la surface
     var plafond = 0;
-    ["hud", "giveUpBtn"].forEach(function (id) {
-      var e = document.getElementById(id);
+    ["hud", "giveUpBtn", support === "pendu" ? "penduLives" : ""].forEach(function (id) {
+      var e = id && document.getElementById(id);
       if (e && e.offsetParent !== null && getComputedStyle(e).visibility !== "hidden" && getComputedStyle(e).opacity !== "0") {
-        var b = e.getBoundingClientRect(); if (b.height > 0) plafond = Math.max(plafond, b.bottom);
+        var b = e.getBoundingClientRect(); if (b.height > 0 && b.bottom <= r.top + 2) plafond = Math.max(plafond, b.bottom);
       }
     });
     var libre = r.top - plafond;
@@ -374,13 +474,14 @@
     sol = r.top;
     gauche = r.left - W * 0.15;
     droite = Math.max(gauche + 10, r.right - W * 0.85);
-    if (x < gauche || x > droite) x = Math.max(gauche, Math.min(droite, x || (gauche + droite) / 2));
+    x = Math.max(gauche, Math.min(droite, x));
     el.style.width = W + "px"; el.style.height = H + "px";
     if (lanterneEl) {
       var lw = H * 0.62;
       lanterneEl.style.width = lw + "px"; lanterneEl.style.height = lw * 30 / 28 + "px";
       lanterneEl.style.transform = "translate(" + (r.right - lw * 0.95) + "px," + (sol - lw * 30 / 28 * 0.9) + "px)";
     }
+    cadeaux.forEach(function (c) { placerCadeau(c); });
     ancreOk = true;
   }
 
@@ -396,6 +497,26 @@
     el.style.transform = "translate(" + x.toFixed(1) + "px," + (sol - H * 70 / 72 + y).toFixed(1) + "px)";
     sens.style.transform = dir < 0 ? "scaleX(-1)" : "none";
   }
+
+  /* ---------- le regard ---------- */
+  var TETE = { debout: [0.75, 31 / 72], assis: [0.58, 25 / 72], dodo: [0.72, 57 / 72], dos: [0.74, 56 / 72] };
+  var regardT = 0;
+  function teteEcran() {
+    var f = TETE[pose] || TETE.assis;
+    return { x: x + W * (dir > 0 ? f[0] : 1 - f[0]), y: sol - H * 70 / 72 + y + H * f[1], fx: dir > 0 ? f[0] : 1 - f[0], fy: f[1] };
+  }
+  /* tx, ty : point de l'écran à regarder (null : il te regarde, toi) */
+  function regarder(tx, ty, ms) {
+    if (!el) return;
+    var t = teteEcran();
+    var gx = tx == null ? 0 : Math.max(-1, Math.min(1, (tx - t.x) / (W * 0.9)));
+    var gy = ty == null ? 0 : Math.max(-1, Math.min(1, (ty - t.y) / (H * 1.2)));
+    el.style.setProperty("--rgx", (gx * 1.35 * dir).toFixed(2) + "px");
+    el.style.setProperty("--rgy", (gy * 1.1).toFixed(2) + "px");
+    clearTimeout(regardT);
+    if (ms !== 0) regardT = setTimeout(function () { regarder(null, null, 0); }, ms || 2600);
+  }
+  function tourner(tx) { if (tx != null) dir = tx >= x + W / 2 ? 1 : -1; }
 
   /* ---------- tâches animées, avancées par la boucle ---------- */
   function tache(f, mouvement) {
@@ -457,10 +578,12 @@
     raf = 0;
     if (!actif) return;
     var dt = Math.min(0.25, ((t - dernier) || 16) / 1000); dernier = t;
-    depuisAncre += dt;
+    depuisAncre += dt; depuisSauve += dt;
     if (depuisAncre > 0.4) { depuisAncre = 0; ancrer(); }
     if (!ancreOk || document.hidden) { el.style.display = "none"; suspendre(); return; }
     el.style.display = "";
+    besoins(dt);
+    if (depuisSauve > 20) { depuisSauve = 0; sauverEsprit(); }
     var encore = [];
     taches.forEach(function (k) {
       if (k.g !== generation) return;
@@ -472,10 +595,11 @@
     appliquer();
     prochaine();
   }
-  // quand la grille n'est pas affichée ou l'onglet caché : plus aucune image calculée
+  // quand rien n'est affiché ou l'onglet caché : plus aucune image calculée
   var reveil = 0;
   function suspendre() {
     if (reveil) return;
+    sauverEsprit();
     reveil = setInterval(function () {
       if (!actif) { clearInterval(reveil); reveil = 0; return; }
       ancrer();
@@ -487,14 +611,20 @@
     }, 800);
   }
 
-  /* ---------- clignements, au hasard ---------- */
+  /* ---------- petits gestes de vie : clignements, coups d'œil ---------- */
   var clignTimer = 0;
   function cligner() {
     clearTimeout(clignTimer);
     clignTimer = setTimeout(function () {
       if (!actif) return;
       el.classList.add("cligne");
-      setTimeout(function () { el.classList.remove("cligne"); classes = el.className; cligner(); }, 140);
+      setTimeout(function () {
+        if (!actif) return;
+        el.classList.remove("cligne"); classes = el.className;
+        // de temps en temps, un coup d'œil de côté, puis vers toi
+        if (pose !== "dodo" && Math.random() < 0.3) regarder(x + W / 2 + hasard(-3, 3) * W, sol - hasard(0, 2) * H, hasard(900, 2200));
+        cligner();
+      }, 140);
     }, hasard(2500, 6500));
   }
 
@@ -502,6 +632,7 @@
   function coeurs(n) {
     for (var i = 0; i < n; i++) (function (i) {
       setTimeout(function () {
+        if (!el) return;
         var c = document.createElement("span");
         c.className = "cn-coeur"; c.textContent = "♥";
         c.style.left = (hasard(0.35, 0.8) * W) + "px"; c.style.top = (-H * 0.1) + "px";
@@ -510,13 +641,25 @@
       }, i * 260);
     })(i);
   }
-  function montrerNom() {
-    bulle.textContent = (etat.nom || "Minuit") + " ♥";
+  function emote(t, ms) {
+    if (!emo) return;
+    var h = teteEcran();
+    emo.textContent = t;
+    emo.style.left = (h.fx * 100) + "%";
+    emo.style.top = ((h.fy - 0.34) * 100) + "%";
+    emo.classList.remove("vu"); void emo.offsetWidth; emo.classList.add("vu");
+    clearTimeout(emo._t);
+    emo._t = setTimeout(function () { if (emo) emo.classList.remove("vu"); }, ms || 1800);
+  }
+  function montrerNom(suffixe) {
+    bulle.textContent = (etat.nom || "Minuit") + (suffixe || " ♥");
     bulle.classList.add("vu");
     clearTimeout(bulle._t);
     bulle._t = setTimeout(function () { bulle.classList.remove("vu"); }, 2200);
   }
   function miaou(ronron) {
+    // pas un son avant que le joueur ait touché la page (les navigateurs le refusent, à raison)
+    if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return;
     var ctx = P().audio && P().audio();
     if (!ctx) return;
     try {
@@ -545,7 +688,6 @@
     } catch (e) {}
   }
 
-  /* ---------- les comportements ---------- */
   function jouetsPossedes() {
     var l = ["pelote", "souris"].filter(function (k) { return etat.maison[k]; });
     return l.length ? l : ["papier"];
@@ -557,7 +699,43 @@
     scene.insertBefore(o, el);
     return o;
   }
+  function caseActive() { try { return P().caseActive ? P().caseActive() : null; } catch (e) { return null; } }
+  function centreX() { return x + W / 2; }
+  function loin(tx) { return tx != null && Math.abs(tx - centreX()) > W * 1.1; }
+  // une place à côté d'un point, sans le cacher
+  function aCoteDe(tx) {
+    var c = tx - W / 2 + (tx > centreX() ? -W * 0.6 : W * 0.6);
+    if (c < gauche || c > droite) c = tx - W / 2 + (tx > centreX() ? W * 0.6 : -W * 0.6);
+    return c;
+  }
 
+  /* ---------- les cadeaux (complicité 3) ---------- */
+  var cadeaux = [];
+  function placerCadeau(c) {
+    var t = H * 0.34;
+    c.el.style.width = t + "px"; c.el.style.height = t + "px";
+    var r = surface(); r = r ? r.el.getBoundingClientRect() : null;
+    if (!r) return;
+    var cx = Math.max(r.left + t * 0.5, Math.min(r.right - t * 1.5, c.x));
+    c.el.style.transform = "translate(" + (cx - t / 2).toFixed(1) + "px," + (r.top - t * 0.9).toFixed(1) + "px)";
+  }
+  function deposerCadeau(type, px) {
+    var c = { type: type, x: px, el: objet("cn-cadeau", CADEAU[type], 10, 10) };
+    cadeaux.push(c); placerCadeau(c);
+    c.fin = setTimeout(function () { retirerCadeau(c); }, 120000);
+    return c;
+  }
+  function retirerCadeau(c) {
+    clearTimeout(c.fin);
+    c.el.classList.add("pris");
+    setTimeout(function () { c.el.remove(); }, 500);
+    cadeaux = cadeaux.filter(function (k) { return k !== c; });
+  }
+
+  /* =====================================================================
+     CE QU'IL FAIT DE LUI-MÊME
+     ===================================================================== */
+  var debutCalme = Date.now(), derniereTouche = 0, toucheX = null, toucheY = null;
   var ACTIONS = {
     promenade: function () {
       var cible = x;
@@ -579,13 +757,14 @@
       return pause(800).then(function () { dessiner("assis", "baille"); return pause(1500); })
         .then(function () { dessiner("assis"); return pause(1200); });
     },
-    dodo: function () {
-      // plus il est laissé tranquille longtemps, plus ses siestes s'allongent
+    // il dort jusqu'à être reposé (plus longtemps la nuit, ou si on le laisse tranquille)
+    dodo: function (dejaCouche) {
       var calme = (Date.now() - debutCalme) / 60000, h = new Date().getHours();
       var nuit = (h >= 22 || h < 7);
-      var duree = hasard(14000, 26000) * (calme > 3 ? 2.2 : 1) * (nuit ? 1.6 : 1);
-      dessiner("assis", "baille");
-      return pause(1300).then(function () { dessiner("dodo", "dort"); return pause(duree); })
+      var duree = Math.max(15000, (92 - esprit.energie) / 0.30 * 1000) * (nuit ? 1.4 : 1) * (calme > 5 ? 1.3 : 1);
+      duree = Math.min(duree, 6 * 60000);
+      var avant = dejaCouche === true ? pause(10) : (dessiner("assis", "baille"), pause(1300));
+      return avant.then(function () { dessiner("dodo", "dort"); return pause(duree); })
         .then(function () { dessiner("debout", "etire"); return pause(1900); })
         .then(function () { dessiner("debout"); return pause(500); });
     },
@@ -598,13 +777,25 @@
       dessiner("debout", "etire");
       return pause(2100).then(function () { dessiner("debout"); return pause(500); });
     },
+    // il mange ce qu'il y a dans sa gamelle : une croquette par mot trouvé
     mange: function () {
-      // il se tourne vers l'intérieur de la grille pour avoir la place de sa gamelle
+      if (esprit.croquettes <= 0) return ACTIONS.reclame();
       if (x + W * 1.1 > droite + W * 0.85) dir = -1; else if (x < gauche + W * 0.3) dir = 1;
       dessiner("debout");
       return pause(300).then(function () { dessiner("debout", "mange"); return pause(hasard(4500, 6500)); })
-        .then(function () { dessiner("debout"); return pause(700); })
+        .then(function () {
+          esprit.croquettes = Math.max(0, esprit.croquettes - 1);
+          esprit.faim = borne(esprit.faim - 55); esprit.humeur = borne(esprit.humeur + 5); sauverEsprit();
+          dessiner("debout"); return pause(700);
+        })
         .then(function () { dessiner("assis", "toilette"); return pause(2200); });
+    },
+    // gamelle vide et le ventre qui crie : il te le fait savoir (gentiment, et pas trop souvent)
+    reclame: function () {
+      esprit.reclameAt = Date.now(); sauverEsprit();
+      dessiner("assis"); regarder(null);
+      emote("🐟", 2600); miaou(false);
+      return pause(2800).then(function () { dessiner("assis", "toilette"); return pause(1800); });
     },
     joue: function () {
       var l = jouetsPossedes(), type = l[Math.floor(Math.random() * l.length)];
@@ -619,17 +810,16 @@
       });
       var coup = function (n) {
         if (n <= 0) return Promise.resolve();
-        // il se place derrière le jouet, se ramasse, frappe
         var cote = jx >= x + W / 2 ? 1 : -1;
         dessiner("debout", "marche");
         return marcherVers(jx - cote * W * 0.62 - W / 2).then(function () {
           dir = jx >= x + W / 2 ? 1 : -1;
+          regarder(jx, sol, 1500);
           dessiner("debout", "affut"); return pause(hasard(400, 900));
         }).then(function () {
           dessiner("debout", "tape"); return pause(150);
         }).then(function () {
           dessiner("debout");
-          // le jouet file devant lui, ou rebondit s'il bute sur un bord
           var dist = hasard(W * 0.9, W * 2) * dir, but = jx + dist;
           var bas = gauche + W * 0.3, hautX = droite + W * 0.7;
           if (but < bas || but > hautX) but = jx - dist * 0.7;
@@ -645,12 +835,11 @@
       };
       var fin = function () { suivi.stop = true; o.remove(); };
       return pause(60).then(function () { o.style.opacity = "1"; return coup(Math.round(hasard(2, 4))); })
-        .then(function () { dessiner("assis", "content"); return pause(1800); })
+        .then(function () { esprit.ennui = borne(esprit.ennui - 45); dessiner("assis", "content"); return pause(1800); })
         .then(function () { o.style.opacity = "0"; return pause(450); })
         .then(fin, function (e) { fin(); throw e; });
     },
     chasse: function () {
-      // une chauve-souris passe ; il la guette, se ramasse… et la manque
       var cs = objet("cn-cs", chauveSouris(), H * 0.62, H * 0.62 * 34 / 64);
       var cw = H * 0.62, venue = Math.random() < 0.5 ? -1 : 1;
       var bx = venue < 0 ? gauche - cw * 2 : droite + W + cw, by = sol - H * 2.1, t = 0, fuite = false, fy = 0;
@@ -659,7 +848,9 @@
         t += dt;
         if (fuite) { fy -= dt * H * 5; bx += dt * H * 4 * -venue; }
         else bx += (cibleX - bx) * Math.min(1, dt * 1.6);
-        cs.style.transform = "translate(" + bx.toFixed(1) + "px," + (by + fy + Math.sin(t * 5) * H * 0.12).toFixed(1) + "px)";
+        var yy = by + fy + Math.sin(t * 5) * H * 0.12;
+        cs.style.transform = "translate(" + bx.toFixed(1) + "px," + yy.toFixed(1) + "px)";
+        if (!fuite) regarder(bx + cw / 2, yy, 400);       // il ne la quitte pas des yeux
         return fuite && (by + fy < -cw * 2 || bx < -cw * 3 || bx > innerWidth + cw * 3);
       });
       dir = venue;
@@ -671,27 +862,67 @@
         setTimeout(function () { fuite = true; }, 260);
         return bond(H * 1.15, 720, dir * W * 0.15);
       }).then(function () {
+        esprit.ennui = borne(esprit.ennui - 30);
         dessiner("debout"); return pause(500);
       }).then(function () {
         dessiner("assis", "toilette");             // l'air de rien
         return Promise.race([vol.fin, pause(2600)]);
       }).then(function () { vol.stop = true; cs.remove(); }, function (e) { vol.stop = true; cs.remove(); throw e; });
+    },
+    // complicité 4 : il vient s'installer près de la case où tu réfléchis
+    pres: function () {
+      var c = caseActive();
+      if (!c) return ACTIONS.assis();
+      dessiner("debout", "marche");
+      return marcherVers(aCoteDe(c.x)).then(function () {
+        tourner(c.x); dessiner("assis"); regarder(c.x, c.y, 4000);
+        return pause(hasard(5000, 9000));
+      });
+    },
+    // complicité 3 : il t'apporte un petit cadeau
+    cadeau: function () {
+      esprit.cadeauAt = Date.now(); sauverEsprit();
+      var types = Object.keys(CADEAU), type = types[Math.floor(Math.random() * types.length)];
+      var c = caseActive(), cible = c ? aCoteDe(c.x) : hasard(gauche, droite);
+      dessiner("debout", "marche");
+      return marcherVers(cible, H * 1.2).then(function () {
+        dessiner("debout", "affut"); return pause(500);
+      }).then(function () {
+        deposerCadeau(type, x + W / 2 + dir * W * 0.5);
+        emote("🎁", 2200);
+        dessiner("assis", "content"); regarder(null, null, 3000);
+        return pause(3200);
+      });
     }
   };
 
-  var POIDS = { promenade: 30, assis: 16, toilette: 9, baille: 5, dodo: 12, roulade: 7, etirement: 5, mange: 6, joue: 9, chasse: 8 };
+  /* ---------- ce qu'il CHOISIT : selon ses besoins, l'heure, la partie ---------- */
   var precedente = "";
   function choisir() {
-    if (calmeVoulu) return Math.random() < 0.5 ? "assis" : "dodo";
-    var p = Object.assign({}, POIDS);
-    if (precedente) p[precedente] = Math.round(p[precedente] / 4);    // pas deux fois de suite la même chose
-    if (precedente === "dodo") p.dodo = 0;
-    var h = new Date().getHours();
-    if (h >= 22 || h < 7) p.dodo *= 2;
+    if (calmeVoulu) return esprit.energie < 50 ? "dodo" : "assis";
+    var e = esprit.energie, f = esprit.faim, en = esprit.ennui, hu = esprit.humeur, now = Date.now();
+    var h = new Date().getHours(), nuit = (h >= 22 || h < 7), niveau = etat.niveau || 1;
+    var c = caseActive(), depuisTouche = now - derniereTouche;
+    var s = {
+      promenade: 0.5 + e / 100 * 1.3,
+      assis: 0.9, toilette: 0.45, etirement: 0.25,
+      baille: e < 50 ? 0.5 : 0.12,
+      dodo: e < 75 ? Math.pow((100 - e) / 100, 1.5) * 4 + (nuit ? 0.8 : 0) : 0.03,
+      mange: esprit.croquettes > 0 && f > 45 ? (f - 30) / 70 * 3 : 0,
+      reclame: esprit.croquettes <= 0 && f > 70 && now - esprit.reclameAt > 5 * 60000 ? 1.6 : 0,
+      joue: e > 30 ? 0.2 + en / 100 * 2.2 : 0,
+      chasse: e > 45 ? 0.15 + en / 100 * 1.3 : 0,
+      roulade: hu > 60 ? (hu - 50) / 50 * 1.0 : 0.1,
+      // pendant que tu réfléchis (sans écrire depuis un moment), il vient près de ta case
+      pres: niveau >= 4 && c && depuisTouche > 6000 && depuisTouche < 150000 && loin(c.x) ? 1.8 : 0,
+      cadeau: niveau >= 3 && now - esprit.cadeauAt > 25 * 60000 && cadeaux.length === 0 ? 0.25 : 0
+    };
+    if (precedente && s[precedente] != null) s[precedente] /= 4;      // pas deux fois de suite la même chose
+    if (precedente === "dodo") s.dodo = 0;
     var total = 0, k;
-    for (k in p) total += p[k];
+    for (k in s) total += s[k];
     var r = Math.random() * total;
-    for (k in p) { r -= p[k]; if (r <= 0) return k; }
+    for (k in s) { r -= s[k]; if (r <= 0) return k; }
     return "assis";
   }
 
@@ -700,37 +931,216 @@
     var nom = interruption ? interruption.nom : choisir();
     var f = interruption ? interruption.f : ACTIONS[nom];
     interruption = null;
-    precedente = nom;
+    precedente = nom; actionEnCours = nom;
     var g = generation;
     Promise.resolve().then(f).then(function () { }, function (e) { if (e !== ANNULE && window.console) console.warn(e); })
       .then(function () {
-        // une interruption a déjà relancé la vie : ne pas la dédoubler
-        if (g === generation) vivre();
+        if (g === generation) vivre();       // une interruption a déjà relancé la vie
       });
   }
   function interrompre(nom, f) {
     interruption = { nom: nom, f: f };
     annulerTout();
-    document.querySelectorAll(".cn-objet:not(.cn-lanterne)").forEach(function (o) { o.remove(); });
+    document.querySelectorAll(".cn-jouet,.cn-cs").forEach(function (o) { o.remove(); });
     vivre();
   }
 
-  /* ---------- caresse : un toucher sur le chat ---------- */
+  /* =====================================================================
+     CE QU'IL REMARQUE : la partie, et toi
+     ===================================================================== */
+  // ce qu'un simple événement de jeu n'interrompt pas (il finit son repas, sa partie de chasse…)
+  var ABSORBE = { dodo: 1, joue: 1, chasse: 1, mange: 1, salut: 1, joie: 1, console: 1, cadeau: 1, agace: 1, caresse: 1, roule: 1 };
+  var derniereReaction = 0, touchesEnDormant = 0, caresses = [], boudeJusqua = 0;
+  function disponible() { return !ABSORBE[actionEnCours]; }
+  function reagir(nom, f, delai) {
+    var now = Date.now();
+    if (now - derniereReaction < (delai || 0)) return false;
+    derniereReaction = now;
+    interrompre(nom, f);
+    return true;
+  }
+
+  var REACTIONS = {
+    // retrouvailles : il accourt, d'autant plus content que l'absence a été longue
+    salut: function (heures) {
+      var depuisCote = Math.random() < 0.5;
+      x = depuisCote ? gauche : droite;
+      el.style.opacity = "0";
+      setTimeout(function () { if (el) el.style.opacity = "1"; }, 30);
+      dessiner("debout", "marche");
+      return marcherVers((gauche + droite) / 2 + hasard(-0.2, 0.2) * W, H * 2.3).then(function () {
+        emote("❤", 2200); miaou(false); dessiner("debout", "content");
+        return bond(H * 0.4, 380, 0);
+      }).then(function () {
+        dessiner("assis", "content"); regarder(null, null, 3000);
+        coeurs(heures > 48 && (etat.niveau || 1) >= 2 ? 6 : 3);
+        if (heures > 48) montrerNom(" t'attendait ♥");
+        return pause(2600);
+      });
+    },
+    // tu écris : il suit la case des yeux, et (complicité 3) vient voir de plus près
+    suivre: function () {
+      if (toucheX == null) return pause(10);
+      dessiner("debout", "marche");
+      return marcherVers(aCoteDe(toucheX), H * 1.5).then(function () {
+        tourner(toucheX); dessiner("assis"); regarder(toucheX, toucheY, 3000);
+        return pause(hasard(2500, 5000));
+      });
+    },
+    // il dormait, tu tapes au clavier : il sursaute
+    sursaut: function () {
+      emote("❗", 1300); dessiner("debout");
+      return bond(H * 0.35, 320, 0).then(function () {
+        dessiner("debout", "etire"); return pause(1400);
+      }).then(function () {
+        dessiner("assis"); regarder(toucheX, toucheY, 2500); return pause(1800);
+      });
+    },
+    // un bel essai : il frétille
+    excite: function (info) {
+      tourner(info.x); emote("❗", 1500); regarder(info.x, info.y, 2500);
+      dessiner("debout", "affut");
+      return pause(1100).then(function () { dessiner("assis", "content"); return pause(1600); });
+    },
+    // un essai où rien n'est juste : il compatit
+    decu: function (info) {
+      tourner(info.x); emote("💧", 1700); dessiner("assis", "triste"); regarder(info.x, info.y, 2000);
+      return pause(2000).then(function () { dessiner("assis", "toilette"); return pause(1500); });
+    },
+    // un indice : il va gratter la case révélée
+    indice: function (info) {
+      dessiner("debout", "marche");
+      return marcherVers(aCoteDe(info.x), H * 1.4).then(function () {
+        tourner(info.x); regarder(info.x, info.y, 2500);
+        dessiner("debout", "tape"); emote("✨", 1500); return pause(220);
+      }).then(function () { dessiner("assis", "content"); return pause(2000); });
+    },
+    // mot trouvé : il saute de joie, puis (s'il a faim) mange la croquette que tu viens de gagner
+    joie: function () {
+      dessiner("debout", "content"); coeurs(4); emote("🎉", 1600);
+      return bond(H * 0.5, 420, 0).then(function () { return bond(H * 0.42, 380, 0); })
+        .then(function () { dessiner("assis", "content"); regarder(null); return pause(1800); })
+        .then(function () { return esprit.faim > 40 ? ACTIONS.mange() : pause(10); });
+    },
+    // partie perdue : il est triste avec toi, puis (complicité 2) vient te consoler
+    console: function () {
+      dessiner("assis", "triste"); emote("💧", 1800); regarder(null, null, 1500);
+      return pause(1900).then(function () {
+        if ((etat.niveau || 1) < 2) return pause(800);
+        dessiner("debout", "marche");
+        return marcherVers((gauche + droite) / 2, H * 1.2).then(function () {
+          dessiner("assis", "content"); regarder(null, null, 3000);
+          coeurs(3); miaou(true); emote("❤", 2000); lien("console", 1);
+          return pause(2600);
+        });
+      });
+    },
+    // nouvelle grille : il vient voir
+    nouvelle: function () {
+      dessiner("debout", "marche");
+      return marcherVers((gauche + droite) / 2 + hasard(-0.6, 0.6) * W).then(function () {
+        dessiner("assis"); var c = caseActive(); if (c) regarder(c.x, c.y, 2500);
+        return pause(2200);
+      });
+    },
+    // Pendu : chaque erreur le fait sursauter ; vers la fin, il ne tient plus en place
+    peur: function (info) {
+      var potence = document.getElementById("penduSvg"), r = potence && potence.getBoundingClientRect();
+      var px = r ? r.left + r.width * 0.68 : null, py = r ? r.top + r.height * 0.3 : null;
+      var critique = info.erreurs >= info.max - 2;
+      emote(critique ? "😿" : "❗", 1500);
+      dessiner("debout", critique ? "inquiet" : "");
+      tourner(px); regarder(px, py, 3000);
+      return bond(H * 0.22, 260, 0).then(function () {
+        if (!critique) { dessiner("assis", "guette"); regarder(px, py, 2500); return pause(2200); }
+        // il fait les cent pas
+        var a = x, b = Math.max(gauche, Math.min(droite, x + (x > (gauche + droite) / 2 ? -1 : 1) * W * 1.2));
+        dessiner("debout", "marche inquiet");
+        return marcherVers(b, H * 1.3).then(function () { return marcherVers(a, H * 1.3); })
+          .then(function () { tourner(px); dessiner("assis", "inquiet"); regarder(px, py, 3000); return pause(2500); });
+      });
+    },
+    // Pendu : une bonne lettre (plusieurs d'un coup, c'est la fête)
+    trouve: function (info) {
+      tourner(info.x); regarder(info.x, info.y, 2000);
+      emote(info.n > 1 ? "❗" : "✨", 1300);
+      dessiner("assis", "content");
+      return pause(1600);
+    },
+    caresse: function () {
+      coeurs(3); miaou(true); dessiner("assis", "content"); regarder(null, null, 2000);
+      return pause(2400);
+    },
+    caresseDodo: function () {
+      coeurs(2); miaou(true); dessiner("dodo", "dort content");
+      return pause(2600).then(function () { return ACTIONS.dodo(true); });
+    },
+    // encore des caresses : il se roule sur le dos
+    roule: function () {
+      coeurs(4); miaou(true); dessiner("dos", "content");
+      return pause(hasard(2800, 3800)).then(function () { dessiner("debout", "etire"); return pause(1300); })
+        .then(function () { dessiner("assis", "content"); return pause(800); });
+    },
+    // trop, c'est trop : un coup de patte, et il s'éloigne bouder
+    agace: function () {
+      emote("💢", 1800); esprit.humeur = borne(esprit.humeur - 12);
+      dessiner("debout", "tape");
+      return pause(240).then(function () {
+        dessiner("debout"); return pause(200);
+      }).then(function () {
+        var milieu = (gauche + droite) / 2;
+        dessiner("debout", "marche");
+        return marcherVers(x > milieu ? gauche : droite, H * 2.1);
+      }).then(function () {
+        dessiner("assis"); dir = x > (gauche + droite) / 2 ? 1 : -1;   // il te tourne le dos
+        return pause(5000);
+      });
+    },
+    esquive: function () {
+      emote("💢", 1100);
+      var cote = x > (gauche + droite) / 2 ? -1 : 1;
+      dessiner("debout", "saute");
+      return bond(H * 0.3, 340, cote * W * 0.9).then(function () { dessiner("assis"); dir = -cote; return pause(2000); });
+    },
+    merci: function () {
+      coeurs(3); emote("❤", 1600); miaou(false); dessiner("assis", "content"); regarder(null, null, 2000);
+      return pause(2200);
+    }
+  };
+
+  /* ---------- toucher : le chat, ou un cadeau qu'il t'a laissé ---------- */
   function surClic(e) {
     if (!actif || !ancreOk || el.style.display === "none") return;
     var cible = e.target;
-    if (cible && cible.closest && cible.closest("button, a, input, textarea, select, .tile, #keyboard, .overlay")) return;
+    if (cible && cible.closest && cible.closest("button, a, input, textarea, select, #keyboard, .overlay")) return;
+    // un cadeau ?
+    for (var i = 0; i < cadeaux.length; i++) {
+      var rc = cadeaux[i].el.getBoundingClientRect(), mc = 8;
+      if (e.clientX >= rc.left - mc && e.clientX <= rc.right + mc && e.clientY >= rc.top - mc && e.clientY <= rc.bottom + mc) {
+        var c = cadeaux[i];
+        retirerCadeau(c);
+        lien("cadeau", 1);
+        if (P().toast) P().toast("🎁 " + (etat.nom || "Minuit") + " t'a offert " + NOM_CADEAU[c.type] + " ♥", 2200);
+        reagir("merci", REACTIONS.merci);
+        return;
+      }
+    }
+    if (cible && cible.closest && cible.closest(".tile")) return;
     var r = el.getBoundingClientRect(), m = 6;
     if (e.clientX < r.left - m || e.clientX > r.right + m || e.clientY < r.top - m * 2 || e.clientY > r.bottom + m) return;
-    debutCalme = Date.now();
+    var now = Date.now();
+    debutCalme = now;
+    if (now < boudeJusqua) { reagir("esquive", REACTIONS.esquive); return; }
+    caresses = caresses.filter(function (t) { return now - t < 12000; });
+    caresses.push(now);
+    var n = caresses.length;
+    if (n >= 8) { caresses = []; boudeJusqua = now + 15000; reagir("agace", REACTIONS.agace); return; }
     montrerNom();
-    var dormait = pose === "dodo";
-    interrompre("caresse", function () {
-      coeurs(3); miaou(dormait);
-      if (dormait) { dessiner("dodo", "dort content"); return pause(2600); }
-      dessiner("assis", "content");
-      return pause(2400);
-    });
+    esprit.humeur = borne(esprit.humeur + 6);
+    lien("caresse", 1);
+    if (pose === "dodo" && n === 1) { reagir("caresseDodo", REACTIONS.caresseDodo); return; }
+    if (n >= 4 && n <= 5 && !calmeVoulu) { reagir("roule", REACTIONS.roule); return; }
+    reagir("caresse", REACTIONS.caresse);
   }
 
   /* =====================================================================
@@ -742,6 +1152,7 @@
     s.id = "cnStyle"; s.textContent = CSS;
     document.head.appendChild(s);
   }
+  function surMasque() { if (document.hidden) sauverEsprit(); }
 
   window.ChatNoir = {
     svg: svg,
@@ -749,18 +1160,21 @@
     vignette: vignette,
     installerStyle: installerStyle,
 
-    /* e = { porte:{tete,yeux,bouche,cou,dos}, maison:{coussin,pelote,souris,gamelle,lanterne}, nom } */
+    /* e = { porte, maison, nom, complicite, niveau } */
     demarrer: function (e) {
       installerStyle();
       if (actif) { this.habiller(e); return; }
       etat = e || etat;
+      esprit = chargerEsprit();
+      var absence = rattraper();
       scene = document.createElement("div");
       scene.id = "chatScene"; scene.setAttribute("aria-hidden", "true");
       el = document.createElement("div"); el.className = "cn";
       sens = document.createElement("div"); sens.className = "cn-sens";
       zzz = document.createElement("div"); zzz.className = "cn-zzz"; zzz.innerHTML = "<span>z</span><span>z</span><span>Z</span>";
       bulle = document.createElement("div"); bulle.className = "cn-nom";
-      el.appendChild(sens); el.appendChild(zzz); el.appendChild(bulle);
+      emo = document.createElement("div"); emo.className = "cn-emo";
+      el.appendChild(sens); el.appendChild(zzz); el.appendChild(bulle); el.appendChild(emo);
       scene.appendChild(el);
       document.body.appendChild(scene);
       actif = true; pose = ""; classes = ""; x = 0; y = 0;
@@ -768,25 +1182,33 @@
       ancrer();
       x = gauche + (droite - gauche) * hasard(0.2, 0.8);
       dessiner("assis");
+      // première visite du jour : la complicité grandit
+      if (esprit.jour !== aujourdhui()) lien("visite", 2);
+      sauverEsprit();
       document.addEventListener("click", surClic);
-      document.addEventListener("visibilitychange", function () {
-        if (!document.hidden && actif && !raf && !lent) { dernier = performance.now(); raf = requestAnimationFrame(boucle); }
-      });
+      document.addEventListener("visibilitychange", surMasque);
+      window.addEventListener("pagehide", sauverEsprit);
       dernier = performance.now();
       raf = requestAnimationFrame(boucle);
       cligner();
+      // de retour après plusieurs heures : il accourt
+      if (absence > 6 && !calmeVoulu) { interruption = { nom: "salut", f: function () { return REACTIONS.salut(absence); } }; }
       vivre();
     },
 
     arreter: function () {
       if (!actif) return;
+      sauverEsprit();
       actif = false;
       annulerTout();
       if (raf) cancelAnimationFrame(raf); raf = 0; clearTimeout(lent); lent = 0;
-      clearInterval(reveil); reveil = 0; clearTimeout(clignTimer);
+      clearInterval(reveil); reveil = 0; clearTimeout(clignTimer); clearTimeout(regardT);
+      cadeaux.forEach(function (c) { clearTimeout(c.fin); }); cadeaux = [];
       document.removeEventListener("click", surClic);
+      document.removeEventListener("visibilitychange", surMasque);
+      window.removeEventListener("pagehide", sauverEsprit);
       if (scene) scene.remove();
-      scene = el = sens = null; lanterneEl = null;
+      scene = el = sens = emo = null; lanterneEl = null;
     },
 
     habiller: function (e) {
@@ -794,33 +1216,78 @@
       if (!actif) return;
       var p = pose; pose = "";
       if (p) dessiner(p, classes.replace(/^cn cn-pose-\w+ ?/, ""));
-      // la lanterne se pose au coin de la grille
       if (etat.maison && etat.maison.lanterne) {
         if (!lanterneEl) { lanterneEl = objet("cn-lanterne", lanterne(), 20, 20); }
       } else if (lanterneEl) { lanterneEl.remove(); lanterneEl = null; }
       ancrer();
     },
 
-    /* réactions au jeu : "victoire" */
-    evenement: function (nom) {
-      if (!actif || !ancreOk || calmeVoulu) return;
+    // la complicité a changé (sans redessiner le chat)
+    majLien: function (complicite, niveau) { etat.complicite = complicite; etat.niveau = niveau; },
+
+    /* ce qui se passe dans la partie */
+    evenement: function (nom, info) {
+      if (!actif || !esprit) return;
+      info = info || {};
+      var dort = pose === "dodo";
       if (nom === "victoire") {
         debutCalme = Date.now();
-        interrompre("joie", function () {
-          dessiner("debout", "content");
-          coeurs(4);
-          return bond(H * 0.5, 420, 0).then(function () { return bond(H * 0.42, 380, 0); })
-            .then(function () { dessiner("assis", "content"); return pause(2200); });
-        });
+        esprit.croquettes = Math.min(3, esprit.croquettes + 1);
+        esprit.humeur = borne(esprit.humeur + 8);
+        lien("victoire", 1); sauverEsprit();
+        if (!ancreOk) return;
+        if (calmeVoulu) { emote("🎉", 1600); return; }
+        reagir("joie", REACTIONS.joie);
+        return;
       }
+      if (!ancreOk) return;
+      if (nom === "defaite") {
+        if (calmeVoulu) { emote("💧", 1600); return; }
+        reagir("console", REACTIONS.console);
+        return;
+      }
+      if (nom === "touche") {
+        derniereTouche = Date.now();
+        if (info.x != null) { toucheX = info.x; toucheY = info.y; }
+        if (dort) {
+          // il ne se réveille pas à la première lettre…
+          touchesEnDormant++;
+          if (touchesEnDormant >= 4 && !calmeVoulu) { touchesEnDormant = 0; reagir("sursaut", REACTIONS.sursaut); }
+          return;
+        }
+        touchesEnDormant = 0;
+        regarder(info.x, info.y, 2500);
+        if ((etat.niveau || 1) >= 3 && disponible() && loin(info.x) && !calmeVoulu) reagir("suivre", REACTIONS.suivre, 2500);
+        return;
+      }
+      if (dort || calmeVoulu) return;               // le reste ne le réveille pas
+      if (nom === "essai") {
+        if (!disponible()) { regarder(info.x, info.y, 2000); return; }
+        var total = info.total || 1, part = ((info.bien || 0) + 0.5 * (info.mal || 0)) / total;
+        if (part >= 0.6) reagir("excite", function () { return REACTIONS.excite(info); });
+        else if ((info.bien || 0) + (info.mal || 0) === 0) reagir("decu", function () { return REACTIONS.decu(info); });
+        else { regarder(info.x, info.y, 2200); emote("❓", 1400); }
+        return;
+      }
+      if (nom === "indice") { reagir("indice", function () { return REACTIONS.indice(info); }); return; }
+      if (nom === "partie") { if (disponible() && Math.random() < 0.6) reagir("nouvelle", REACTIONS.nouvelle, 4000); return; }
+      if (nom === "pendu-erreur") { reagir("peur", function () { return REACTIONS.peur(info); }); return; }
+      if (nom === "pendu-bonne") { if (disponible()) reagir("trouve", function () { return REACTIONS.trouve(info); }); return; }
     },
 
-    // lance un comportement précis (tests)
-    faire: function (nom) { if (actif && ACTIONS[nom]) interrompre(nom, ACTIONS[nom]); },
-    get comportements() { return Object.keys(ACTIONS); },
+    // ce que la boutique affiche
+    get esprit() { return esprit ? { croquettes: esprit.croquettes, faim: Math.round(esprit.faim), energie: Math.round(esprit.energie), humeur: Math.round(esprit.humeur) } : null; },
 
-    // pour les tests et la boutique
+    // lance un comportement précis (tests)
+    faire: function (nom, info) {
+      if (!actif) return;
+      if (ACTIONS[nom]) interrompre(nom, ACTIONS[nom]);
+      else if (REACTIONS[nom]) interrompre(nom, function () { return REACTIONS[nom](info || { x: centreX(), y: sol, erreurs: 6, max: 8, n: 2 }); });
+    },
+    get comportements() { return Object.keys(ACTIONS).concat(Object.keys(REACTIONS)); },
+
     get actif() { return actif; },
-    get pose() { return pose; }
+    get pose() { return pose; },
+    get action() { return actionEnCours; }
   };
 })();
