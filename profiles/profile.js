@@ -128,8 +128,10 @@
     // — Compagnon (boutique du chat) —
     {id:"chat1", e:"🐈‍⬛", n:"Ami des chats",      d:"Adopter un chat noir dans la boutique", c:"Compagnon", t:function(b,s){return !!(s.boutique && s.boutique.objets && ("chat" in s.boutique.objets));}},
     {id:"chat5", e:"🎩", n:"Chat coquet",         d:"Offrir 5 objets à ton chat",            c:"Compagnon", t:function(b,s){return objetsChat(s)>=5;}, p:[function(b,s){return objetsChat(s);},5]},
+    {id:"chatAmi", e:"💞", n:"Inséparables",      d:"Atteindre la complicité maximale avec ton chat", c:"Compagnon",
+      t:function(b,s){return ((s.boutique && s.boutique.complicite) || 0) >= 100;}, p:[function(b,s){return (s.boutique && s.boutique.complicite) || 0;}, 100]},
     {id:"chatTout",e:"👑",n:"Chat royal",         d:"Offrir à ton chat tous les objets de la boutique", c:"Compagnon",
-      t:function(b,s){ var C = window.Boutique && Boutique.catalogue; return !!C && C.every(function(x){ return s.boutique && s.boutique.objets && (x.id in s.boutique.objets); }); },
+      t:function(b,s){ var C = window.Boutique && Boutique.catalogue; return !!C && C.every(function(x){ return x.cadeau || (s.boutique && s.boutique.objets && (x.id in s.boutique.objets)); }); },
       p:[function(b,s){return objetsChat(s);}, 18]},
     {id:"hw1",   e:"🎃", n:"Premier frisson",     d:"Jouer un Mot terrifiant (Halloween)",   c:"Saison", t:function(b){return b.hwPeur>=1;}, p:[function(b){return b.hwPeur;},1]},
     {id:"hw5",   e:"👻", n:"Chasseur de fantômes", d:"Trouver 5 Mots terrifiants",           c:"Saison", t:function(b){return b.hwPeurWin>=5;}, p:[function(b){return b.hwPeurWin;},5]},
@@ -296,9 +298,12 @@
     if ((b.porteAt || 0) > r.porteAt) { r.porte = b.porte || {}; r.porteAt = b.porteAt; }
     if ((b.nomAt || 0) > r.nomAt && b.nom) { r.nom = b.nom; r.nomAt = b.nomAt; }
     if ((b.visibleAt || 0) > r.visibleAt) { r.visible = b.visible !== false; r.visibleAt = b.visibleAt; }
+    // complicité avec le chat : un cumul, qui ne fait que grandir
+    r.complicite = Math.max(+a.complicite || 0, +b.complicite || 0);
     return r;
   }
-  function objetsChat(s) { var o = (s && s.boutique && s.boutique.objets) || {}; return Object.keys(o).filter(function (k) { return k !== "chat"; }).length; }
+  // objets ACHETÉS pour le chat (ni l'adoption, ni la médaille qu'il offre lui-même)
+  function objetsChat(s) { var o = (s && s.boutique && s.boutique.objets) || {}; return Object.keys(o).filter(function (k) { return k !== "chat" && +o[k] > 0; }).length; }
   // moment de la dernière partie jouée sur CET appareil : départage les séries à la fusion
   function joue() { state.b.jeuAt = Date.now(); }
 
