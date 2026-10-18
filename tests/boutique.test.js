@@ -41,7 +41,8 @@ module.exports = async function ({ groupe, verifie, ignore, ok, egal, vide, RACI
     const SLOTS = [null, "tete", "yeux", "bouche", "cou", "dos", "maison"];
     C.forEach(o => {
       if (vus.has(o.id)) soucis.push(o.id + " en double"); vus.add(o.id);
-      if (!Number.isInteger(o.prix) || o.prix <= 0) soucis.push(o.id + " : prix " + o.prix);
+      // un cadeau du chat ne se vend pas (prix 0) ; tout le reste a un vrai prix
+      if (!Number.isInteger(o.prix) || (o.cadeau ? o.prix !== 0 : o.prix <= 0)) soucis.push(o.id + " : prix " + o.prix);
       if (!SLOTS.includes(o.slot)) soucis.push(o.id + " : emplacement " + o.slot);
     });
     ok(C[0].id === "chat", "l'adoption doit rester le premier objet");
@@ -64,7 +65,7 @@ module.exports = async function ({ groupe, verifie, ignore, ok, egal, vide, RACI
   verifie("le badge « Chat royal » vise le bon nombre d'objets", () => {
     const m = lire("profiles/profile.js").match(/id:"chatTout"[\s\S]*?objetsChat\(s\);\}, (\d+)\]/);
     ok(m, "badge chatTout introuvable");
-    egal(+m[1], W.Boutique.catalogue.length - 1);
+    egal(+m[1], W.Boutique.catalogue.filter(o => o.id !== "chat" && !o.cadeau).length);
   });
 
   verifie("boutique et chat fonctionnent hors ligne (cache) et sont chargés par le jeu", () => {
@@ -127,6 +128,23 @@ module.exports = async function ({ groupe, verifie, ignore, ok, egal, vide, RACI
     app.w.motusBoutiqueRefresh({ objets:{ chat:5, couronne:15 }, porte:{ tete:"couronne" }, porteAt: Date.now() });
     egal(P.jetons(), 10);
     ok(app.w.Boutique.possede("couronne"));
+  });
+
+  verifie("complicité : niveaux, médaille offerte, jamais achetable", async () => {
+    const app = await partie({ "motus.hintEarned":"30", "motus.hintSpent":"0" });
+    const B = app.w.Boutique;
+    ok(!B.acheter("medaille"), "la médaille ne s'achète pas");
+    ok(B.acheter("chat"));
+    egal(B.niveauDe(0), 1); egal(B.niveauDe(10), 2); egal(B.niveauDe(99), 4); egal(B.niveauDe(100), 5);
+    const avant = app.w.MotusPont.jetons();
+    B.lien(99); ok(!B.possede("medaille"), "médaille trop tôt");
+    B.lien(1);  ok(B.possede("medaille"), "médaille non offerte au niveau 5");
+    egal(app.w.MotusPont.jetons(), avant, "la médaille n'a rien coûté");
+  });
+
+  verifie("complicité entre appareils : on garde la plus grande", () => {
+    egal(W.Boutique.fusion({ complicite: 42 }, { complicite: 17 }).complicite, 42);
+    egal(W.Boutique.fusion({ complicite: 3 }, { complicite: 58 }).complicite, 58);
   });
 
   verifie("un solde à zéro n'empêche pas de voir et d'essayer", async () => {
