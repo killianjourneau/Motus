@@ -580,8 +580,8 @@
     var dt = Math.min(0.25, ((t - dernier) || 16) / 1000); dernier = t;
     depuisAncre += dt; depuisSauve += dt;
     if (depuisAncre > 0.4) { depuisAncre = 0; ancrer(); }
-    if (!ancreOk || document.hidden) { el.style.display = "none"; suspendre(); return; }
-    el.style.display = "";
+    if (!ancreOk || document.hidden) { scene.style.display = "none"; suspendre(); return; }
+    scene.style.display = "";
     besoins(dt);
     if (depuisSauve > 20) { depuisSauve = 0; sauverEsprit(); }
     var encore = [];
@@ -622,7 +622,7 @@
         if (!actif) return;
         el.classList.remove("cligne"); classes = el.className;
         // de temps en temps, un coup d'œil de côté, puis vers toi
-        if (pose !== "dodo" && Math.random() < 0.3) regarder(x + W / 2 + hasard(-3, 3) * W, sol - hasard(0, 2) * H, hasard(900, 2200));
+        if (pose !== "dodo" && Math.random() < 0.15) regarder(x + W / 2 + hasard(-3, 3) * W, sol - hasard(0, 2) * H, hasard(900, 2200));
         cligner();
       }, 140);
     }, hasard(2500, 6500));
@@ -914,7 +914,7 @@
       chasse: e > 45 ? 0.15 + en / 100 * 1.3 : 0,
       roulade: hu > 60 ? (hu - 50) / 50 * 1.0 : 0.1,
       // pendant que tu réfléchis (sans écrire depuis un moment), il vient près de ta case
-      pres: niveau >= 4 && c && depuisTouche > 6000 && depuisTouche < 150000 && loin(c.x) ? 1.8 : 0,
+      pres: niveau >= 4 && c && depuisTouche > 8000 && depuisTouche < 150000 && loin(c.x) ? 0.8 : 0,
       cadeau: niveau >= 3 && now - esprit.cadeauAt > 25 * 60000 && cadeaux.length === 0 ? 0.25 : 0
     };
     if (precedente && s[precedente] != null) s[precedente] /= 4;      // pas deux fois de suite la même chose
@@ -951,6 +951,7 @@
   // ce qu'un simple événement de jeu n'interrompt pas (il finit son repas, sa partie de chasse…)
   var ABSORBE = { dodo: 1, joue: 1, chasse: 1, mange: 1, salut: 1, joie: 1, console: 1, cadeau: 1, agace: 1, caresse: 1, roule: 1 };
   var derniereReaction = 0, touchesEnDormant = 0, caresses = [], boudeJusqua = 0;
+  var reactionJeuAt = 0, suiviAt = 0, partieAt = 0;
   function disponible() { return !ABSORBE[actionEnCours]; }
   function reagir(nom, f, delai) {
     var now = Date.now();
@@ -1110,7 +1111,7 @@
 
   /* ---------- toucher : le chat, ou un cadeau qu'il t'a laissé ---------- */
   function surClic(e) {
-    if (!actif || !ancreOk || el.style.display === "none") return;
+    if (!actif || !ancreOk || scene.style.display === "none") return;
     var cible = e.target;
     if (cible && cible.closest && cible.closest("button, a, input, textarea, select, #keyboard, .overlay")) return;
     // un cadeau ?
@@ -1225,54 +1226,78 @@
     // la complicité a changé (sans redessiner le chat)
     majLien: function (complicite, niveau) { etat.complicite = complicite; etat.niveau = niveau; },
 
-    /* ce qui se passe dans la partie */
+    /* ce qui se passe dans la partie
+       Il remarque tout (ses yeux suivent), mais ne RÉAGIT qu'aux moments
+       qui comptent, et pas à chaque fois : un compagnon, pas un commentateur. */
     evenement: function (nom, info) {
       if (!actif || !esprit) return;
       info = info || {};
-      var dort = pose === "dodo";
+      var dort = pose === "dodo", now = Date.now();
+      // une réaction de jeu au plus toutes les 25 s (victoire et défaite exceptées)
+      var auCalme = now - reactionJeuAt < 25000;
+      var jeu = function (nomR, f) { reactionJeuAt = now; reagir(nomR, f); };
       if (nom === "victoire") {
-        debutCalme = Date.now();
+        debutCalme = now;
         esprit.croquettes = Math.min(3, esprit.croquettes + 1);
         esprit.humeur = borne(esprit.humeur + 8);
         lien("victoire", 1); sauverEsprit();
         if (!ancreOk) return;
         if (calmeVoulu) { emote("🎉", 1600); return; }
-        reagir("joie", REACTIONS.joie);
+        reactionJeuAt = now; reagir("joie", REACTIONS.joie);
         return;
       }
       if (!ancreOk) return;
       if (nom === "defaite") {
         if (calmeVoulu) { emote("💧", 1600); return; }
-        reagir("console", REACTIONS.console);
+        reactionJeuAt = now; reagir("console", REACTIONS.console);
         return;
       }
       if (nom === "touche") {
-        derniereTouche = Date.now();
+        derniereTouche = now;
         if (info.x != null) { toucheX = info.x; toucheY = info.y; }
         if (dort) {
-          // il ne se réveille pas à la première lettre…
+          // il ne se réveille pas pour si peu… sauf si l'on tape longtemps
           touchesEnDormant++;
-          if (touchesEnDormant >= 4 && !calmeVoulu) { touchesEnDormant = 0; reagir("sursaut", REACTIONS.sursaut); }
+          if (touchesEnDormant >= 12 && !calmeVoulu && Math.random() < 0.5) { touchesEnDormant = 0; reagir("sursaut", REACTIONS.sursaut); }
           return;
         }
         touchesEnDormant = 0;
-        regarder(info.x, info.y, 2500);
-        if ((etat.niveau || 1) >= 3 && disponible() && loin(info.x) && !calmeVoulu) reagir("suivre", REACTIONS.suivre, 2500);
+        if (Math.random() < 0.5) regarder(info.x, info.y, 2000);
+        // complicité 3 : de temps en temps, il vient voir de plus près
+        if ((etat.niveau || 1) >= 3 && disponible() && Math.abs(info.x - centreX()) > W * 2 && !calmeVoulu &&
+            now - suiviAt > 60000 && Math.random() < 0.35) { suiviAt = now; reagir("suivre", REACTIONS.suivre); }
         return;
       }
       if (dort || calmeVoulu) return;               // le reste ne le réveille pas
       if (nom === "essai") {
-        if (!disponible()) { regarder(info.x, info.y, 2000); return; }
+        regarder(info.x, info.y, 2000);
+        if (auCalme || !disponible() || Math.random() < 0.5) return;
         var total = info.total || 1, part = ((info.bien || 0) + 0.5 * (info.mal || 0)) / total;
-        if (part >= 0.6) reagir("excite", function () { return REACTIONS.excite(info); });
-        else if ((info.bien || 0) + (info.mal || 0) === 0) reagir("decu", function () { return REACTIONS.decu(info); });
-        else { regarder(info.x, info.y, 2200); emote("❓", 1400); }
+        if (part >= 0.7) jeu("excite", function () { return REACTIONS.excite(info); });
+        else if ((info.bien || 0) + (info.mal || 0) === 0) jeu("decu", function () { return REACTIONS.decu(info); });
         return;
       }
-      if (nom === "indice") { reagir("indice", function () { return REACTIONS.indice(info); }); return; }
-      if (nom === "partie") { if (disponible() && Math.random() < 0.6) reagir("nouvelle", REACTIONS.nouvelle, 4000); return; }
-      if (nom === "pendu-erreur") { reagir("peur", function () { return REACTIONS.peur(info); }); return; }
-      if (nom === "pendu-bonne") { if (disponible()) reagir("trouve", function () { return REACTIONS.trouve(info); }); return; }
+      if (nom === "indice") {
+        regarder(info.x, info.y, 2000);
+        if (!auCalme && Math.random() < 0.5) jeu("indice", function () { return REACTIONS.indice(info); });
+        return;
+      }
+      if (nom === "partie") {
+        if (disponible() && now - partieAt > 180000 && Math.random() < 0.25) { partieAt = now; reagir("nouvelle", REACTIONS.nouvelle); }
+        return;
+      }
+      if (nom === "pendu-erreur") {
+        // un coup d'œil à la potence ; il ne s'inquiète vraiment qu'à deux erreurs de la fin
+        var potence = document.getElementById("penduSvg"), r = potence && potence.getBoundingClientRect();
+        if (r) regarder(r.left + r.width * 0.68, r.top + r.height * 0.3, 2000);
+        if (info.erreurs === info.max - 2) { reactionJeuAt = now; reagir("peur", function () { return REACTIONS.peur(info); }); }
+        return;
+      }
+      if (nom === "pendu-bonne") {
+        regarder(info.x, info.y, 1800);
+        if (info.n > 1 && !auCalme && disponible() && Math.random() < 0.4) jeu("trouve", function () { return REACTIONS.trouve(info); });
+        return;
+      }
     },
 
     // ce que la boutique affiche

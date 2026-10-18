@@ -451,7 +451,8 @@
     var ref = document.getElementById("modeDaily");
     var grille = ref && ref.closest(".mode-grid");
     if (!grille) return;
-    var cat = el("div", "mode-cat", "🐈‍⬛ Compagnon");
+    // la boutique est la rubrique ; le compagnon, ce qu'on y trouve
+    var cat = el("div", "mode-cat", "🛍️ Boutique");
     var g = el("div", "mode-grid");
     var b = el("button", "mode-item nouveau");
     b.id = "boutiqueItem";
@@ -463,8 +464,8 @@
   }
   function majEntree() {
     var b = document.getElementById("boutiqueItem"); if (!b) return;
-    b.innerHTML = '<span class="mi">🐈‍⬛</span><b>La boutique</b><i>' +
-      (adopte() ? "Gâte " + echap(etat.nom) : "Adopte un chat noir") + '</i>';
+    b.innerHTML = '<span class="mi">🐈‍⬛</span><b>Compagnon</b><i>' +
+      (adopte() ? echap(etat.nom) + " et ses affaires" : "Adopte un chat noir") + '</i>';
   }
 
   /* ---------- API ---------- */
