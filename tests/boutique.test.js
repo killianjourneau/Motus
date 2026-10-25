@@ -147,6 +147,35 @@ module.exports = async function ({ groupe, verifie, ignore, ok, egal, vide, RACI
     egal(W.Boutique.fusion({ complicite: 3 }, { complicite: 58 }).complicite, 58);
   });
 
+  /* Même compte sur un téléphone et un PC : un jeton du jour ne se gagne
+     qu'une fois, et aucune dépense ne se perd à la synchronisation. */
+  async function appareil(stock) {
+    const app = demarrer({ expose:"function grantHintOnce", noms:["grantHintOnce", "hintSpendOne", "getJetons:()=>jetons"],
+      stockage: Object.assign({ "motus.seen":"true", "motus.tour":"true" }, stock || {}) });
+    await app.attendre(80);
+    return app;
+  }
+
+  verifie("jetons : un gain du jour fait sur l'autre appareil ne se regagne pas", async () => {
+    const pc = await appareil({ "motus.hintEarned":"5", "motus.hintSpent":"0" });
+    const tel = await appareil({ "motus.hintEarned":"5", "motus.hintSpent":"0" });
+    pc.w.__t.grantHintOnce("daily", "2026-10-25");
+    egal(pc.w.MotusPont.jetons(), 6);
+    tel.w.motusJetonsRefresh(pc.w.__t.getJetons());       // synchronisation
+    tel.w.__t.grantHintOnce("daily", "2026-10-25");        // il rejoue le même mot du jour
+    egal(tel.w.MotusPont.jetons(), 6, "le jeton du jour a été compté deux fois");
+  });
+
+  verifie("jetons : deux gains et deux dépenses simultanés sur deux appareils comptent tous", async () => {
+    const pc = await appareil({ "motus.hintEarned":"5", "motus.hintSpent":"0" });
+    const tel = await appareil({ "motus.hintEarned":"5", "motus.hintSpent":"0" });
+    pc.w.__t.grantHintOnce("daily", "2026-10-25");  tel.w.__t.grantHintOnce("defi", "2026-10-25");
+    pc.w.__t.hintSpendOne();                         tel.w.__t.hintSpendOne();
+    pc.w.motusJetonsRefresh(tel.w.__t.getJetons());  tel.w.motusJetonsRefresh(pc.w.__t.getJetons());
+    egal(pc.w.MotusPont.jetons(), 5, "5 + 2 gains − 2 dépenses");
+    egal(tel.w.MotusPont.jetons(), 5, "les deux appareils doivent afficher le même solde");
+  });
+
   verifie("un solde à zéro n'empêche pas de voir et d'essayer", async () => {
     const app = await partie({ "motus.hintEarned":"0", "motus.hintSpent":"0" });
     egal(app.w.MotusPont.jetons(), 0);
