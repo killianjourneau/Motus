@@ -15,13 +15,13 @@
 <meta property="og:title" content="Mot en Six — trouve le mot caché en 6 essais">
 <meta property="og:description" content="Mot du jour, grammaire et orthographe du jour, duels, Battle Royale et mode Junior. Gratuit, sans publicité, jouable hors-ligne.">
 <meta property="og:url" content="https://mot-en-six.gamesbyneur.workers.dev/">
-<meta property="og:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.6.2">
+<meta property="og:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.6.1">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Mot en Six — trouve le mot caché en 6 essais">
 <meta name="twitter:description" content="Mot du jour, grammaire et orthographe du jour, duels et Battle Royale.">
-<meta name="twitter:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.6.2">
+<meta name="twitter:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.6.1">
 <link rel="canonical" href="https://mot-en-six.gamesbyneur.workers.dev/">
 <script type="application/ld+json">
 {
@@ -1211,25 +1211,25 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=2.6.2"></script>
-<script src="./dico/motus-grammaire.js?v=2.6.2"></script>
-<script src="./dico/motus-halloween.js?v=2.6.2"></script>
-<script src="./decors/decors.js?v=2.6.2"></script>
-<script src="./dico/motus-ortho.js?v=2.6.2"></script>
-<script src="./dico/motus-prenoms.js?v=2.6.2"></script>
-<script src="./dico/motus-prenoms-info.js?v=2.6.2"></script>
-<script src="./dico/motus-maladies.js?v=2.6.2"></script>
-<script src="./dico/motus-maladies-info.js?v=2.6.2"></script>
-<script src="./dico/motus-villes.js?v=2.6.2"></script>
-<script src="./dico/motus-villes-info.js?v=2.6.2"></script>
-<script src="./dico/motus-persos.js?v=2.6.2"></script>
-<script src="./dico/motus-persos-info.js?v=2.6.2"></script>
-<script src="./dico/motus-persos-split.js?v=2.6.2"></script>
-<script src="./dico/motus-race.js?v=2.6.2"></script>
-<script src="./dico/motus-expert.js?v=2.6.2"></script>
-<script src="./profiles/config.js?v=2.6.2"></script>
-<script src="./profiles/profile.js?v=2.6.2"></script>
-<script src="./duel/duel.js?v=2.6.2"></script>
+<script src="./dico/motus-words.js?v=2.6.1"></script>
+<script src="./dico/motus-grammaire.js?v=2.6.1"></script>
+<script src="./dico/motus-halloween.js?v=2.6.1"></script>
+<script src="./decors/decors.js?v=2.6.1"></script>
+<script src="./dico/motus-ortho.js?v=2.6.1"></script>
+<script src="./dico/motus-prenoms.js?v=2.6.1"></script>
+<script src="./dico/motus-prenoms-info.js?v=2.6.1"></script>
+<script src="./dico/motus-maladies.js?v=2.6.1"></script>
+<script src="./dico/motus-maladies-info.js?v=2.6.1"></script>
+<script src="./dico/motus-villes.js?v=2.6.1"></script>
+<script src="./dico/motus-villes-info.js?v=2.6.1"></script>
+<script src="./dico/motus-persos.js?v=2.6.1"></script>
+<script src="./dico/motus-persos-info.js?v=2.6.1"></script>
+<script src="./dico/motus-persos-split.js?v=2.6.1"></script>
+<script src="./dico/motus-race.js?v=2.6.1"></script>
+<script src="./dico/motus-expert.js?v=2.6.1"></script>
+<script src="./profiles/config.js?v=2.6.1"></script>
+<script src="./profiles/profile.js?v=2.6.1"></script>
+<script src="./duel/duel.js?v=2.6.1"></script>
 <script>
 (() => {
   "use strict";
@@ -1281,7 +1281,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "2.6.2";
+  const VERSION = "2.6.1";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -1325,7 +1325,36 @@
     hintEarned = store.get("motus.hintTokens", 0); hintSpent = 0;
     store.set("motus.hintEarned", hintEarned); store.set("motus.hintSpent", hintSpent);
   }
-  function hintBalance(){ return Math.max(0, hintEarned - hintSpent - depenseBoutique()); }
+  /* v2.7 — Registre des jetons, juste entre plusieurs appareils.
+     Les deux cumuls ci-dessus, fusionnés par max(), avaient deux défauts :
+     un jeton du jour gagné sur le PC pouvait être regagné sur le téléphone,
+     et deux gains faits en même temps sur deux appareils n'en comptaient
+     qu'un. Désormais :
+       • chaque GAIN a une identité (« daily:2026-10-25 ») : les appareils
+         réunissent leurs listes, un même gain n'est jamais compté deux fois ;
+       • chaque appareil compte ses propres DÉPENSES, et l'on additionne.
+     L'ancien solde devient une base figée (« base » / « spentBase »). */
+  const APPAREIL = store.get("motus.appareil", null) || (()=>{
+    const id = Math.random().toString(36).slice(2, 10); store.set("motus.appareil", id); return id; })();
+  let jetons = store.get("motus.jetons", null);
+  if(!jetons || typeof jetons !== "object" || !jetons.set){
+    const g = store.get("motus.hintGrants", {}) || {}, set = {};
+    Object.keys(g).forEach(k=>{ if(g[k]) set[k + ":" + g[k]] = 1; });
+    jetons = { base: Math.max(0, hintEarned - Object.keys(set).length), spentBase: hintSpent, set, dev: {} };
+    store.set("motus.jetons", jetons);
+  }
+  function fusionJetons(a, b){
+    a = a || {}; b = b || {};
+    const r = { base: Math.max(+a.base||0, +b.base||0), spentBase: Math.max(+a.spentBase||0, +b.spentBase||0), set: {}, dev: {} };
+    [a.set||{}, b.set||{}].forEach(s=>Object.keys(s).forEach(k=>{ r.set[k] = 1; }));
+    [a.dev||{}, b.dev||{}].forEach(d=>Object.keys(d).forEach(k=>{ r.dev[k] = Math.max(r.dev[k]||0, +d[k]||0); }));
+    return r;
+  }
+  // le profil a peut-être déjà reçu le registre d'un autre appareil
+  try{ if(window.Profile && Profile.state && Profile.state.jetons){ jetons = fusionJetons(jetons, Profile.state.jetons); store.set("motus.jetons", jetons); } }catch(e){}
+  function jetonsGagnes(){ return (+jetons.base||0) + Object.keys(jetons.set).length; }
+  function jetonsDepenses(){ let t = +jetons.spentBase||0; for(const k in jetons.dev) t += +jetons.dev[k]||0; return t; }
+  function hintBalance(){ return Math.max(0, jetonsGagnes() - jetonsDepenses() - depenseBoutique()); }
   /* Boutique du chat : ce qu'elle a coûté = la somme des prix des objets
      possédés. Lu directement dans le stockage, pour rester juste même si
      boutique/boutique.js n'a pas pu se charger. */
@@ -1334,16 +1363,34 @@
     let t = 0; for(const k in o){ const p = +o[k]; if(p > 0 && isFinite(p)) t += p; }
     return t;
   }
-  function hintSpendOne(){ hintSpent++; store.set("motus.hintSpent", hintSpent); hintSyncPush(); }
-  function hintEarnOne(){ hintEarned++; store.set("motus.hintEarned", hintEarned); hintSyncPush(); }
-  function hintSyncPush(){
-    if(window.Profile && Profile.setHints) Profile.setHints(hintEarned, hintSpent, store.get("motus.hintGrants", {}));
+  function hintSpendOne(){
+    jetons.dev[APPAREIL] = (jetons.dev[APPAREIL]||0) + 1;
+    store.set("motus.jetons", jetons); hintSyncPush();
   }
+  function hintEarnOne(id){
+    jetons.set[id] = 1;
+    store.set("motus.jetons", jetons); hintSyncPush();
+  }
+  function hintSyncPush(){
+    // anciens cumuls tenus à jour pour les appareils pas encore mis à jour
+    hintEarned = jetonsGagnes(); hintSpent = jetonsDepenses();
+    store.set("motus.hintEarned", hintEarned); store.set("motus.hintSpent", hintSpent);
+    if(window.Profile && Profile.setJetons) Profile.setJetons(jetons);
+    else if(window.Profile && Profile.setHints) Profile.setHints(hintEarned, hintSpent, store.get("motus.hintGrants", {}));
+  }
+  /* Appelé après une synchronisation : le registre d'un autre appareil
+     rejoint celui-ci. */
+  window.motusJetonsRefresh = function(distant){
+    const avant = JSON.stringify(jetons);
+    jetons = fusionJetons(jetons, distant);
+    if(JSON.stringify(jetons) === avant) return;
+    store.set("motus.jetons", jetons);
+    refreshHintUI();
+  };
   /* Appelé après une synchro : la fusion peut avoir fait remonter des
      jetons gagnés sur l'autre appareil. */
   window.motusHintsRefresh = function(e, sp, grants){
-    if(typeof e === "number") { hintEarned = Math.max(hintEarned, e); store.set("motus.hintEarned", hintEarned); }
-    if(typeof sp === "number"){ hintSpent  = Math.max(hintSpent,  sp); store.set("motus.hintSpent",  hintSpent); }
+    // ancien format : il ne fait plus foi pour le solde (voir le registre ci-dessus)
     if(grants){
       const loc = store.get("motus.hintGrants", {});
       Object.keys(grants).forEach(k=>{ if(!loc[k]) loc[k]=grants[k]; });
@@ -4649,10 +4696,11 @@
   /* Un jeton par jour, uniquement à la première réussite (jamais en rejouant
      un mot du jour ou un défi déjà bouclé). */
   function grantHintOnce(kind, key){
+    const id = kind + ":" + key;
+    if(jetons.set[id]) return;                          // déjà gagné, ici ou sur un autre appareil
     const seen = store.get("motus.hintGrants", {});
-    if(seen[kind] === key) return;
     seen[kind] = key; store.set("motus.hintGrants", seen);
-    hintEarnOne();
+    hintEarnOne(id);
     refreshHintUI();
     toast("💡 Jeton d'indice gagné !", 2200);
   }
@@ -5079,7 +5127,13 @@
     if(over){ timerStart(d.ms||0); timerStop(); }
     else if(d.guesses.length>0) timerStart(d.ms||0);
     else timerReset();
+    if(d.done && d.ailleurs != null){ finAilleurs("Déjà joué !", texteAilleurs({won:d.won, tries:d.ailleurs}, "le Mot terrifiant")); return; }
     if(d.done) showEnd(d.won, true, true);
+    else verifierAilleurs("peur", peurKey, r=>{
+      store.set("motus.peur", { day:peurKey, guesses:[], done:true, won:!!r.won, ailleurs:r.tries||0 });
+      journalNoter("peur", peurKey, !!r.won);
+      finAilleurs("Déjà joué !", texteAilleurs(r, "le Mot terrifiant"));
+    });
   }
 
   /* ================= BONBONS ================= */
@@ -5108,6 +5162,11 @@
     const j = bbEtatJour();
     if(j && j.commence && !j.fini){ bbConclureOfficiel(j.score||0); }
     bbAccueil();
+    if(!(j && j.fini)) verifierAilleurs("bonbons", todayKey(), r=>{
+      store.set("motus.bonbons", { day: todayKey(), score: r.tries||0, commence: true, fini: true, ailleurs: true });
+      if(bbEnJeu && bbOfficiel){ bbOfficiel = false; toast("Partie du jour déjà jouée sur un autre appareil : celle-ci est un entraînement.", 3400); }
+      else if(!bbEnJeu) bbAccueil();
+    });
   }
   function bbAccueil(){
     bbVider();
@@ -5347,6 +5406,15 @@
       gramEnvoyer();                      // au cas où l'envoi n'aurait jamais abouti
     } else {
       gramIdx = 0; gramScore = 0; gramFini = false;
+      const q = gramMode;
+      verifierAilleurs(q, gramKey(), r=>{
+        const score = Math.max(0, GRAM_NB - (r.tries||0));
+        store.set((GRAM_SRC[q] || GRAM_SRC.gram).cle, { day: gramKey(), score, fini: true, envoye: true, ailleurs: true });
+        if(gramLibre) return;                // il s'entraîne déjà : on ne l'interrompt pas
+        gramIdx = GRAM_NB; gramScore = score; gramFini = true;
+        gramDessine();
+        toast("Exercice du jour déjà fait sur un autre appareil : " + score + "/" + GRAM_NB, 3200);
+      });
     }
     fermerZones();
     board.style.display="none"; board.style.pointerEvents="none"; board.innerHTML="";
@@ -6146,6 +6214,7 @@
     if(defiStep>=DEFI_STEPS.length){
       answer=defiWords(defiNum)[DEFI_STEPS.length-1];
       setupBoardForAnswer(); over=true; ended=true; timerStop(); updateHud();
+      if(d.ailleurs){ finAilleurs("Défi déjà joué", d.won ? "Tu as déjà réussi le défi du jour sur un autre appareil." : "Tu as déjà tenté le défi du jour sur un autre appareil."); return; }
       $("timer").textContent = "⏳ " + fmtTime(Math.max(0, DEFI_LIMIT - defiTimes.reduce((a,b)=>a+b,0)));
       showDefiEnd(!!d.timeout); return;
     }
@@ -6164,6 +6233,12 @@
     else if((d.guesses||[]).length>0) timerStart(d.ms||0);   // reprise en cours de mot
     else timerReset();                                        // mot pas encore entamé
     store.set("motus.last","defi");
+    verifierAilleurs("defi", defiKey, r=>{
+      store.set("motus.defi", { day:defiKey, step:DEFI_STEPS.length, guesses:[], over:true, won:!!r.won,
+                                times:[], tries:[], failed:!r.won, ms:0, ailleurs:true });
+      defiStep = DEFI_STEPS.length;
+      finAilleurs("Défi déjà joué", r.won ? "Tu as déjà réussi le défi du jour sur un autre appareil." : "Tu as déjà tenté le défi du jour sur un autre appareil.");
+    });
   }
   function showDefiEnd(timeout){
     const total = defiTimes.reduce((a,b)=>a+b,0);
@@ -6179,6 +6254,36 @@
     endAgainMode="normal";
     openOverlay("endOverlay");
   }
+  /* ---------- Un seul essai par jour, quel que soit l'appareil ----------
+     L'état « déjà joué » vivait sur l'appareil : avec le même compte sur
+     un téléphone et un PC, on pouvait rejouer chaque exercice du jour (et
+     regagner ses jetons). À l'ouverture, on demande donc au serveur si ce
+     joueur a déjà un résultat aujourd'hui. Hors ligne, on ne peut pas
+     savoir : on laisse jouer, et le serveur gardera le PREMIER résultat. */
+  function verifierAilleurs(jeu, jour, siDejaJoue){
+    if(!window.Profile || !Profile.resultatJour) return;
+    const m = mode;
+    Profile.resultatJour(jeu, jour).then(r=>{
+      if(!r || mode !== m) return;          // pas joué, inconnu, ou le joueur est déjà ailleurs
+      siDejaJoue(r);
+      if(typeof majPastillesDuJour === "function") majPastillesDuJour();
+    });
+  }
+  function finAilleurs(titre, texte){
+    over = true; ended = true; timerStop();
+    drawCursor(); refreshHintUI(); refreshGiveUpUI();
+    refreshStats();
+    $("endTitle").textContent = titre;
+    $("endSub").innerHTML = texte + "<br><small>Rendez-vous demain pour le suivant !</small>";
+    $("btnShare").style.display = "none";
+    $("btnAgain").textContent = "Jouer un mot au hasard"; endAgainMode = "normal";
+    openOverlay("endOverlay");
+  }
+  function texteAilleurs(r, quoi){
+    return r.won ? `Tu as déjà trouvé ${quoi} aujourd'hui sur un autre appareil, en <b>${r.tries} essai${r.tries>1?"s":""}</b>.`
+                 : `Tu as déjà joué ${quoi} aujourd'hui sur un autre appareil.`;
+  }
+
   function enterDaily(){
     mode="daily"; guesses=[]; rowStates=[]; ended=false;
     dailyKey=todayKey(); dailyNum=dayNumber(dailyKey); answer=dailyWord(dailyNum);
@@ -6193,7 +6298,13 @@
     if(over){ timerStart(d.ms||0); timerStop(); }       // partie finie : on réaffiche son vrai temps
     else if(d.guesses.length>0) timerStart(d.ms||0);   // reprise en cours de mot
     else timerReset();                                  // mot pas encore entamé
+    if(d.done && d.ailleurs != null){ finAilleurs("Déjà joué !", texteAilleurs({won:d.won, tries:d.ailleurs}, "le mot du jour")); return; }
     if(d.done) showEnd(d.won, true, true);
+    else verifierAilleurs("motus", dailyKey, r=>{
+      store.set("motus.daily", { day:dailyKey, guesses:[], done:true, won:!!r.won, ailleurs:r.tries||0 });
+      journalNoter("motus", dailyKey, !!r.won);
+      finAilleurs("Déjà joué !", texteAilleurs(r, "le mot du jour"));
+    });
   }
   function setupBoardForAnswer(){
     chatEv("partie");
@@ -6721,7 +6832,7 @@
   }
 })();
 </script>
-<script src="./boutique/boutique.js?v=2.6.2"></script>
+<script src="./boutique/boutique.js?v=2.6.1"></script>
 <noscript><p><a href="./decouvrir.html">Découvrir Mot en Six, le jeu de mots en français</a></p></noscript>
 </body>
 </html>
