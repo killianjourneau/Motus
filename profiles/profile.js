@@ -1181,7 +1181,11 @@
     else if (curTab === "badges") fillBadges();
   }
 
-  function setPseudo(n) { state.pseudo = (n || "").slice(0, 16); saveLocal(); pushDebounced(); fillProfil(); }
+  function setPseudo(n) {
+    // première fois qu'un pseudo est choisi : une étape de l'entonnoir des débuts (anonyme)
+    if (!state.pseudo && n && window.motusMesure) { try { window.motusMesure("fun:pseudo"); } catch (e) {} }
+    state.pseudo = (n || "").slice(0, 16); saveLocal(); pushDebounced(); fillProfil();
+  }
   function open(gameStatsHTML) {
     mount();
     var g = el("gameStats"); if (g) g.innerHTML = gameStatsHTML || "";
