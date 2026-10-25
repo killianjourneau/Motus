@@ -303,6 +303,15 @@
     return r;
   }
   // objets ACHETÉS pour le chat (ni l'adoption, ni la médaille qu'il offre lui-même)
+  /* Même règle que le jeu : gains réunis (chacun une fois), dépenses
+     additionnées appareil par appareil, bases figées au maximum. */
+  function fusionJetons(a, b) {
+    a = a || {}; b = b || {};
+    var r = { base: Math.max(+a.base || 0, +b.base || 0), spentBase: Math.max(+a.spentBase || 0, +b.spentBase || 0), set: {}, dev: {} };
+    [a.set || {}, b.set || {}].forEach(function (s) { Object.keys(s).forEach(function (k) { r.set[k] = 1; }); });
+    [a.dev || {}, b.dev || {}].forEach(function (d) { Object.keys(d).forEach(function (k) { r.dev[k] = Math.max(r.dev[k] || 0, +d[k] || 0); }); });
+    return r;
+  }
   function objetsChat(s) { var o = (s && s.boutique && s.boutique.objets) || {}; return Object.keys(o).filter(function (k) { return k !== "chat" && +o[k] > 0; }).length; }
   // moment de la dernière partie jouée sur CET appareil : départage les séries à la fusion
   function joue() { state.b.jeuAt = Date.now(); }
@@ -355,7 +364,8 @@
                                      hintGrants: state.hintGrants || {},
                                      pronom: state.pronom || "il",
                                      pronomAt: state.pronomAt || 0,
-                                     boutique: state.boutique || null },
+                                     boutique: state.boutique || null,
+                                     jetons: state.jetons || null },
                              updated_at: state.updated_at })
     }).catch(function () {});
   }
@@ -465,6 +475,11 @@
     Object.keys(rg).forEach(function (k) { if (!lg[k]) lg[k] = rg[k]; });
     if (window.motusHintsRefresh) {
       try { window.motusHintsRefresh(state.hintEarned, state.hintSpent, lg); } catch (e) {}
+    }
+    // registre des jetons (v2.7) : gains réunis, dépenses par appareil
+    if (d.jetons) {
+      state.jetons = fusionJetons(state.jetons, d.jetons);
+      if (window.motusJetonsRefresh) { try { window.motusJetonsRefresh(state.jetons); } catch (e) {} }
     }
     // boutique : un achat fait sur un autre appareil rejoint celui-ci
     if (d.boutique) {
@@ -1464,6 +1479,12 @@
       saveLocal(); checkBadges(); pushDebounced();
     },
 
+    setJetons: function (j) {
+      state.jetons = fusionJetons(state.jetons, j);
+      state.hintEarned = Math.max(state.hintEarned || 0, (+state.jetons.base || 0) + Object.keys(state.jetons.set).length);
+      saveLocal(); pushDebounced();
+    },
+
     setHints: function (earned, spent, grants) {
       state.hintEarned = Math.max(state.hintEarned || 0, earned || 0);
       state.hintSpent  = Math.max(state.hintSpent  || 0, spent  || 0);
@@ -1609,10 +1630,26 @@
         .catch(function () { return null; });
     },
 
+    /* Le résultat de CE joueur pour un jeu du jour : {tries, won} s'il a
+       déjà joué (sur n'importe quel appareil), null s'il n'a pas joué,
+       undefined si l'on ne peut pas savoir (hors ligne, serveur absent). */
+    resultatJour: function (jeu, jour) {
+      if (!configured || !state.id || navigator.onLine === false) return Promise.resolve(undefined);
+      return fetch(API + "/rest/v1/daily_results?player_id=eq." + encodeURIComponent(state.id)
+                   + "&game=eq." + encodeURIComponent(jeu) + "&day=eq." + encodeURIComponent(jour)
+                   + "&select=tries,won&limit=1", { headers: headers(), cache: "no-store" })
+        .then(function (r) { return r.ok ? r.json() : undefined; })
+        .then(function (l) { return Array.isArray(l) ? (l[0] || null) : undefined; })
+        .catch(function () { return undefined; });
+    },
+
     submitDailyBrut: function (o) {
+      /* ignore-duplicates : le PREMIER résultat du jour fait foi. Avant, le
+         dernier envoyé écrasait le précédent : on pouvait rejouer le mot du
+         jour sur un second appareil, réponse connue, et améliorer son score. */
       return fetch(API + "/rest/v1/daily_results?on_conflict=player_id,game,day", {
         method: "POST",
-        headers: headers({ "Prefer": "resolution=merge-duplicates,return=minimal" }),
+        headers: headers({ "Prefer": "resolution=ignore-duplicates,return=minimal" }),
         body: JSON.stringify({ player_id: state.id, pseudo: state.pseudo, game: o.game, day: o.day,
                                tries: (o.tries == null ? null : o.tries), won: !!o.won })
       }).then(function (r) { return !!(r && r.ok); })
