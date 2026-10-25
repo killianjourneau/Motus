@@ -1767,3 +1767,28 @@ create trigger discord_royale_ouverte after insert on royale_rooms
 alter table discord_config alter column site set default 'https://mot-en-six.gamesbyneur.workers.dev/';
 update discord_config set site = 'https://mot-en-six.gamesbyneur.workers.dev/'
  where site is null or site = 'https://killianjourneau.github.io/Motus/';
+
+-- =====================================================================
+-- v2.7 — Mesure d'audience complète (toujours anonyme)
+--
+-- De nouveaux compteurs, toujours des compteurs PAR JOUR et jamais un
+-- identifiant : rétention (revenu à J1, J7, J30), entonnoir des débuts,
+-- durée des sessions, heure de visite, appareil, système, navigateur,
+-- boutique du chat, préférences et erreurs.
+-- La liste blanche reste stricte : un préfixe connu, puis 1 à 12
+-- caractères a-z / 0-9. Impossible d'y glisser un pseudo ou du texte.
+-- =====================================================================
+create or replace function stats_ping(p_cle text)
+returns void language plpgsql security definer as $$
+declare v_cle text;
+begin
+  v_cle := lower(btrim(coalesce(p_cle, '')));
+  if v_cle !~ '^(visite|nouveau|fidele|installe|habitue|debutant|session|(partie|gagne|mode|ret|fun|duree|heure|app|os|nav|bq|pref|err):[a-z0-9]{1,12})$'
+    then return; end if;
+
+  insert into stats_daily (jour, cle, valeur)
+  values (current_date, v_cle, 1)
+  on conflict (jour, cle) do update set valeur = stats_daily.valeur + 1;
+end $$;
+
+grant execute on function stats_ping(text) to anon, authenticated;

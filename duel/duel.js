@@ -711,8 +711,31 @@
        plusieurs lignes (rpc() ne rendrait que la première). */
     /* On NE masque PAS l'erreur : une fonction SQL absente renverrait une
        liste vide, indiscernable d'une absence réelle de données. */
+    /* Supabase renvoie au plus 1 000 lignes par requête : au-delà, la
+       réponse était silencieusement tronquée (90 jours × des dizaines de
+       compteurs). On lit donc page par page jusqu'à la dernière. */
     lire: function (jours) {
-      return rpcList("stats_read", { p_id: me().id, p_jours: jours || 30 });
+      if (!configured) return Promise.resolve([]);
+      var PAGE = 1000, tout = [], params = JSON.stringify({ p_id: me().id, p_jours: jours || 30 });
+      function page(debut) {
+        return fetch(API + "/rest/v1/rpc/stats_read?limit=" + PAGE + "&offset=" + debut, {
+          method: "POST", headers: headers(), body: params
+        }).then(function (r) {
+          return r.text().then(function (txt) {
+            var data = null;
+            try { data = txt ? JSON.parse(txt) : null; } catch (e) {}
+            if (!r.ok) {
+              var msg = (data && (data.message || data.hint)) || ("http-" + r.status);
+              if (/does not exist|PGRST202/i.test(msg) || r.status === 404) msg = "fonctions-absentes";
+              throw new Error(msg);
+            }
+            var lot = Array.isArray(data) ? data : [];
+            tout = tout.concat(lot);
+            return (lot.length === PAGE && debut < 50000) ? page(debut + PAGE) : tout;
+          });
+        });
+      }
+      return page(0);
     }
   };
 
