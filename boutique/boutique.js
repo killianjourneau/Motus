@@ -194,6 +194,7 @@
     etat.objets[id] = o.prix;
     if (o.slot && o.slot !== "maison") { etat.porte[o.slot] = id; etat.porteAt = Date.now(); }
     sauver(); tintement();
+    if (P().mesure) P().mesure(o.id === "chat" ? "bq:adopte" : "bq:achat");
     if (P().toast) P().toast(o.id === "chat" ? "🐈‍⬛ " + etat.nom + " a rejoint ta grille !" : "✨ " + o.nom + " pour " + etat.nom + " !", 2400);
     appliquerChat();
     return true;
@@ -294,6 +295,7 @@
 
   function ouvrir(ongletVoulu) {
     construire();
+    if (P().mesure) P().mesure("bq:ouvre", true);
     if (ongletVoulu) onglet = ongletVoulu;
     essai = {}; confirmer = null; editionNom = false;
     if (P().fermerTout) P().fermerTout();

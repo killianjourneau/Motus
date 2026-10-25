@@ -1137,6 +1137,7 @@
     var n = caresses.length;
     if (n >= 8) { caresses = []; boudeJusqua = now + 15000; reagir("agace", REACTIONS.agace); return; }
     montrerNom();
+    if (P().mesure) P().mesure("bq:caresse", true);
     esprit.humeur = borne(esprit.humeur + 6);
     lien("caresse", 1);
     if (pose === "dodo" && n === 1) { reagir("caresseDodo", REACTIONS.caresseDodo); return; }
