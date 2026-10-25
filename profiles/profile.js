@@ -616,6 +616,7 @@
 #badgeToast.show{ opacity:1; transform:translate(-50%,0); }
 #badgeToast .be{ font-size:28px; }
 #badgeToast b{ display:block; font-size:14px; }
+#badgeToast small{ display:block; }
 #badgeToast small{ opacity:.7; font-size:12px; }`;
 
   var MODAL = `
@@ -821,18 +822,39 @@
   }
 
   var btTimer;
-  function badgeToast(bd) {
+  /* Une seule bulle sert aux badges et au rappel de sauvegarde : ses
+     messages passent donc par une FILE, chacun son tour. Auparavant le
+     rappel écrasait la bulle d'un badge, puis en vidait le contenu — et
+     plus aucun badge ne s'affichait jusqu'au rechargement de la page. */
+  var bulleFile = [], bulleOccupee = false;
+  function bulle(contenu, ms, avant) {
+    bulleFile.push({ contenu: contenu, ms: ms, avant: avant });
+    if (!bulleOccupee) bulleSuivante();
+  }
+  function bulleSuivante() {
+    var m = bulleFile.shift();
+    if (!m) { bulleOccupee = false; return; }
+    bulleOccupee = true;
     mount();
-    var t = el("badgeToast"); if (!t) return;
-    // le moteur sonore vit dans le jeu : on l'appelle sans le dupliquer ici
-    try { if (window.motusSon) window.motusSon("badge"); } catch (e) {}
-    t.querySelector(".be").textContent = bd.e;
-    t.querySelector("b").textContent = "Badge débloqué : " + bd.n;
-    t.querySelector("small").textContent = bd.d;
+    var t = el("badgeToast");
+    if (!t) { bulleOccupee = false; bulleFile = []; return; }
+    t.innerHTML = m.contenu;                    // reconstruit à chaque fois : jamais de structure manquante
+    if (m.avant) { try { m.avant(); } catch (e) {} }
     t.classList.add("show");
     clearTimeout(btTimer);
-    btTimer = setTimeout(function () { t.classList.remove("show"); }, 3000);
-    try { navigator.vibrate && navigator.vibrate([10, 60, 10]); } catch (e) {}
+    btTimer = setTimeout(function () {
+      t.classList.remove("show");
+      setTimeout(bulleSuivante, 300);           // le temps que la bulle disparaisse
+    }, m.ms);
+  }
+  function echapper(x) { return String(x == null ? "" : x).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function badgeToast(bd) {
+    bulle('<span class="be">' + echapper(bd.e) + '</span><div><b>Badge débloqué : ' + echapper(bd.n) + '</b><small>' + echapper(bd.d) + '</small></div>',
+      3200, function () {
+        // le moteur sonore vit dans le jeu : on l'appelle sans le dupliquer ici
+        try { if (window.motusSon) window.motusSon("badge"); } catch (e) {}
+        try { navigator.vibrate && navigator.vibrate([10, 60, 10]); } catch (e) {}
+      });
   }
 
   function showTab(tab) {
@@ -895,17 +917,15 @@
   function inviterSauvegarde() {
     if (compteSauve()) return;
     if (state.games < 12 && state.level < 3) return;
+    // un rappel tous les 3 jours au plus (il revenait après CHAQUE partie :
+    // la clé enregistrée était le nombre de parties, qui change à chaque fois)
     try {
-      if (localStorage.getItem("motus.compteRappel") === String(state.games)) return;
-      localStorage.setItem("motus.compteRappel", String(state.games));
+      var dernier = +localStorage.getItem("motus.compteRappelAt") || 0;
+      if (Date.now() - dernier < 3 * 86400000) return;
+      localStorage.setItem("motus.compteRappelAt", String(Date.now()));
     } catch (e) {}
-    var t = el("badgeToast"); if (!t) return;
-    t.innerHTML = '<b>Pense à sauvegarder ton compte</b><br><span style="font-size:12px">'
-      + state.games + ' parties, niveau ' + levelInfo(state.xp).level
-      + ' — tout est encore sur ce seul appareil.</span>';
-    t.classList.add("show");
-    clearTimeout(btTimer);
-    btTimer = setTimeout(function () { t.classList.remove("show"); t.innerHTML = ""; }, 6000);
+    bulle('<div><b>Pense à sauvegarder ton compte</b><small>' + state.games + ' parties, niveau ' + levelInfo(state.xp).level
+      + ' — tout est encore sur ce seul appareil.</small></div>', 6000);
   }
 
   function badgeUnlocked(id) { return state.badges.indexOf(id) >= 0; }
