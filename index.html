@@ -15,13 +15,13 @@
 <meta property="og:title" content="Mot en Six — trouve le mot caché en 6 essais">
 <meta property="og:description" content="Mot du jour, grammaire et orthographe du jour, duels, Battle Royale et mode Junior. Gratuit, sans publicité, jouable hors-ligne.">
 <meta property="og:url" content="https://mot-en-six.gamesbyneur.workers.dev/">
-<meta property="og:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.6.2">
+<meta property="og:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.6.1">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Mot en Six — trouve le mot caché en 6 essais">
 <meta name="twitter:description" content="Mot du jour, grammaire et orthographe du jour, duels et Battle Royale.">
-<meta name="twitter:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.6.2">
+<meta name="twitter:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.6.1">
 <link rel="canonical" href="https://mot-en-six.gamesbyneur.workers.dev/">
 <script type="application/ld+json">
 {
@@ -626,7 +626,7 @@
 
   /* Toast */
   #toast small{ display:block; font-weight:600; opacity:.7; font-size:12px; margin-top:2px; }
-  #toast{ position:fixed; top:118px; left:50%; transform:translateX(-50%) translateY(-10px); background:var(--ink); color:var(--bg); font-weight:700; font-size:14px; padding:10px 18px; border-radius:20px; max-width:min(88vw,340px); text-align:center; line-height:1.35; opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; z-index:50; box-shadow:0 8px 24px rgba(0,0,0,.4); }
+  #toast{ position:fixed; top:118px; left:50%; transform:translateX(-50%) translateY(-10px); background:var(--ink); color:var(--bg); font-weight:700; font-size:14px; padding:10px 18px; border-radius:20px; max-width:min(88vw,340px); text-align:center; line-height:1.35; opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; z-index:200; box-shadow:0 8px 24px rgba(0,0,0,.4); }
   #toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
 
   /* Modales */
@@ -1163,6 +1163,9 @@
         <input id="duelWord" class="duel-in" placeholder="Ton mot (6 à 8 lettres)" maxlength="8" autocomplete="off" autocapitalize="characters" spellcheck="false">
         <div id="duelMsg" class="duel-msg"></div>
         <button class="btn" id="duelGo">Valider</button>
+        <!-- revanche : pendant qu'on choisit son mot, on voit l'autre et ses émotes -->
+        <div class="duel-presence" id="duelPresenceChoix" style="display:none"></div>
+        <div class="roy-emotes" id="duelChoixEmotes" style="display:none"></div>
       </div>
 
       <div id="duelStep2" style="display:none">
@@ -1211,25 +1214,25 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=2.6.2"></script>
-<script src="./dico/motus-grammaire.js?v=2.6.2"></script>
-<script src="./dico/motus-halloween.js?v=2.6.2"></script>
-<script src="./decors/decors.js?v=2.6.2"></script>
-<script src="./dico/motus-ortho.js?v=2.6.2"></script>
-<script src="./dico/motus-prenoms.js?v=2.6.2"></script>
-<script src="./dico/motus-prenoms-info.js?v=2.6.2"></script>
-<script src="./dico/motus-maladies.js?v=2.6.2"></script>
-<script src="./dico/motus-maladies-info.js?v=2.6.2"></script>
-<script src="./dico/motus-villes.js?v=2.6.2"></script>
-<script src="./dico/motus-villes-info.js?v=2.6.2"></script>
-<script src="./dico/motus-persos.js?v=2.6.2"></script>
-<script src="./dico/motus-persos-info.js?v=2.6.2"></script>
-<script src="./dico/motus-persos-split.js?v=2.6.2"></script>
-<script src="./dico/motus-race.js?v=2.6.2"></script>
-<script src="./dico/motus-expert.js?v=2.6.2"></script>
-<script src="./profiles/config.js?v=2.6.2"></script>
-<script src="./profiles/profile.js?v=2.6.2"></script>
-<script src="./duel/duel.js?v=2.6.2"></script>
+<script src="./dico/motus-words.js?v=2.6.1"></script>
+<script src="./dico/motus-grammaire.js?v=2.6.1"></script>
+<script src="./dico/motus-halloween.js?v=2.6.1"></script>
+<script src="./decors/decors.js?v=2.6.1"></script>
+<script src="./dico/motus-ortho.js?v=2.6.1"></script>
+<script src="./dico/motus-prenoms.js?v=2.6.1"></script>
+<script src="./dico/motus-prenoms-info.js?v=2.6.1"></script>
+<script src="./dico/motus-maladies.js?v=2.6.1"></script>
+<script src="./dico/motus-maladies-info.js?v=2.6.1"></script>
+<script src="./dico/motus-villes.js?v=2.6.1"></script>
+<script src="./dico/motus-villes-info.js?v=2.6.1"></script>
+<script src="./dico/motus-persos.js?v=2.6.1"></script>
+<script src="./dico/motus-persos-info.js?v=2.6.1"></script>
+<script src="./dico/motus-persos-split.js?v=2.6.1"></script>
+<script src="./dico/motus-race.js?v=2.6.1"></script>
+<script src="./dico/motus-expert.js?v=2.6.1"></script>
+<script src="./profiles/config.js?v=2.6.1"></script>
+<script src="./profiles/profile.js?v=2.6.1"></script>
+<script src="./duel/duel.js?v=2.6.1"></script>
 <script>
 (() => {
   "use strict";
@@ -1281,7 +1284,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "2.6.2";
+  const VERSION = "2.6.1";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -3656,7 +3659,7 @@
       if(d.ready){ raceShowOpponent(d); return; }
       if(raceMode==="rematch"){
         raceWaitMsg="En attente de ton adversaire…";
-        raceShowWait("Revanche — " + pronomAdv().sil + " a quitté, renvoie-lui ce code :");
+        raceShowWait(texteRevanche());
       } else {
         mpRemember("race", d.id);
         raceWaitMsg="En attente d'un adversaire…";
@@ -4139,7 +4142,7 @@
         if(d.ready){ duelShowOpponent(d); }
         else {
           duelWaitMsg="En attente de ton adversaire…";
-          duelShowWait("Revanche — " + pronomAdv().sil + " a quitté, renvoie-lui ce code :");
+          duelShowWait(texteRevanche());
           duelPresenceTick();            // état de l'adversaire dès l'arrivée
         }
         $("duelGo").disabled=false;
@@ -4371,7 +4374,23 @@
      On retient le dernier adversaire rencontré : pendant une revanche, le
      nouveau duel ne le connaît pas encore. */
   let dernierAdvId = null;
-  function retenirAdv(d){ if(d && d.opp && d.opp.id) dernierAdvId = d.opp.id; }
+  function retenirAdv(d){
+    if(!(d && d.opp && d.opp.id)) return;
+    // nouvel adversaire : on va chercher son pronom tout de suite, avant d'en avoir besoin
+    if(d.opp.id !== dernierAdvId && window.Profile && Profile.pronomCharger) Profile.pronomCharger(d.opp.id);
+    dernierAdvId = d.opp.id;
+  }
+  const texteRevanche = () => "Revanche — " + pronomAdv().sil + " a quitté, renvoie-lui ce code :";
+  /* Le vrai pronom de l'adversaire vient d'arriver : on réécrit ce qui est
+     déjà affiché (sinon « s'il a quitté » restait, même pour une joueuse). */
+  window.addEventListener("motus-pronom", ()=>{
+    ["duelWaitSub","raceWaitSub"].forEach(id=>{
+      const e = $(id);
+      if(e && /^Revanche — (s'il|si elle) a quitté/.test(e.textContent)) e.textContent = texteRevanche();
+    });
+    if(duelRow && $("duelSpy") && $("duelSpy").classList.contains("show")) duelDrawSpy(duelRow);
+    if(typeof duelPresenceTick === "function") duelPresenceTick();
+  });
   function pronomAdv(id){
     const p = (window.Profile && Profile.pronomDe) ? Profile.pronomDe(id || dernierAdvId) : "il";
     return { il: p, Il: p === "elle" ? "Elle" : "Il", e: p === "elle" ? "e" : "", sil: p === "elle" ? "si elle" : "s'il" };
@@ -4437,7 +4456,7 @@
     if(!duelCode) return;
     duelStop = Duel.watch(duelCode, (err,d)=>{
       if(err || !d) return;
-      duelRow=d; duelCheckEmote(d);
+      duelRow=d; retenirAdv(d); duelCheckEmote(d);
       if($("duelSpy").classList.contains("show")) duelDrawSpy(d);
       if(d.rematch && d.rematch !== duelRematchMine) duelShowRematchOffer(d);
     });
@@ -4458,7 +4477,7 @@
      est toutes les 8 s, et y lit où en est l'autre. Les émotes transitent
      aussi par l'ancien duel, que les deux joueurs partagent.
      --------------------------------------------------------------- */
-  const PRESENCE_MS = 8000, PARTI_MS = 30000;
+  const PRESENCE_MS = 5000, PARTI_MS = 30000;
   let duelPresenceT = null;
 
   function duelMonEtat(){
@@ -4475,29 +4494,34 @@
   function duelPresenceTick(){
     const e = duelMonEtat();
     if(e && window.Duel && Duel.presence) Duel.presence(e.code, e.etat);
-    // on n'affiche l'état de l'autre QUE pendant l'attente d'une revanche
-    if(!(duelMode === "rematch" && duelRematchOldCode && e && e.etat === "attente")){
-      $("duelPresence").style.display = "none";
-      $("duelWaitEmotes").style.display = "none";
-      return;
-    }
+    /* On affiche l'état de l'autre et ses émotes pendant TOUTE la revanche :
+       pendant l'attente, mais aussi pendant qu'on choisit son mot. Avant, le
+       joueur encore en train de choisir ne lisait jamais l'ancien duel : les
+       émotes qu'on lui envoyait n'arrivaient pas. */
+    const enRevanche = duelMode === "rematch" && duelRematchOldCode && e;
+    const choix = enRevanche && e.etat === "choix";
+    ["duelPresence","duelWaitEmotes"].forEach(id=>{ if(!enRevanche || choix) $(id).style.display = "none"; });
+    ["duelPresenceChoix","duelChoixEmotes"].forEach(id=>{ if(!choix) $(id).style.display = "none"; });
+    if(!enRevanche) return;
     Duel.fetch(duelRematchOldCode).then(d=>{
       if(!d) return;
-      duelAfficherPresence(d);
+      duelAfficherPresence(d, choix);
     }).catch(()=>{});
   }
 
-  function duelAfficherPresence(d){
+  function duelAfficherPresence(d, choix){
     retenirAdv(d);
-    const box = $("duelPresence");
+    const box = $(choix ? "duelPresenceChoix" : "duelPresence");
     const nom = escapeHtml((d.opp && d.opp.pseudo) || "Ton adversaire");
     const ilya = d.oppVu ? (Date.now() - new Date(d.oppVu).getTime()) : Infinity;
     let txt;
     if(ilya > PARTI_MS){
       txt = '🔴 <b>' + nom + '</b> semble avoir quitté le jeu.'
           + '<br><small>Renvoie-lui le code, ou lance un nouveau duel.</small>';
+    } else if(choix && d.oppEtat === "attente"){
+      txt = '🟢 <b>' + nom + '</b> a choisi son mot et t\'attend.';
     } else if(d.oppEtat === "choix"){
-      txt = '🟢 <b>' + nom + '</b> a accepté et choisit son mot…';
+      txt = choix ? '🟢 <b>' + nom + '</b> choisit aussi son mot…' : '🟢 <b>' + nom + '</b> a accepté et choisit son mot…';
     } else if(d.oppEtat === "resultat"){
       const pr = pronomAdv(d.opp && d.opp.id);
       txt = '🟡 <b>' + nom + '</b> est encore sur l\'écran des résultats — ' + pr.il + ' n\'a pas encore accepté' + pr.e + '.';
@@ -4514,7 +4538,7 @@
       const em = DUEL_EMOTES[i];
       if(em) toast(nom.replace(/<[^>]*>/g,"") + " : " + em.e + " " + em.t, 2600);
     }
-    const bar = $("duelWaitEmotes");
+    const bar = $(choix ? "duelChoixEmotes" : "duelWaitEmotes");
     if(!bar.dataset.pret){
       bar.dataset.pret = "1";
       bar.innerHTML = DUEL_EMOTES.map((m,i)=>
@@ -4532,6 +4556,8 @@
 
   function duelStartRematch(){
     duelRematchOldCode = duelCode;
+    duelPresenceDerniere = duelLastEmote;
+    setTimeout(duelPresenceTick, 600);        // l'autre et ses émotes, sans attendre le premier tour
     duelMode = "rematch";
     duelStopWatch(); duelClosePicker(); duelEmoteBtnShow(false);
     const tabs=$("duelTabs"); if(tabs) tabs.style.display="none";
@@ -6832,7 +6858,7 @@
   }
 })();
 </script>
-<script src="./boutique/boutique.js?v=2.6.2"></script>
+<script src="./boutique/boutique.js?v=2.6.1"></script>
 <noscript><p><a href="./decouvrir.html">Découvrir Mot en Six, le jeu de mots en français</a></p></noscript>
 </body>
 </html>
