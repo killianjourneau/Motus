@@ -229,6 +229,44 @@ module.exports = async function ({ groupe, verifie, ignore, ok, egal, vide }) {
   });
 
   // ------------------------------------------------------------------
+  groupe("Duel");
+
+  verifie("revanche : le joueur qui choisit encore son mot reçoit les émotes", async () => {
+    const app = demarrer({ expose:"function duelStartRematch", compteurs:{},
+      noms:["duelStartRematch", "setCode:c=>{duelCode=c;}"],
+      stockage:{ "motus.seen":"true", "motus.tour":"true" },
+      avant: (w) => {
+        w.Duel = { configured:()=>true, presence:()=>Promise.resolve(), emote:()=>Promise.resolve(),
+          fetch:()=>Promise.resolve({ oppEmote:"0:12345", oppEtat:"attente", oppVu:new Date().toISOString(), opp:{ pseudo:"Lamadino", id:"x" } }) };
+      } });
+    await app.attendre(100);
+    app.w.__t.setCode("AAAAA");
+    app.w.__t.duelStartRematch();
+    await app.attendre(900);
+    const pres = app.d.getElementById("duelPresenceChoix");
+    ok(pres && pres.style.display !== "none", "l'état de l'adversaire n'est pas affiché pendant le choix du mot");
+    ok(/t'attend/.test(pres.textContent), "texte attendu : il a choisi son mot et t'attend — reçu : " + pres.textContent);
+    ok(/Lamadino/.test(app.d.getElementById("toast").textContent), "l'émote reçue n'a pas été montrée");
+    ok(app.d.getElementById("duelChoixEmotes").querySelectorAll("button").length > 0, "pas de barre pour répondre");
+  });
+
+  verifie("pronom de l'adversaire : le texte se corrige dès que « elle » arrive", async () => {
+    const app = demarrer({ expose:"function duelStartRematch", compteurs:{},
+      noms:["retenirAdv", "texteRevanche"],
+      stockage:{ "motus.seen":"true", "motus.tour":"true" },
+      avant: (w) => {
+        let charge = false;
+        w.Profile.pronomDe = () => charge ? "elle" : "il";
+        w.Profile.pronomCharger = () => { charge = true; setTimeout(() => w.dispatchEvent(new w.CustomEvent("motus-pronom")), 20); return Promise.resolve("elle"); };
+      } });
+    await app.attendre(100);
+    app.d.getElementById("duelWaitSub").textContent = "Revanche — s'il a quitté, renvoie-lui ce code :";
+    app.w.__t.retenirAdv({ opp:{ id:"joueuse-1", pseudo:"Lamadino" } });
+    await app.attendre(80);
+    egal(app.d.getElementById("duelWaitSub").textContent, "Revanche — si elle a quitté, renvoie-lui ce code :");
+  });
+
+  // ------------------------------------------------------------------
   groupe("Accueil du nouveau joueur");
 
   verifie("le guide s'ouvre à la première visite et pas ensuite", async () => {
