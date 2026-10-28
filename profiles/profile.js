@@ -312,6 +312,63 @@
     [a.dev || {}, b.dev || {}].forEach(function (d) { Object.keys(d).forEach(function (k) { r.dev[k] = Math.max(r.dev[k] || 0, +d[k] || 0); }); });
     return r;
   }
+  /* Toute l'XP passe par ici : on annonce le passage de niveau (le son
+     « niveau » existait, mais rien ne le jouait). */
+  /* Plafonds du jour : 500 XP par mode, et 50 XP en tout pour les défaites
+     (10 abandons) — enchaîner le même mode ou abandonner en boucle finit par
+     ne plus rien rapporter. Le registre voyage avec le profil : deux
+     appareils partagent les mêmes plafonds. */
+  var XP_MODE_MAX = 500, XP_PERTES_MAX = 50;
+  var NOMS_MODES = { normal: "Normal", court: "Court", long: "Long", expert: "Expert", daily: "Mot du jour",
+    defi: "Défi du jour", peur: "Mot terrifiant", prenoms: "Prénoms", villes: "Villes", persos: "Personnages",
+    maladies: "Maladies", duel: "Duel", race: "Course", defense: "Défense", royale: "Battle Royale",
+    pendu: "Pendu", memo: "Mémorisation", gram: "Grammaire", ortho: "Orthographe", bonbons: "Bonbons",
+    entrainement: "Entraînement" };
+  function xpJour() {
+    var j = state.xpJour, jour = todayStr();
+    if (!j || j.day !== jour) j = state.xpJour = { day: jour, modes: {}, pertes: 0, avis: {} };
+    if (!j.modes) j.modes = {}; if (!j.avis) j.avis = {}; j.pertes = +j.pertes || 0;
+    return j;
+  }
+  function fusionXpJour(a, b) {
+    if (!b || !b.day) return a;
+    if (!a || !a.day || b.day > a.day) return { day: b.day, modes: Object.assign({}, b.modes || {}), pertes: +b.pertes || 0, avis: Object.assign({}, b.avis || {}) };
+    if (b.day < a.day) return a;
+    Object.keys(b.modes || {}).forEach(function (k) { a.modes[k] = Math.max(+a.modes[k] || 0, +b.modes[k] || 0); });
+    a.pertes = Math.max(+a.pertes || 0, +b.pertes || 0);
+    Object.keys(b.avis || {}).forEach(function (k) { a.avis[k] = 1; });
+    return a;
+  }
+  function plafonner(n, mode, perte) {
+    var j = xpJour(), cle = mode || "normal", deja = +j.modes[cle] || 0;
+    var g = Math.min(n, Math.max(0, XP_MODE_MAX - deja)), motif = g < n ? "mode:" + cle : "";
+    if (perte) {
+      var g2 = Math.min(g, Math.max(0, XP_PERTES_MAX - j.pertes));
+      if (g2 < g) motif = "pertes";
+      g = g2; j.pertes += g;
+    }
+    j.modes[cle] = deja + g;
+    if (motif && !j.avis[motif]) {
+      j.avis[motif] = 1;
+      bulle('<span class="be">🔒</span><div><b>' + (motif === "pertes"
+          ? "Plus d'XP pour les défaites aujourd'hui</b><small>" + XP_PERTES_MAX + " XP au plus par jour. Les victoires rapportent toujours.</small>"
+          : "Plafond d'XP atteint en " + echapper(NOMS_MODES[cle] || cle) + "</b><small>" + XP_MODE_MAX + " XP par mode et par jour : essaie un autre mode !</small>")
+        + "</div>", 3600);
+    }
+    return g;
+  }
+  function gagnerXp(n, mode, perte) {
+    n = Math.max(0, Math.round(n || 0));
+    if (n > 0) n = plafonner(n, mode, perte);
+    var avant = levelFromXp(state.xp || 0);
+    state.xp = (state.xp || 0) + n;
+    state.level = levelFromXp(state.xp);
+    if (state.level > avant) {
+      var info = levelInfo(state.xp);
+      bulle('<span class="be">⬆️</span><div><b>Niveau ' + state.level + ' atteint !</b><small>' + echapper(info.title) + '</small></div>',
+        3200, function () { try { if (window.motusSon) window.motusSon("niveau"); } catch (e) {} });
+    }
+  }
   function objetsChat(s) { var o = (s && s.boutique && s.boutique.objets) || {}; return Object.keys(o).filter(function (k) { return k !== "chat" && +o[k] > 0; }).length; }
   // moment de la dernière partie jouée sur CET appareil : départage les séries à la fusion
   function joue() { state.b.jeuAt = Date.now(); }
@@ -365,7 +422,8 @@
                                      pronom: state.pronom || "il",
                                      pronomAt: state.pronomAt || 0,
                                      boutique: state.boutique || null,
-                                     jetons: state.jetons || null },
+                                     jetons: state.jetons || null,
+                                     xpJour: state.xpJour || null },
                              updated_at: state.updated_at })
     }).catch(function () {});
   }
@@ -502,6 +560,9 @@
       state.boutique = fusionBoutique(state.boutique, d.boutique);
       if (window.motusBoutiqueRefresh) { try { window.motusBoutiqueRefresh(state.boutique); } catch (e) {} }
     }
+
+    // plafonds d'XP du jour : partagés entre appareils
+    if (d.xpJour) state.xpJour = fusionXpJour(state.xpJour, d.xpJour);
 
     state.level = levelFromXp(state.xp);
     checkBadges(true);
@@ -1265,8 +1326,7 @@
       var b = state.b, now = new Date();
       state.games += (o.gamesInc == null ? 1 : o.gamesInc);
       if (o.won) state.wins++;
-      state.xp += (o.xp || 0);
-      state.level = levelFromXp(state.xp);
+      gagnerXp(o.xp || 0, o.mode || "normal", !o.won);
 
       // jours de jeu
       var day = todayStr();
@@ -1619,6 +1679,41 @@
        restés en attente, puis le profil complet. */
     pronomDe: pronomDe,
     pronomCharger: pronomCharger,
+
+    /* XP gagnée hors d'une partie de mots (grammaire, orthographe, bonbons,
+       mémorisation), soumise aux mêmes plafonds du jour :
+       elle fait monter de niveau sans compter comme une partie (ni dans les
+       victoires, ni dans les séries). */
+    ajouterXp: function (n, mode, perte) {
+      if (!(n > 0)) return;
+      joue(); gagnerXp(n, mode || "autre", !!perte);
+      saveLocal(); checkBadges(); pushDebounced(); refreshOpen();
+    },
+
+    /* ---------- Administration : fiche d'un joueur ----------
+       Uniquement ce que le jeu enregistre déjà pour les classements et la
+       synchronisation (voir la page de confidentialité) : rien de plus
+       n'est collecté pour cela. */
+    adminChercher: function (q) {
+      if (!configured) return Promise.resolve([]);
+      q = String(q || "").replace(/[*,()%]/g, "").trim().slice(0, 30);
+      var filtre = q ? "&pseudo=ilike." + encodeURIComponent("*" + q + "*") : "";
+      return fetch(API + "/rest/v1/profiles?select=id,pseudo,level,games,wins,badge,updated_at" + filtre
+                   + "&order=updated_at.desc.nullslast&limit=" + (q ? 30 : 25), { headers: headers(), cache: "no-store" })
+        .then(function (r) { return r.ok ? r.json() : []; })
+        .catch(function () { return []; });
+    },
+    adminFiche: function (id) {
+      if (!configured || !id) return Promise.resolve(null);
+      var depuis = new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10);
+      return Promise.all([
+        fetchRemote(id),
+        fetch(API + "/rest/v1/daily_results?player_id=eq." + encodeURIComponent(id) + "&day=gte." + depuis
+              + "&select=game,day,tries,won&order=day.desc&limit=600", { headers: headers(), cache: "no-store" })
+          .then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; })
+      ]).then(function (x) { return x[0] ? { profil: x[0], jours: Array.isArray(x[1]) ? x[1] : [] } : null; });
+    },
+    badgesInfo: function () { return BADGES.map(function (b) { return { id: b.id, e: b.e, n: b.n, c: b.c }; }); },
 
     rattraper: function (avecProfil) {
       if (!configured || navigator.onLine === false) return;
