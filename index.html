@@ -418,6 +418,17 @@
   .sp-bar{ flex:1 0 4px; min-width:4px; background:var(--accent); border-radius:2px 2px 0 0; opacity:.85; }
   /* tableau de bord d'audience */
   .modal.large{ max-width:720px; }
+  .aj-cherche{ display:flex; gap:8px; margin-bottom:10px; } .aj-cherche .duel-in{ margin:0; flex:1; } .aj-cherche .btn{ width:auto; height:auto; margin:0; padding:0 18px; }
+  .aj-l{ display:flex; flex-direction:column; align-items:flex-start; width:100%; border:none; text-align:left; cursor:pointer;
+    background:var(--cell); color:var(--ink); border-radius:11px; padding:9px 12px; margin-bottom:6px; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
+  .aj-l span{ font-size:12px; color:var(--ink-dim); }
+  .aj-nom{ text-align:center; font-size:20px; margin:0 0 6px; }
+  .aj-tab{ max-height:320px; overflow:auto; border-radius:11px; background:var(--cell); }
+  .aj-tab table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  .aj-tab th, .aj-tab td{ padding:5px 4px; text-align:center; border-bottom:1px solid var(--cell-edge); }
+  .aj-tab th{ position:sticky; top:0; background:var(--cell); }
+  .aj-tab td.aj-d{ text-align:left; color:var(--ink-dim); white-space:nowrap; padding-left:10px; }
+  .aj-ok{ color:#2fbf71; font-weight:700; } .aj-ko{ color:#ff6b6b; font-weight:700; } .aj-v{ color:var(--ink-dim); opacity:.5; }
   .aud-per{ display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin:0 0 12px; }
   .aud-per button{ border:none; border-radius:16px; padding:6px 14px; font-weight:700; font-size:13px; cursor:pointer;
     background:var(--cell); color:var(--ink-dim); box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
@@ -1047,6 +1058,9 @@
           <button class="admin-tuile" id="adminGoAudience">
             <span class="e">📊</span><b>Audience</b><i>Qui joue, à quoi, et reviennent-ils</i>
           </button>
+          <button class="admin-tuile" id="adminGoJoueurs">
+            <span class="e">👤</span><b>Joueurs</b><i>Fiche et historique d'un joueur</i>
+          </button>
           <button class="admin-tuile" id="adminGoPropos">
             <span class="e">📥</span><b>Propositions</b><i id="adminNbPropos">à valider</i>
           </button>
@@ -1057,6 +1071,13 @@
         <p class="sub">Chiffres anonymes : des compteurs par jour, jamais un joueur.</p>
         <div id="statsAudience"></div>
         <button class="btn ghost" id="adminRetour1">Retour</button>
+      </div>
+
+      <div id="adminJoueurs" style="display:none">
+        <p class="sub">Ce que le jeu enregistre déjà pour les classements et la synchronisation.</p>
+        <div class="aj-cherche"><input id="ajQ" class="duel-in" placeholder="Pseudo…" autocomplete="off" spellcheck="false"><button class="btn" id="ajGo">Chercher</button></div>
+        <div id="ajListe"></div>
+        <button class="btn ghost" id="adminRetour3">Retour</button>
       </div>
 
       <div id="adminPropos" style="display:none">
@@ -2025,7 +2046,16 @@
     }, (len-1)*180+520);
   }
 
-  const MODE_FACTOR = { court:0.8, normal:1, long:1.4, daily:1.1, peur:1.2, defi:1.2, prenoms:0.9, maladies:1.1, villes:1.1, duel:1.2, race:1.2, expert:1.5, defense:1.3, pendu:1.0 };
+  /* Coefficients d'XP (barème du 27/10/2026). Victoire : (15 + 4 × (6 − essais)) × coef ;
+     défaite : 5 XP ; −25 % par indice. Un mode absent d'ici vaudrait ×1.
+     Plafonds du jour (profile.js) : 500 XP par mode, 50 XP de défaites. */
+  const MODE_FACTOR = {
+    court:0.5, normal:1, long:1.4, expert:3,
+    daily:1.1, defi:1.2, peur:1,
+    prenoms:1.2, villes:1.2, persos:1.2, maladies:1.4,
+    duel:1.2, race:1.2, defense:1.3, royale:1.2,
+    pendu:1.0
+  };
   function awardXp(win){
     if(!window.Profile) return;
     const f = MODE_FACTOR[mode] || 1;
@@ -2545,11 +2575,11 @@
   });
   /* ---- Espace d'administration ---- */
   function adminVue(nom){
-    ["adminAccueil","adminAudience","adminPropos"].forEach(id=>{
+    ["adminAccueil","adminAudience","adminPropos","adminJoueurs"].forEach(id=>{
       $(id).style.display = (id===nom) ? "" : "none";
     });
     // le tableau de bord a besoin de place
-    $("adminOverlay").querySelector(".modal").classList.toggle("large", nom==="adminAudience");
+    $("adminOverlay").querySelector(".modal").classList.toggle("large", nom==="adminAudience" || nom==="adminJoueurs");
   }
   function adminOpen(){
     adminVue("adminAccueil");
@@ -2577,6 +2607,90 @@
   $("adminGoPropos").addEventListener("click", ()=>{ adminVue("adminPropos"); persoDrawPending(); });
   $("adminRetour1").addEventListener("click", ()=>adminOpen());
   $("adminRetour2").addEventListener("click", ()=>adminOpen());
+  $("adminRetour3").addEventListener("click", ()=>adminOpen());
+  $("adminGoJoueurs").addEventListener("click", ()=>{ adminVue("adminJoueurs"); $("ajQ").value = ""; joueursListe(""); });
+  $("ajGo").addEventListener("click", ()=>joueursListe($("ajQ").value));
+  $("ajQ").addEventListener("keydown", e=>{ if(e.key==="Enter") joueursListe($("ajQ").value); });
+
+  /* ---------- Administration : les joueurs ----------
+     Uniquement les données déjà enregistrées pour le jeu (profil
+     synchronisé, résultats des exercices du jour). Aucune collecte
+     supplémentaire : voir la page de confidentialité. */
+  const escA = t => String(t==null ? "" : t).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  function ilYa(ts){
+    if(!ts) return "—";
+    const m = Math.round((Date.now() - new Date(ts).getTime())/60000);
+    return m < 2 ? "à l'instant" : m < 60 ? "il y a " + m + " min" : m < 1440 ? "il y a " + Math.round(m/60) + " h" : "il y a " + Math.round(m/1440) + " j";
+  }
+  function joueursListe(q){
+    const box = $("ajListe");
+    if(!window.Profile || !Profile.adminChercher){ box.innerHTML = '<p class="sub">Le fichier profiles/profile.js n\'est pas à jour.</p>'; return; }
+    box.innerHTML = '<p class="sub">Chargement…</p>';
+    Profile.adminChercher(q).then(rows=>{
+      if(!rows || !rows.length){ box.innerHTML = '<p class="sub">Aucun joueur trouvé.</p>'; return; }
+      box.innerHTML = (q ? "" : '<div class="dist-title">Actifs récemment</div>') + rows.map(r=>
+        '<button class="aj-l" data-id="'+escA(r.id)+'"><b>'+escA(r.badge||"")+' '+escA(r.pseudo||"(sans pseudo)")+'</b>'
+        + '<span>niv. '+(r.level||1)+' · '+(r.games||0)+' parties · '+ilYa(r.updated_at)+'</span></button>').join("");
+      box.querySelectorAll(".aj-l").forEach(b=>b.addEventListener("click", ()=>joueurFiche(b.dataset.id, q)));
+    });
+  }
+  function joueurFiche(id, q){
+    const box = $("ajListe");
+    box.innerHTML = '<p class="sub">Chargement…</p>';
+    Profile.adminFiche(id).then(f=>{
+      if(!f){ box.innerHTML = '<p class="sub">Fiche introuvable.</p><button class="btn ghost" id="ajRetour">← Liste</button>'; $("ajRetour").onclick=()=>joueursListe(q); return; }
+      const p = f.profil, d = p.data || {}, b = d.b || {};
+      const jours = (b.days || []).slice().sort();
+      const pc = (a, t) => t ? Math.round(100*a/t) + " %" : "—";
+      const lignes = rows => '<div class="st-block">' + rows.filter(Boolean).map(([k,v])=>'<div class="st-row"><span>'+k+'</span><b>'+v+'</b></div>').join("") + '</div>';
+      const titre = t => '<div class="dist-title">'+t+'</div>';
+      // jetons : même calcul que le jeu (registre réuni, moins la boutique)
+      const J = d.jetons, bq = d.boutique || {}, obj = bq.objets || {};
+      const coutBq = Object.values(obj).reduce((a,v)=>a+(+v>0 ? +v : 0), 0);
+      const solde = J ? Math.max(0, (+J.base||0) + Object.keys(J.set||{}).length - (+J.spentBase||0)
+                        - Object.values(J.dev||{}).reduce((a,v)=>a+(+v||0),0) - coutBq) : null;
+      const modes = [["Court","mC"],["Normal","mN"],["Long","mL"],["Expert","mX"],["Prénoms","mP"],["Personnages","mPe"],["Maladies","mM"],["Villes","mV"],
+        ["Pendu","penduPlay"],["Mémorisation","memoTotal"],["Duel","duelPlay"],["Course","racePlay"],["Battle Royale","royParties"],
+        ["Grammaire (jours)","gramJours"],["Orthographe (jours)","orthoJours"],["Mot terrifiant","hwPeur"]]
+        .filter(([,k])=>(b[k]||0)>0).sort((x,y)=>(b[y[1]]||0)-(b[x[1]]||0));
+      const maxM = Math.max(1, ...modes.map(([,k])=>b[k]||0));
+      // exercices du jour : 60 derniers jours
+      const JEUX = [["motus","📅"],["defi","🔥"],["gram","✍️"],["ortho","🔤"],["peur","🎃"],["bonbons","🍬"]];
+      const parJour = {};
+      (f.jours||[]).forEach(r=>{ (parJour[r.day] = parJour[r.day] || {})[r.game] = r; });
+      const cellule = (jeu, r) => {
+        if(!r) return '<td class="aj-v">·</td>';
+        const t = +r.tries || 0;
+        const txt = (jeu==="gram"||jeu==="ortho") ? (3 - t) + "/3" : jeu==="bonbons" ? t : jeu==="defi" ? (r.won ? "✓" : "✗") : (r.won ? t : "✗");
+        return '<td class="'+(r.won ? "aj-ok" : "aj-ko")+'">'+txt+'</td>';
+      };
+      const joursRes = Object.keys(parJour).sort().reverse();
+      const calendrier = joursRes.length ? '<div class="aj-tab"><table><tr><th></th>' + JEUX.map(([,e])=>'<th>'+e+'</th>').join("") + '</tr>'
+        + joursRes.map(j=>'<tr><td class="aj-d">'+jourJoli(j)+'</td>' + JEUX.map(([g])=>cellule(g, parJour[j][g])).join("") + '</tr>').join("")
+        + '</table></div><p class="aud-note" style="margin-top:4px">Mot du jour et Mot terrifiant : nombre d\'essais (✗ = raté) · Grammaire/Orthographe : score · Bonbons : bonbons attrapés.</p>'
+        : '<p class="sub">Aucun exercice du jour sur les 60 derniers jours.</p>';
+      const nbBadges = (d.badges || []).length, totalBadges = Profile.badgesInfo ? Profile.badgesInfo().length : "?";
+      box.innerHTML = '<button class="btn ghost" id="ajRetour" style="margin:0 0 10px">← Liste</button>'
+        + '<h3 class="aj-nom">'+escA(p.badge||"")+' '+escA(p.pseudo||"(sans pseudo)")+'</h3>'
+        + lignes([
+            ["Niveau", (p.level||1) + " · " + (p.xp||0) + " XP"],
+            ["Parties · victoires", (p.games||0) + " · " + (p.wins||0) + " (" + pc(p.wins||0, p.games||0) + ")"],
+            ["Classement Elo (duels)", p.elo != null ? p.elo + " · " + (p.elo_games||0) + " duels" : "—"],
+            ["Meilleure série", b.best || 0],
+            ["Jours joués", jours.length + (jours.length ? " · depuis le " + jourJoli(jours[0]) : "")],
+            ["Dernière activité", ilYa(p.updated_at)],
+            ["Badges", nbBadges + " / " + totalBadges],
+            ["Pronom", d.pronom === "elle" ? "elle" : "il"],
+            solde != null ? ["Jetons d'indice", solde] : null,
+            obj.chat != null ? ["Chat", (bq.nom || "Minuit") + " · " + (Object.keys(obj).length - 1) + " objet" + (Object.keys(obj).length > 2 ? "s" : "") + " · complicité " + (bq.complicite || 0)] : null
+          ])
+        + (modes.length ? titre("Modes joués") + '<div class="dist">' + modes.map(([n,k])=>
+            '<div class="bar"><span class="k aud-l">'+n+'</span><div class="t" style="width:'+Math.max(Math.round((b[k]||0)/maxM*100),8)+'%">'+b[k]+'</div></div>').join("") + '</div>' : "")
+        + titre("Exercices du jour (60 jours)") + calendrier
+        + '<p class="perso-hint">Identifiant : <code>'+escA(p.id)+'</code></p>';
+      $("ajRetour").onclick = ()=>joueursListe(q);
+    });
+  }
 
   /* Le bouton n'apparaît que pour un administrateur, et la vérification
      se fait une seule fois au démarrage. */
@@ -2592,7 +2706,16 @@
      joueur n'y est identifiable. On compare toujours la période choisie
      à la précédente, de même durée : c'est la tendance qui compte.
      =============================================================== */
-  let audPeriode = store.get("motus.audPeriode", 30) || 30, audLignes = null;
+  const AUD_PERIODES = [
+    { id:"auj",  lib:"Aujourd'hui", n:1,  decal:0 },
+    { id:"hier", lib:"Hier",        n:1,  decal:1 },
+    { id:"7",    lib:"7 jours",     n:7,  decal:0 },
+    { id:"30",   lib:"30 jours",    n:30, decal:0 },
+    { id:"90",   lib:"90 jours",    n:90, decal:0 }
+  ];
+  let audPeriode = String(store.get("motus.audPeriode", "30") || "30"), audLignes = null;
+  if(!AUD_PERIODES.some(x=>x.id===audPeriode)) audPeriode = "30";
+  const audPer = () => AUD_PERIODES.find(x=>x.id===audPeriode);
   const NOMS_MODE = {
     daily:"Mot du jour", defi:"Défi du jour", gram:"Grammaire du jour", ortho:"Orthographe du jour",
     gramlib:"Grammaire (libre)", ortholib:"Orthographe (libre)",
@@ -2615,6 +2738,7 @@
   const NOMS_CLE = {
     "app:mobile":"Téléphone", "app:tablette":"Tablette", "app:pc":"Ordinateur",
     "os:windows":"Windows", "os:android":"Android", "os:ios":"iPhone / iPad", "os:mac":"Mac", "os:linux":"Linux", "os:chromeos":"ChromeOS", "os:autre":"Autre",
+    "dom:github":"Ancienne (killianjourneau.github.io)", "dom:workers":"Nouvelle (gamesbyneur)", "dom:local":"Tests (local)", "dom:autre":"Autre adresse",
     "nav:chrome":"Chrome", "nav:edge":"Edge", "nav:firefox":"Firefox", "nav:safari":"Safari", "nav:samsung":"Samsung Internet", "nav:opera":"Opera", "nav:autre":"Autre"
   };
   function jourDecale(k, n){ const [y,m,d] = k.split("-").map(Number); return new Date(Date.UTC(y,m-1,d+n)).toISOString().slice(0,10); }
@@ -2642,7 +2766,7 @@
       return;
     }
     // la période choisie, la précédente pour comparer, et assez d'historique pour la rétention à J30
-    Audience.lire(Math.min(365, audPeriode*2 + 50)).then(lignes=>{
+    Audience.lire(Math.min(365, audPer().n*2 + 52)).then(lignes=>{
       audLignes = lignes || [];
       audienceRendre();
     }).catch(e=>{
@@ -2657,8 +2781,8 @@
 
   function audienceRendre(){
     const box = $("statsAudience"), lignes = audLignes || [];
-    const choix = '<div class="aud-per">' + [7,30,90].map(p=>
-      '<button data-per="'+p+'"'+(p===audPeriode?' class="on"':'')+'>'+p+' jours</button>').join("")
+    const choix = '<div class="aud-per">' + AUD_PERIODES.map(p=>
+      '<button data-per="'+p.id+'"'+(p.id===audPeriode?' class="on"':'')+'>'+p.lib+'</button>').join("")
       + '<button data-csv>⬇ CSV</button></div>';
     if(!lignes.length){
       box.innerHTML = choix + '<p class="sub">Aucune donnée pour l\'instant. Les compteurs se remplissent à mesure que des joueurs viennent.</p>';
@@ -2668,7 +2792,8 @@
     lignes.forEach(l=>{ const j = String(l.jour).slice(0,10); (parJour[j] = parJour[j] || {})[l.cle] = (+l.valeur || 0); });
 
     // le serveur compte en UTC (current_date) : « aujourd'hui » se calcule de même
-    const P = audPeriode, auj = new Date().toISOString().slice(0,10);
+    const per = audPer(), P = per.n, unJour = P === 1;
+    const auj = jourDecale(new Date().toISOString().slice(0,10), -per.decal);
     const plage = (a, n) => { const l = []; for(let i=0; i<n; i++) l.push(jourDecale(a, i)); return l; };
     const jc = plage(jourDecale(auj, -(P-1)), P), jp = plage(jourDecale(auj, -(2*P-1)), P);
     const S = (cle, liste) => liste.reduce((t,j)=>t + ((parJour[j]||{})[cle] || 0), 0);
@@ -2699,10 +2824,14 @@
     const partiesC = total(motif("partie:", jc)), partiesP = total(motif("partie:", jp));
     const visC = C("visite"), visP = Pr("visite");
     const carte = (val, lib, tend) => '<div class="aud-k"><b>'+val+'</b><span>'+lib+'</span>'+tend+'</div>';
-    const kpis = '<div class="aud-kpis">'
-      + carte(fmt(visC/P), "visiteurs par jour", tendance(visC, visP))
-      + carte(C("nouveau"), "nouveaux joueurs", tendance(C("nouveau"), Pr("nouveau")))
-      + carte(fmt(partiesC/P), "parties par jour", tendance(partiesC, partiesP))
+    const vs = unJour ? (per.decal ? " (vs avant-hier)" : " (vs hier)") : "";
+    const kpis = (unJour ? '<p class="aud-note" style="margin:0 0 10px;text-align:center">'
+        + (per.decal ? "Journée d'hier, " : "Journée en cours, ") + jourJoli(auj)
+        + ' · les compteurs changent de jour à minuit UTC (1 h ou 2 h du matin à Paris).</p>' : '')
+      + '<div class="aud-kpis">'
+      + carte(fmt(visC/P), unJour ? "visiteurs" + vs : "visiteurs par jour", tendance(visC, visP))
+      + carte(C("nouveau"), "nouveaux joueurs" + vs, tendance(C("nouveau"), Pr("nouveau")))
+      + carte(fmt(partiesC/P), unJour ? "parties jouées" : "parties par jour", tendance(partiesC, partiesP))
       + carte(visC ? fmt(C("session")/visC) : "—", "ouvertures par visiteur", tendance(visC ? C("session")/visC : 0, visP ? Pr("session")/visP : 0))
       + carte((pct(C("installe"), visC) ?? 0) + " %", "jouent en appli installée", tendance(C("installe"), Pr("installe")))
       + carte((pct(C("fidele"), visC) ?? 0) + " %", "des visites sont des retours", tendance(C("fidele"), Pr("fidele")))
@@ -2815,8 +2944,8 @@
         ["Joueurs ayant rencontré une erreur", C("err:js") + (C("err:js") ? " (" + pct(C("err:js"), visC) + " % des visites)" : "")]
       ]) : "";
 
-    box.innerHTML = choix + kpis + courbe + fidelite + entonnoir + engagement + heures + semaine
-      + repartition("app:", "Appareils") + repartition("os:", "Systèmes") + repartition("nav:", "Navigateurs")
+    box.innerHTML = choix + kpis + (unJour ? "" : courbe) + fidelite + entonnoir + engagement + heures + (unJour ? "" : semaine)
+      + repartition("dom:", "Adresse utilisée") + repartition("app:", "Appareils") + repartition("os:", "Systèmes") + repartition("nav:", "Navigateurs")
       + sources + modes
       + (finiRpg ? lignesSt([["🏆 Aventures terminées (Quête)", finiRpg]]) : "")
       + boutique + prefs
@@ -2827,7 +2956,7 @@
   // choix de la période et export
   $("statsAudience").addEventListener("click", e=>{
     const b = e.target.closest("button"); if(!b) return;
-    if(b.dataset.per){ audPeriode = +b.dataset.per; store.set("motus.audPeriode", audPeriode); audienceDraw(); }
+    if(b.dataset.per){ audPeriode = b.dataset.per; store.set("motus.audPeriode", audPeriode); audienceDraw(); }
     else if(b.dataset.csv !== undefined && audLignes){
       const csv = "jour;compteur;valeur\n" + audLignes.map(l=>String(l.jour).slice(0,10)+";"+l.cle+";"+l.valeur).join("\n");
       const a = document.createElement("a");
@@ -3058,6 +3187,10 @@
                 : /Firefox|FxiOS/.test(ua) ? "firefox" : /CriOS|Chrome/.test(ua) ? "chrome" : /Safari/.test(ua) ? "safari" : "autre";
       mesureJour("nav:" + nav);
     }catch(e){}
+    // par quelle adresse : l'ancienne (GitHub Pages) ou la nouvelle (Cloudflare)
+    const hote = location.hostname;
+    mesureJour("dom:" + (/github\.io$/.test(hote) ? "github" : /workers\.dev$/.test(hote) ? "workers"
+                       : /^(localhost|127\.)/.test(hote) ? "local" : "autre"));
     // préférences, pour savoir ce qui est vraiment utilisé
     mesureJour("pref:" + (theme==="light"||theme==="light-a" ? "clair" : "sombre"));
     if(theme==="dark-a"||theme==="light-a") mesureJour("pref:access");
@@ -5316,6 +5449,8 @@
     }
     mesure("partie:bonbons"); if(score >= 10) mesure("gagne:bonbons");
     if(score >= 10) grantHintOnce("bonbons", todayKey());
+    // XP de la partie du jour : 1,5 par bonbon attrapé, 40 au plus
+    if(window.Profile && Profile.ajouterXp) Profile.ajouterXp(Math.min(40, Math.round(score * 1.5)), "bonbons");
     majPastillesDuJour();
   }
   function bbFin(){
@@ -5509,7 +5644,7 @@
     if(!gramLibre && (gramFini || gramIdx >= GRAM_NB)) return;
     const ex = gramExCourant(); if(!ex) return;
     const bon = gramJuste(saisie, ex);
-    if(gramLibre){ gramLibreTotal++; if(bon) gramLibreBon++; }
+    if(gramLibre){ gramLibreTotal++; if(bon){ gramLibreBon++; xpEntrainement(1); } }
     else if(bon){ gramScore++; }
     son(bon ? "gagne" : "refuse");
     $("gramSaisie").disabled = true;
@@ -5554,6 +5689,16 @@
     gramBilan();
   }
 
+  /* Entraînement libre (grammaire, orthographe) : 1 XP par bonne réponse,
+     20 XP par jour au plus — sinon on pourrait monter de niveau à l'infini. */
+  function xpEntrainement(n){
+    const e = store.get("motus.xpEntrainement", null);
+    const jour = todayKey(), deja = (e && e.day === jour) ? e.n : 0;
+    const gain = Math.max(0, Math.min(n, 20 - deja));
+    if(!gain) return;
+    store.set("motus.xpEntrainement", { day: jour, n: deja + gain });
+    if(window.Profile && Profile.ajouterXp) Profile.ajouterXp(gain, "entrainement");
+  }
   function gramTerminer(){
     gramFini = true; over = true; ended = true;
     store.set(gramConf().cle, { day: gramKey(), score: gramScore, fini: true });
@@ -5563,6 +5708,8 @@
     gramEnvoyer();
     mesure("partie:" + gramMode); if(gramScore === GRAM_NB) mesure("gagne:" + gramMode);
     if(gramScore === GRAM_NB) grantHintOnce(gramMode, gramKey());
+    // XP de l'exercice du jour : 6 par bonne réponse, +10 sans faute (0 à 28)
+    if(window.Profile && Profile.ajouterXp) Profile.ajouterXp(6*gramScore + (gramScore === GRAM_NB ? 10 : 0), gramMode);
     majPastillesDuJour();
     gramBilan();
   }
@@ -6192,6 +6339,11 @@
     }
     if(window.Profile && Profile.memoDone){
       Profile.memoDone({ won:gagne, sec:memoSec, best:memoBest, reussites:memoReussites });
+    }
+    // XP : réussite = 15 + 0,75 par seconde en dessous de 60 (30 s → 38 XP,
+    // 10 s → 53 XP, 2 s → 59 XP) ; échec = 5 XP, comme partout ailleurs.
+    if(window.Profile && Profile.ajouterXp){
+      Profile.ajouterXp(gagne ? Math.round(15 + (MEMO_MAX - avant) * 0.75) : 5, "memo", !gagne);
     }
     mesure("partie:memo"); if(gagne) mesure("gagne:memo");
     son(gagne ? "gagne" : "perdu");
