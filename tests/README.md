@@ -18,6 +18,7 @@ quel dans une intégration continue.
 | `ui.test.js` | Thèmes, notifications, statistiques, accueil | jsdom |
 | `quete.test.js` | Contenu et **équilibrage** de Motus Quête | aucune |
 | `boutique.test.js` | Catalogue, dessins et **économie de jetons** de la boutique du chat | jsdom (en partie) |
+| `xp.test.js` | **Plafonds d'XP** du jour (500 par mode, 50 de défaites) | jsdom |
 
 `data.test.js` et `quete.test.js` tournent sans rien installer et couvrent
 l'essentiel : commence par eux si tu es pressé.
