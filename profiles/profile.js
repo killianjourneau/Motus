@@ -391,19 +391,35 @@
       function (b) { b.classList.toggle("on", b.dataset.pr === p); });
   }
   var pronoms = {}, pronomsEnCours = {};
+  /* Pronom d'un autre joueur, lu sur son profil.
+     Le premier appel ne le connaît pas encore (il faut le demander au
+     serveur) : il répond « il » par défaut, puis signale l'arrivée de la
+     vraie valeur par l'événement « motus-pronom », pour que le jeu réécrive
+     ses textes. La valeur est relue toutes les 2 minutes : un joueur peut
+     la changer en cours de partie. */
+  var PRONOM_FRAIS = 120000;
+  function pronomCharger(id) {
+    if (!id || id === state.id || !configured || navigator.onLine === false) return Promise.resolve(pronomDe(id));
+    if (pronomsEnCours[id]) return pronomsEnCours[id];
+    var avant = pronoms[id] && pronoms[id].p;
+    pronomsEnCours[id] = fetchRemote(id).then(function (r) {
+      delete pronomsEnCours[id];
+      if (!r) return avant || "il";          // un échec n'est pas retenu : on retentera
+      var p = (r.data && r.data.pronom === "elle") ? "elle" : "il";
+      pronoms[id] = { p: p, t: Date.now() };
+      if (p !== (avant || "il")) {
+        try { window.dispatchEvent(new CustomEvent("motus-pronom", { detail: { id: id, pronom: p } })); } catch (e) {}
+      }
+      return p;
+    });
+    return pronomsEnCours[id];
+  }
   function pronomDe(id) {
     if (!id) return "il";
     if (id === state.id) return state.pronom === "elle" ? "elle" : "il";
-    if (pronoms[id]) return pronoms[id];
-    if (configured && !pronomsEnCours[id] && navigator.onLine !== false) {
-      pronomsEnCours[id] = true;
-      fetchRemote(id).then(function (r) {
-        // un échec n'est PAS mis en cache : on retentera plus tard
-        if (r) pronoms[id] = (r.data && r.data.pronom === "elle") ? "elle" : "il";
-        delete pronomsEnCours[id];
-      });
-    }
-    return "il";                 // par défaut, comme demandé
+    var c = pronoms[id];
+    if (!c || Date.now() - c.t > PRONOM_FRAIS) pronomCharger(id);
+    return c ? c.p : "il";       // par défaut, en attendant la réponse
   }
 
   function pushDebounced() { clearTimeout(pushTimer); pushTimer = setTimeout(pushRemote, 300); }
@@ -1602,6 +1618,7 @@
     /* Au retour du réseau (et au démarrage) : renvoie les résultats du jour
        restés en attente, puis le profil complet. */
     pronomDe: pronomDe,
+    pronomCharger: pronomCharger,
 
     rattraper: function (avecProfil) {
       if (!configured || navigator.onLine === false) return;
