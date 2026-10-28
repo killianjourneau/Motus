@@ -1774,7 +1774,8 @@ update discord_config set site = 'https://mot-en-six.gamesbyneur.workers.dev/'
 -- De nouveaux compteurs, toujours des compteurs PAR JOUR et jamais un
 -- identifiant : rétention (revenu à J1, J7, J30), entonnoir des débuts,
 -- durée des sessions, heure de visite, appareil, système, navigateur,
--- boutique du chat, préférences et erreurs.
+-- boutique du chat, préférences, erreurs, et adresse du site utilisée
+-- (dom:github = ancienne adresse GitHub Pages, dom:workers = la nouvelle).
 -- La liste blanche reste stricte : un préfixe connu, puis 1 à 12
 -- caractères a-z / 0-9. Impossible d'y glisser un pseudo ou du texte.
 -- =====================================================================
@@ -1783,7 +1784,7 @@ returns void language plpgsql security definer as $$
 declare v_cle text;
 begin
   v_cle := lower(btrim(coalesce(p_cle, '')));
-  if v_cle !~ '^(visite|nouveau|fidele|installe|habitue|debutant|session|(partie|gagne|mode|ret|fun|duree|heure|app|os|nav|bq|pref|err):[a-z0-9]{1,12})$'
+  if v_cle !~ '^(visite|nouveau|fidele|installe|habitue|debutant|session|(partie|gagne|mode|ret|fun|duree|heure|app|os|nav|bq|pref|err|dom):[a-z0-9]{1,12})$'
     then return; end if;
 
   insert into stats_daily (jour, cle, valeur)
