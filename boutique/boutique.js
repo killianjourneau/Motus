@@ -744,7 +744,7 @@
     // la boutique est la rubrique ; le compagnon, ce qu'on y trouve
     var cat = el("div", "mode-cat", "🛍️ Boutique");
     var g = el("div", "mode-grid");
-    var b = el("button", "mode-item nouveau");
+    var b = el("button", "mode-item");
     b.id = "boutiqueItem";
     g.appendChild(b);
     grille.parentNode.insertBefore(cat, grille.nextSibling);

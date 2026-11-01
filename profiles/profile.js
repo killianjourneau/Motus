@@ -45,6 +45,7 @@
              royParties:0, royVictoires:0, royPodiums:0, royMeilleurTotal:0,
              gramJours:0, gramParfaits:0, gramSerie:0, gramBestSerie:0, gramBonnes:0, gramDernier:"",
              hwPeur:0, hwPeurWin:0, hwBonbonsTotal:0, hwBonbonsBest:0, hwJours:[],
+             trCourses:0, trMeilleur:0, trObstacles:0, trCadeaux:0,
              orthoJours:0, orthoParfaits:0, orthoSerie:0, orthoBestSerie:0, orthoBonnes:0, orthoDernier:"",
              hyph:0, night:0, dawn:0, wknd:0, days:[], dayBest:0,
              defiFast:0, dailyOne:0, allDiff:0, longFast:0, comeback:0, noYellow:0,
@@ -141,6 +142,11 @@
     {id:"avfidele",e:"⏰", n:"Fidèle au poste",     d:"Ouvrir les 24 cases du calendrier, chacune le jour même", c:"Saison", h:1, t:function(b,s){return aventSansRattrapage(s);}},
     {id:"avpate",  e:"🍖", n:"Repas de fête",       d:"Offrir une pâtée de fête à ton chat", c:"Saison", t:function(b,s){return !!(s.boutique && s.boutique.pates && Object.keys(s.boutique.pates).length);}},
     {id:"avtenue", e:"🎅", n:"Tenue de fête",       d:"Habiller un chat de 3 accessoires de Noël à la fois", c:"Saison", t:function(b,s){return tenueNoel(s)>=3;}, p:[function(b,s){return tenueNoel(s);},3]},
+    {id:"tr1",     e:"🛷", n:"Premier attelage",   d:"Faire une course de Traîneau (course du jour ou tentative bonus)", c:"Saison", t:function(b){return (b.trCourses||0)>=1;}},
+    {id:"tr1000",  e:"🦌", n:"Grand galop",        d:"Marquer 1 000 points en une course de Traîneau", c:"Saison", t:function(b){return (b.trMeilleur||0)>=1000;}, p:[function(b){return b.trMeilleur||0;},1000]},
+    {id:"tr3000",  e:"🌠", n:"Flèche des neiges",  d:"Marquer 3 000 points en une course de Traîneau", c:"Saison", t:function(b){return (b.trMeilleur||0)>=3000;}, p:[function(b){return b.trMeilleur||0;},3000]},
+    {id:"tr100",   e:"🪓", n:"Bûcheron des neiges",d:"Faire exploser 100 obstacles en Traîneau", c:"Saison", t:function(b){return (b.trObstacles||0)>=100;}, p:[function(b){return b.trObstacles||0;},100]},
+    {id:"tr50",    e:"📮", n:"Postier du Père Noël", d:"Ramasser 50 cadeaux en Traîneau", c:"Saison", t:function(b){return (b.trCadeaux||0)>=50;}, p:[function(b){return b.trCadeaux||0;},50]},
     {id:"embNoel", e:"🎄", n:"Esprit de Noël",    d:"Ouvrir la case du 20 décembre du calendrier de l'avent", c:"Saison", t:function(b,s){return !!(s.boutique && s.boutique.objets && ("embleme:noel" in s.boutique.objets));}},
     {id:"aube",  e:"🤍", n:"Une aube blanche",    d:"Accueillir Aube, la chatte blanche", c:"Saison", t:function(b,s){return !!(s.boutique && s.boutique.objets && ("aube" in s.boutique.objets));}},
     {id:"hw1",   e:"🎃", n:"Premier frisson",     d:"Jouer un Mot terrifiant (Halloween)",   c:"Saison", t:function(b){return b.hwPeur>=1;}, p:[function(b){return b.hwPeur;},1]},
@@ -1269,6 +1275,8 @@
     // plus il y a de bonbons, mieux c'est : classement décroissant
     bonbons: { art:"les ", label:"bonbons du jour", barres:"aucune", ordre:"desc", score:true,
                unite:function(n){ return n + " bonbon" + (n>1?"s":""); } },
+    traineau: { art:"le ", label:"Traîneau du jour", barres:"aucune", ordre:"desc", score:true,
+                unite:function(n){ return n + " point" + (n>1?"s":""); } },
     ortho: { art:"l'",  label:"orthographe du jour", barres:"fautes", unite:function(n){ return n===0 ? "sans faute" : n + " faute" + (n>1?"s":""); } }
   };
   var todayMode = "motus";
@@ -1519,6 +1527,18 @@
       o = o || {};
       var b = state.b;
       if ((o.len || 0) > b.defMaxWordLen) b.defMaxWordLen = o.len;
+      saveLocal(); checkBadges(); pushDebounced(); refreshOpen();
+    },
+
+    /* Traîneau (Noël) : une course qui compte (course du jour ou tentative bonus). */
+    traineauDone: function (o) {
+      joue();
+      o = o || {};
+      var b = state.b;
+      b.trCourses = (b.trCourses || 0) + 1;
+      b.trMeilleur = Math.max(b.trMeilleur || 0, +o.score || 0);
+      b.trObstacles = (b.trObstacles || 0) + (+o.detruits || 0);
+      b.trCadeaux = (b.trCadeaux || 0) + (+o.cadeaux || 0);
       saveLocal(); checkBadges(); pushDebounced(); refreshOpen();
     },
 

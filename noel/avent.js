@@ -283,6 +283,8 @@
     ouvrir: ouvrir,
     fermer: fermer,
     get enApercu() { return !!bac; },
+    // la date simulée de l'aperçu (null hors aperçu) : Halloween s'y aligne aussi
+    get dateApercu() { return apercuDate; },
     // la case du jour est-elle faite ? (pastille du menu)
     faitAujourdhui: function () { var c = caseDuJour(); return !c || cle(c, "-j") in objets(); },
     /* Aperçu (administration) : simule une date de l'événement, sans rien

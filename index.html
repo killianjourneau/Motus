@@ -15,13 +15,13 @@
 <meta property="og:title" content="Mot en Six — trouve le mot caché en 6 essais">
 <meta property="og:description" content="Mot du jour, grammaire et orthographe du jour, duels, Battle Royale et mode Junior. Gratuit, sans publicité, jouable hors-ligne.">
 <meta property="og:url" content="https://mot-en-six.gamesbyneur.workers.dev/">
-<meta property="og:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.7.0">
+<meta property="og:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.6.1">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Mot en Six — trouve le mot caché en 6 essais">
 <meta name="twitter:description" content="Mot du jour, grammaire et orthographe du jour, duels et Battle Royale.">
-<meta name="twitter:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.7.0">
+<meta name="twitter:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.6.1">
 <link rel="canonical" href="https://mot-en-six.gamesbyneur.workers.dev/">
 <script type="application/ld+json">
 {
@@ -785,8 +785,8 @@
       <div class="mode-grid">
         <button class="mode-item" data-mode="daily" id="modeDaily"><span class="mi">📅</span><b>Mot du jour</b><i>Le même pour tous</i></button>
         <button class="mode-item" data-mode="defi" id="modeDefi"><span class="mi">🔥</span><b>Défi du jour</b><i>3 mots · 15 min</i></button>
-        <button class="mode-item nouveau" data-mode="gram" id="modeGram"><span class="mi">✍️</span><b>Grammaire du jour</b><i>Une phrase à compléter</i></button>
-        <button class="mode-item nouveau" data-mode="ortho" id="modeOrtho"><span class="mi">🔤</span><b>Orthographe du jour</b><i>Trois mots à écrire</i></button>
+        <button class="mode-item" data-mode="gram" id="modeGram"><span class="mi">✍️</span><b>Grammaire du jour</b><i>Une phrase à compléter</i></button>
+        <button class="mode-item" data-mode="ortho" id="modeOrtho"><span class="mi">🔤</span><b>Orthographe du jour</b><i>Trois mots à écrire</i></button>
       </div>
       <div id="hwSection" style="display:none">
         <div class="mode-cat hw-cat">🎃 Halloween · jusqu'au 15 novembre</div>
@@ -800,6 +800,7 @@
         <div class="mode-cat noel-cat">🎄 Noël · jusqu'au 6 janvier</div>
         <div class="mode-grid">
           <button class="mode-item nouveau noel-item" id="modeAvent"><span class="mi">🗓️</span><b>Calendrier de l'avent</b><i id="modeAventSub">Une case par jour</i></button>
+          <button class="mode-item nouveau noel-item" data-mode="traineau" id="modeTraineau"><span class="mi">🛷</span><b>Traîneau</b><i id="modeTraineauSub">Tape les mots, file sur la neige</i></button>
         </div>
         <button class="hw-theme-btn" id="noelThemeBtn" type="button"></button>
       </div>
@@ -1282,27 +1283,28 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=2.7.0"></script>
-<script src="./dico/motus-grammaire.js?v=2.7.0"></script>
-<script src="./dico/motus-halloween.js?v=2.7.0"></script>
-<script src="./dico/motus-noel.js?v=2.7.0"></script>
-<script src="./noel/avent.js?v=2.7.0"></script>
-<script src="./decors/decors.js?v=2.7.0"></script>
-<script src="./dico/motus-ortho.js?v=2.7.0"></script>
-<script src="./dico/motus-prenoms.js?v=2.7.0"></script>
-<script src="./dico/motus-prenoms-info.js?v=2.7.0"></script>
-<script src="./dico/motus-maladies.js?v=2.7.0"></script>
-<script src="./dico/motus-maladies-info.js?v=2.7.0"></script>
-<script src="./dico/motus-villes.js?v=2.7.0"></script>
-<script src="./dico/motus-villes-info.js?v=2.7.0"></script>
-<script src="./dico/motus-persos.js?v=2.7.0"></script>
-<script src="./dico/motus-persos-info.js?v=2.7.0"></script>
-<script src="./dico/motus-persos-split.js?v=2.7.0"></script>
-<script src="./dico/motus-race.js?v=2.7.0"></script>
-<script src="./dico/motus-expert.js?v=2.7.0"></script>
-<script src="./profiles/config.js?v=2.7.0"></script>
-<script src="./profiles/profile.js?v=2.7.0"></script>
-<script src="./duel/duel.js?v=2.7.0"></script>
+<script src="./dico/motus-words.js?v=2.6.1"></script>
+<script src="./dico/motus-grammaire.js?v=2.6.1"></script>
+<script src="./dico/motus-halloween.js?v=2.6.1"></script>
+<script src="./dico/motus-noel.js?v=2.6.1"></script>
+<script src="./noel/avent.js?v=2.6.1"></script>
+<script src="./noel/traineau.js?v=2.6.1"></script>
+<script src="./decors/decors.js?v=2.6.1"></script>
+<script src="./dico/motus-ortho.js?v=2.6.1"></script>
+<script src="./dico/motus-prenoms.js?v=2.6.1"></script>
+<script src="./dico/motus-prenoms-info.js?v=2.6.1"></script>
+<script src="./dico/motus-maladies.js?v=2.6.1"></script>
+<script src="./dico/motus-maladies-info.js?v=2.6.1"></script>
+<script src="./dico/motus-villes.js?v=2.6.1"></script>
+<script src="./dico/motus-villes-info.js?v=2.6.1"></script>
+<script src="./dico/motus-persos.js?v=2.6.1"></script>
+<script src="./dico/motus-persos-info.js?v=2.6.1"></script>
+<script src="./dico/motus-persos-split.js?v=2.6.1"></script>
+<script src="./dico/motus-race.js?v=2.6.1"></script>
+<script src="./dico/motus-expert.js?v=2.6.1"></script>
+<script src="./profiles/config.js?v=2.6.1"></script>
+<script src="./profiles/profile.js?v=2.6.1"></script>
+<script src="./duel/duel.js?v=2.6.1"></script>
 <script>
 (() => {
   "use strict";
@@ -1354,7 +1356,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "2.7.0";
+  const VERSION = "2.6.1";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -1489,6 +1491,12 @@
     redimensionner: () => { if(len) computeSizing(); },
     halloween: () => hwActif(),
     noel: () => noelActif(),
+    // pour le Traîneau (noel/traineau.js)
+    son: (n, i) => son(n, i),
+    vibrate: (ms) => vibrate(ms),
+    jetonDuJour: (kind, key) => grantHintOnce(kind, key),
+    lienPartage: (q) => SHARE_URL + (q || ""),
+    partager: (txt) => { if(navigator.share) navigator.share({text:txt}).catch(e=>{ if(!e || e.name!=="AbortError") copy(txt); }); else copy(txt); },
     jouerAvent: (n) => aventDemander(n),
     // jetons offerts sous une clé (case du calendrier) : jamais deux fois, même sur deux appareils
     jetonsCadeau: (cle, n) => {
@@ -1744,6 +1752,12 @@
       const c = Avent.caseDuJour(), sub = $("modeAventSub");
       if(sub) sub.textContent = c ? (Avent.faitAujourdhui() ? "Case " + c + " ouverte ✓" : "La case " + c + " t'attend") : Avent.ouvertes() + "/24 cases ouvertes";
     }
+    const tr = $("modeTraineau");
+    if(tr && window.Traineau){
+      const fait = Traineau.faitAujourdhui(), nb = Traineau.tentatives, sub = $("modeTraineauSub");
+      tr.classList.toggle("fait", fait && !nb);
+      if(sub) sub.textContent = !fait ? "Ta course du jour t'attend" : nb ? "🛷 " + nb + " tentative" + (nb>1?"s":"") + " bonus" : "Course du jour faite ✓";
+    }
     const pr = store.get("motus.peur", null), pe = $("modePeur");
     if(pe) pe.classList.toggle("fait", !!(pr && pr.day===jour && pr.done));
     const bb = store.get("motus.bonbons", null), bo = $("modeBonbons");
@@ -1988,6 +2002,7 @@
   /* ---------- Saisie ---------- */
   function handleKey(a){
     if(mode==="bonbons"){ bbTouche(a); return; }
+    if(mode==="traineau"){ if(window.Traineau) Traineau.touche(a); return; }
     if(over) return;
     if(mode==="pendu"){
       if(/^[A-Z]$/.test(a)) penduGuess(a);
@@ -2024,6 +2039,7 @@
      case à remplir, comme d'un clic. En Mémorisation, haut/bas changent de mot.
      Renvoie vrai si la touche a servi. */
   function fleche(k){
+    if(mode==="traineau") return !!(window.Traineau && Traineau.fleche(k));   // ← → : changer de couloir
     if(mode==="memo"){
       if(memoPhase!=="saisie" || over) return false;
       const n = memoSaisie[memoIdx].length;
@@ -2871,7 +2887,7 @@
         .filter(([,k])=>(b[k]||0)>0).sort((x,y)=>(b[y[1]]||0)-(b[x[1]]||0));
       const maxM = Math.max(1, ...modes.map(([,k])=>b[k]||0));
       // exercices du jour : 60 derniers jours
-      const JEUX = [["motus","📅"],["defi","🔥"],["gram","✍️"],["ortho","🔤"],["peur","🎃"],["bonbons","🍬"],["avent","🗓️"]];
+      const JEUX = [["motus","📅"],["defi","🔥"],["gram","✍️"],["ortho","🔤"],["peur","🎃"],["bonbons","🍬"],["avent","🗓️"],["traineau","🛷"]];
       const parJour = {};
       (f.jours||[]).forEach(r=>{ (parJour[r.day] = parJour[r.day] || {})[r.game] = r; });
       const cellule = (jeu, r) => {
@@ -2948,6 +2964,7 @@
     ["🎭 Thèmes",      ["prenoms","maladies","villes","persos"]],
     ["⚔️ Multijoueur", ["duel","race","defense","royale"]],
     ["🎃 Halloween",   ["peur","bonbons"]],
+    ["🎄 Noël",        ["avent","traineau"]],
     ["🧸 Junior",      ["jrintrus","jrnombre","jrmemo","jrlettre"]],
     ["🗺️ Quête",       ["rpg"]]
   ];
@@ -5416,7 +5433,7 @@
   }
   function timerValue(){ return tTimer ? tElapsed + (Date.now()-tStart) : tElapsed; }
   function updateHud(){
-    const names={court:"Court",normal:"Normal",long:"Long",expert:"Expert",daily:"Mot du jour",defi:"Défi du jour",prenoms:"Prénoms",maladies:"Maladies",villes:"Villes",duel:"Duel",race:"Course",defense:"Défense",pendu:"Le Pendu",memo:"Mémorisation",royale:"Battle Royale",gram:"Grammaire du jour",ortho:"Orthographe du jour",peur:"Mot terrifiant",bonbons:"Bonbons",avent:"Calendrier de l'avent"};
+    const names={court:"Court",normal:"Normal",long:"Long",expert:"Expert",daily:"Mot du jour",defi:"Défi du jour",prenoms:"Prénoms",maladies:"Maladies",villes:"Villes",duel:"Duel",race:"Course",defense:"Défense",pendu:"Le Pendu",memo:"Mémorisation",royale:"Battle Royale",gram:"Grammaire du jour",ortho:"Orthographe du jour",peur:"Mot terrifiant",bonbons:"Bonbons",avent:"Calendrier de l'avent",traineau:"Traîneau"};
     let label = names[mode]||"";
     if(mode==="race") label = "Course · " + raceThemeName(raceTheme);
     if(mode==="expert") label = "Expert" + (expertRare ? " · mots rares" : "");
@@ -5440,8 +5457,8 @@
     } else if(mode==="avent"){
       store.set("motus.avent", {n:aventNum, key:aventKey, guesses, done:over, won, ms:timerValue(), apercu: !!(window.Avent && Avent.enApercu)});
       store.set("motus.last","avent");
-    } else if(mode==="bonbons"){
-      return;                                   // le mini-jeu gère sa propre sauvegarde
+    } else if(mode==="bonbons" || mode==="traineau"){
+      return;                                   // les mini-jeux gèrent leur propre sauvegarde
     } else if(mode==="defi"){
       store.set("motus.defi", {day:defiKey, step:defiStep, guesses, over, won,
                                times:defiTimes, tries:defiTries, failed:defiFailed, ms:timerValue()});
@@ -5461,6 +5478,8 @@
   /* ---------- Démarrage d'une partie ---------- */
   function startFree(m){
     bbArreter();
+    if(m!=="traineau" && window.Traineau) Traineau.arreter();     // quitter le Traîneau arrête la course
+    if(m==="traineau"){ trOuvrir(); return; }
     if(m==="peur"){ enterPeur(); return; }
     if(m==="avent"){ if(window.Avent) Avent.ouvrir(); return; }
     if(m==="bonbons"){ bbOuvrir(); return; }
@@ -5489,7 +5508,8 @@
   const HW = window.MOTUS_HALLOWEEN || null;
   function hwActif(){
     if(!HW) return false;
-    const k = todayKey();
+    // aperçu de Noël (administration) : on se place à la date simulée, Halloween compris
+    const k = (window.Avent && Avent.dateApercu) || todayKey();
     return k >= HW.debut && k <= HW.fin;
   }
   function hwJour(){
@@ -5567,7 +5587,7 @@
   }
   // depuis le calendrier : une partie en cours se perdrait, on demande d'abord
   function aventDemander(n){
-    const risque = mode!=="daily" && mode!=="peur" && mode!=="avent" && mode!=="bonbons" && mode!=="defi" && mode!=="duel" && mode!=="race" && !ended && rowHasInput();
+    const risque = mode!=="daily" && mode!=="peur" && mode!=="avent" && mode!=="bonbons" && mode!=="traineau" && mode!=="defi" && mode!=="duel" && mode!=="race" && !ended && rowHasInput();
     if(risque) askConfirm("Ouvrir la case " + n + " ?", "La partie en cours sera perdue.", ()=>{ closeOverlays(); enterAvent(n); });
     else { closeOverlays(); duelPause(); racePause(); bbArreter(); enterAvent(n); }
   }
@@ -5599,6 +5619,23 @@
                                             : "Tu as déjà ouvert cette case sur un autre appareil.")
         + (fin.texte ? '<span class="avent-fin">' + fin.texte + '</span>' : ""));
     });
+  }
+
+  /* ================= TRAÎNEAU (Noël) =================
+     Tout le jeu est dans noel/traineau.js ; ici, on lui prépare l'écran
+     (pas de grille, le clavier reste pour taper les mots). */
+  function trOuvrir(){
+    if(!window.Traineau || !Traineau.actif()){ toast("Le Traîneau revient à Noël 🛷", 2400); startFree("normal"); return; }
+    bbArreter();
+    mode="traineau"; over=false; ended=false; won=false; guesses=[]; rowStates=[];
+    fermerZones();
+    board.style.display="none"; board.style.pointerEvents="none";
+    $("timer").style.display="none";
+    keyboard.style.display="";
+    resetKeyboardColors();
+    setActiveSeg("traineau"); updateHud();
+    store.set("motus.last","free");
+    Traineau.ouvrir();
   }
 
   /* ================= BONBONS ================= */
@@ -6825,7 +6862,7 @@
     else timerReset();                                        // mot pas encore entamé
   }
 
-  const MODE_LABELS={daily:"📅 Mot du jour",defi:"🔥 Défi du jour",court:"🐤 Court",normal:"🎯 Normal",long:"🐘 Long",expert:"🎓 Expert",prenoms:"👶 Prénoms",maladies:"🩺 Maladies",villes:"🏙️ Villes",duel:"⚔️ Duel",race:"⌨️ Course",defense:"🛡️ Défense",pendu:"🪢 Le Pendu",memo:"🧠 Mémorisation",royale:"👑 Battle Royale",gram:"✍️ Grammaire du jour",ortho:"🔤 Orthographe du jour",peur:"🎃 Mot terrifiant",bonbons:"🍬 Bonbons",avent:"🗓️ Calendrier de l'avent"};
+  const MODE_LABELS={daily:"📅 Mot du jour",defi:"🔥 Défi du jour",court:"🐤 Court",normal:"🎯 Normal",long:"🐘 Long",expert:"🎓 Expert",prenoms:"👶 Prénoms",maladies:"🩺 Maladies",villes:"🏙️ Villes",duel:"⚔️ Duel",race:"⌨️ Course",defense:"🛡️ Défense",pendu:"🪢 Le Pendu",memo:"🧠 Mémorisation",royale:"👑 Battle Royale",gram:"✍️ Grammaire du jour",ortho:"🔤 Orthographe du jour",peur:"🎃 Mot terrifiant",bonbons:"🍬 Bonbons",avent:"🗓️ Calendrier de l'avent",traineau:"🛷 Traîneau"};
   function setActiveSeg(m){
     $("modeBtnLabel").textContent = MODE_LABELS[m] || m;
     document.querySelectorAll(".mode-item").forEach(b=>b.classList.toggle("active", b.dataset.mode===m));
@@ -6938,7 +6975,7 @@
     // revenir à un duel en cours ne doit jamais demander de confirmation
     if(m==="duel" && duelActive()){ switchMode(m); return; }
     if(m==="race" && raceActive()){ switchMode(m); return; }
-    const risque = mode!=="daily" && mode!=="peur" && mode!=="avent" && mode!=="bonbons" && mode!=="defi" && mode!=="duel" && mode!=="race" && !ended && rowHasInput();
+    const risque = mode!=="daily" && mode!=="peur" && mode!=="avent" && mode!=="bonbons" && mode!=="traineau" && mode!=="defi" && mode!=="duel" && mode!=="race" && !ended && rowHasInput();
     if(risque) askConfirm("Changer de mode ?", "La partie en cours sera perdue.", ()=>switchMode(m));
     else switchMode(m);
   }
@@ -6949,10 +6986,12 @@
     if(m!=="race"){ raceStopWatch(); const rh=$("raceHud"); if(rh) rh.classList.remove("show"); }
     if(m!=="duel" && m!=="race") duelEmoteBtnShow(false);
     if(m!=="bonbons") bbArreter();             // quitter le mini-jeu arrête sa boucle
+    if(m!=="traineau" && window.Traineau) Traineau.arreter();
     if(m==="daily") enterDaily();
     else if(m==="peur") enterPeur();
     else if(m==="avent"){ if(window.Avent) Avent.ouvrir(); }
     else if(m==="bonbons") bbOuvrir();
+    else if(m==="traineau") trOuvrir();
     else if(m==="defi") enterDefi();
     else if(m==="expert") expertOpen();
     else if(m==="duel") duelOpen();
@@ -6978,7 +7017,7 @@
     const t = e.target, champ = t && (t.tagName==="INPUT" || t.tagName==="TEXTAREA" || t.isContentEditable)
                                  && t.offsetParent !== null;
     if(champ) return;
-    const bonbons = (mode==="bonbons");
+    const bonbons = (mode==="bonbons" || mode==="traineau");
     if(!bonbons && document.querySelector(".overlay.open")) return;
     // é, è, ç… du clavier AZERTY comptent comme leur lettre de base
     let k = e.key;
@@ -7150,6 +7189,7 @@
     if(mode==="peur"){ switchMode("normal"); return; }
     if(mode==="avent"){ if(window.Avent) Avent.ouvrir(); return; }
     if(mode==="bonbons"){ bbOuvrir(); return; }
+    if(mode==="traineau"){ if(!(window.Traineau && Traineau.enJeu)) trOuvrir(); return; }
     if(mode==="defi"){ switchMode("normal"); return; }         // le défi est unique aussi
     if(mode==="expert"){ startFree("expert"); return; }        // relance directe, sans rappeler les règles
     if(mode==="duel"){ duelOpen(); return; }                   // le duel se relance depuis sa fenêtre
@@ -7355,7 +7395,7 @@
   }
 })();
 </script>
-<script src="./boutique/boutique.js?v=2.7.0"></script>
+<script src="./boutique/boutique.js?v=2.6.1"></script>
 <noscript><p><a href="./decouvrir.html">Découvrir Mot en Six, le jeu de mots en français</a></p></noscript>
 </body>
 </html>

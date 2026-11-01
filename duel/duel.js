@@ -722,6 +722,27 @@
     }
   };
 
+  /* ---------------------------------------------------------------
+     Traîneau (Noël) : classement des records de la saison.
+     Un record par joueur et par saison : seul le meilleur score reste.
+     --------------------------------------------------------------- */
+  window.TraineauScores = {
+    configured: function () { return configured; },
+    record: function (score, distance, saison) {
+      if (!configured) return Promise.resolve(null);
+      var m = me();
+      return rpc("traineau_record", {
+        p_id: m.id, p_pseudo: m.pseudo, p_score: Math.max(0, Math.round(score || 0)),
+        p_distance: Math.max(0, Math.round(distance || 0)), p_saison: String(saison || "")
+      }).catch(function () { return null; });
+    },
+    top: function (saison, limit) {
+      if (!configured) return Promise.resolve([]);
+      return rpcList("traineau_top", { p_saison: String(saison || ""), p_limit: limit || 20 })
+        .catch(function () { return []; });
+    }
+  };
+
   window.Audience = {
     configured: function () { return configured; },
     ping: function (cle) {

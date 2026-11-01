@@ -14,7 +14,10 @@
                    embleme un emblème de profil (badge)
                  Trouver le mot rapporte en plus 1 jeton d'indice.
    rattrapage  : prix, en jetons d'indice, pour rouvrir une case passée.
-   seuilAube   : nombre de cases ouvertes pour qu'Aube arrive. */
+   seuilAube   : nombre de cases ouvertes pour qu'Aube arrive.
+   traineau    : le mini-jeu du Traîneau — saison (classement des records),
+                 score à atteindre pour le jeton d'indice du jour, et les mots
+                 des obstacles (3 à 8 lettres, A à Z seulement). */
 window.MOTUS_NOEL = {
   "debut": "2026-12-01",
   "fin": "2027-01-06",
@@ -31,6 +34,16 @@ window.MOTUS_NOEL = {
     "16": { "jetons": 2 },            "17": { "traineau": 2 },           "18": { "croq": 5 },
     "19": { "emote": "bonhomme" },    "20": { "embleme": "noel" },       "21": { "objet": "manteau" },
     "22": { "jetons": 3 },            "23": { "traineau": 3 },           "24": { "objet": "sapin", "croq": 5, "jetons": 3 }
+  },
+  "traineau": {
+    "saison": "2026",
+    "seuilJeton": 1000,
+    "mots": ["GUI", "FEU", "GEL", "ROI", "NEZ", "SKI", "BOL", "CAP",
+             "LUGE", "HOUX", "NOEL", "ANGE", "BOIS", "CERF", "ELFE", "OURS", "NUIT", "JOIE", "FETE", "LAIT", "MIEL", "VENT",
+             "NEIGE", "SAPIN", "ROUGE", "LAINE", "BUCHE", "FROID", "GIVRE", "RENNE", "HIVER", "LUTIN", "CONTE", "BOULE", "PERLE", "CHANT", "MAGIE",
+             "FLOCON", "BONNET", "ETOILE", "GLACON", "CLOCHE", "BOUGIE", "CADEAU", "NOUGAT", "CRECHE", "PAQUET", "RUBANS", "MOUFLE", "CHALET", "PATINS",
+             "ECHARPE", "MANTEAU", "LUMIERE", "SOULIER", "PRALINE", "MARRONS", "VERGLAS", "POLAIRE", "BISCUIT",
+             "TRAINEAU", "CHEMINEE", "BONHOMME", "CANNELLE", "DECEMBRE", "SURPRISE", "CHOCOLAT", "GLISSADE"]
   },
   "rattrapage": 3,
   "seuilAube": 18

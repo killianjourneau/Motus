@@ -2024,3 +2024,53 @@ begin
    where room_id = upper(btrim(p_code)) and player_id = p_id;
 end $$;
 grant execute on function royale_emote(text,uuid,text) to anon, authenticated;
+
+-- =====================================================================
+-- v2.10 — Traîneau (Noël) : records de la saison
+--
+-- Un record par joueur et par saison (« 2026 » pour Noël 2026) : seul le
+-- meilleur score est gardé. Comptent la course du jour et les tentatives
+-- bonus gagnées dans le calendrier de l'avent ; l'entraînement, jamais.
+-- Le score est borné : un envoi fantaisiste ne peut pas écraser le classement.
+-- =====================================================================
+create table if not exists traineau_records (
+  player_id uuid not null,
+  saison    text not null,
+  pseudo    text,
+  score     int  not null,
+  distance  int  default 0,
+  at        timestamptz default now(),
+  primary key (player_id, saison)
+);
+alter table traineau_records enable row level security;
+drop policy if exists "lecture traineau" on traineau_records;
+create policy "lecture traineau" on traineau_records for select using (true);
+
+create or replace function traineau_record(
+  p_id uuid, p_pseudo text, p_score int, p_distance int, p_saison text
+) returns void language plpgsql security definer as $$
+begin
+  if p_score is null or p_score < 0 or p_score > 200000 then return; end if;
+  if coalesce(p_saison, '') !~ '^[0-9]{4}$' then return; end if;
+  insert into traineau_records (player_id, saison, pseudo, score, distance, at)
+  values (p_id, p_saison, left(coalesce(p_pseudo, 'Anonyme'), 24), p_score, greatest(0, coalesce(p_distance, 0)), now())
+  on conflict (player_id, saison) do update
+    set pseudo   = excluded.pseudo,
+        distance = case when excluded.score > traineau_records.score then excluded.distance else traineau_records.distance end,
+        at       = case when excluded.score > traineau_records.score then now() else traineau_records.at end,
+        score    = greatest(traineau_records.score, excluded.score);
+end $$;
+
+drop function if exists traineau_top(text, int);
+create or replace function traineau_top(p_saison text, p_limit int default 20)
+returns table (pseudo text, score int, distance int, at timestamptz)
+language sql security definer stable as $$
+  select t.pseudo, t.score, t.distance, t.at
+    from traineau_records t
+   where t.saison = p_saison
+   order by t.score desc, t.at asc
+   limit greatest(1, least(coalesce(p_limit, 20), 50));
+$$;
+
+grant execute on function traineau_record(uuid,text,int,int,text) to anon, authenticated;
+grant execute on function traineau_top(text,int)                  to anon, authenticated;

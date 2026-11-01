@@ -241,4 +241,33 @@ module.exports = async function ({ groupe, verifie, ok, egal, vide, RACINE }) {
     ok(W.Boutique.possede("emote:noel"), "l'émote du 7 n'est pas débloquée");
     egal(W.Boutique.depense(), 5, "une récompense ne doit rien coûter");
   });
+
+  // ------------------------------------------------------------------
+  groupe("Traîneau");
+
+  verifie("des mots d'obstacles tapables (A à Z, 3 à 8 lettres), sans doublon, de chaque longueur", () => {
+    const m = N.traineau.mots;
+    vide(m.filter(x => !/^[A-Z]{3,8}$/.test(x)), "mots non tapables");
+    egal(new Set(m).size, m.length, "un mot en double");
+    for (let l = 3; l <= 8; l++) ok(m.filter(x => x.length === l).length >= 4, "trop peu de mots de " + l + " lettres");
+    ok(/^[0-9]{4}$/.test(N.traineau.saison), "saison mal écrite (le serveur attend 4 chiffres)");
+  });
+
+  verifie("le jeu est branché : clavier, flèches, sortie du mode, cache hors ligne", () => {
+    const idx = lire("index.html"), sw = lire("sw.js");
+    ok(/if\(mode==="traineau"\)\{ if\(window\.Traineau\) Traineau\.touche\(a\); return; \}/.test(idx), "les lettres n'arrivent pas au Traîneau");
+    ok(/if\(mode==="traineau"\) return !!\(window\.Traineau && Traineau\.fleche\(k\)\)/.test(idx), "les flèches ne changent pas de couloir");
+    ok(/if\(m!=="traineau" && window\.Traineau\) Traineau\.arreter\(\)/.test(idx), "changer de mode ne stoppe pas la course");
+    ok(/data-mode="traineau"/.test(idx), "pas d'entrée Traîneau dans le menu");
+    ok(sw.includes('"./noel/traineau.js?v="'), "traineau.js absent du cache");
+    ok(idx.indexOf('src="./dico/motus-noel.js') < idx.indexOf('src="./noel/traineau.js'), "les données de Noël doivent précéder le Traîneau");
+  });
+
+  verifie("records de la saison : le serveur garde le meilleur et borne les scores", () => {
+    const sql = lire("duel/schema.sql"), js = lire("duel/duel.js");
+    ok(/score\s*=\s*greatest\(traineau_records\.score, excluded\.score\)/.test(sql), "un moins bon score écraserait le record");
+    ok(/p_score > 200000/.test(sql), "aucune borne : un score fantaisiste passerait");
+    ok(/primary key \(player_id, saison\)/.test(sql), "un record par joueur ET par saison");
+    ok(/rpcList\("traineau_top"/.test(js), "le classement doit être lu en liste (rpcList)");
+  });
 };
