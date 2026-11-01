@@ -75,7 +75,8 @@ const FICHIERS = {
   ui:   "ui.test.js",
   quete:"quete.test.js",
   boutique:"boutique.test.js",
-  xp:   "xp.test.js"
+  xp:   "xp.test.js",
+  noel: "noel.test.js"
 };
 
 (async () => {

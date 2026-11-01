@@ -446,8 +446,10 @@
   /* =====================================================================
      Mode Défense — multijoueur asynchrone.
      Chaque joueur pose un mot ; les autres tentent de le percer, une seule
-     fois par version du mot. Toute la logique de droit d'attaque et de
-     comptage est tenue par la base (voir defense_* dans schema.sql).
+     fois par version du mot. Un mot percé RESTE en jeu (v2.8) : tant que
+     son propriétaire n'en change pas, chacun peut l'attaquer une fois, et
+     le mot cumule ses repoussées et ses percées. Toute la logique de droit
+     d'attaque et de comptage est tenue par la base (defense_* dans schema.sql).
      ===================================================================== */
   var F = {
     configured: configured,
@@ -482,9 +484,11 @@
     },
 
     /* Défenses que je peux attaquer maintenant. */
-    targets: function (limit) {
-      var m = me();
-      return rpcList("defense_targets", { p_id: m.id, p_limit: limit || 20 })
+    /* pseudo (facultatif) : la défense d'un joueur précis — lien partagé. */
+    targets: function (limit, pseudo) {
+      var m = me(), p = { p_id: m.id, p_limit: limit || 20 };
+      if (pseudo) p.p_pseudo = pseudo;
+      return rpcList("defense_targets", p)
         .catch(function () { return []; });
     },
 
@@ -516,18 +520,35 @@
         p_id: m.id, p_target: targetId, p_version: version,
         p_tries: o.tries || 0, p_won: !!o.won
       };
-      return rpc("defense_report", params).catch(function () {
+      /* Réponse (v2.8) : le bilan du mot après cette attaque —
+         { curWins, curLosses, deja } — ou null si le serveur n'a pas répondu. */
+      var lire = function (row) {
+        if (!row || typeof row !== "object") return null;
+        return { curWins: row.cur_wins || 0, curLosses: row.cur_losses || 0, deja: !!row.deja };
+      };
+      return rpc("defense_report", params).then(lire).catch(function () {
         return new Promise(function (resolve) { setTimeout(resolve, 900); })
           .then(function () { return rpc("defense_report", params); })
+          .then(lire)
           .catch(function () { return null; });
       });
     },
 
-    /* Journal des attaques subies (les plus récentes d'abord). */
+    /* Attaques subies (les plus récentes d'abord), avec le mot visé.
+       « actuel » : l'attaque visait le mot encore en place. */
     feed: function (limit) {
       var m = me();
       return rpcList("defense_feed", { p_id: m.id, p_limit: limit || 15 })
+        .then(function (l) { return (l || []).map(function (r) { r.mot = r.word ? show(r.word) : ""; return r; }); })
         .catch(function () { return []; });
+    },
+
+    /* Mes attaques, tenues par le serveur (donc sur tous mes appareils). */
+    history: function (limit) {
+      var m = me();
+      return rpcList("defense_history", { p_id: m.id, p_limit: limit || 40 })
+        .then(function (l) { return (l || []).map(function (r) { r.mot = r.word ? show(r.word) : ""; return r; }); })
+        .catch(function () { return null; });
     },
 
     markSeen: function () {

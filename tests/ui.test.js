@@ -122,13 +122,16 @@ module.exports = async function ({ groupe, verifie, ignore, ok, egal, vide }) {
     const app = demarrer({ expose:"function notifState", noms:NOMS, avant:avecNotifications("granted"),
                            stockage:{ "motus.seen":"true", "motus.tour":"true", "motus.notif":"true" } });
     masquerOnglet(app); await app.attendre(120);
+    /* On ne compte que NOS notifications : le rappel du mot du jour peut
+       partir de lui-même pendant que l'onglet est masqué (test instable). */
+    const miennes = () => app.w.__envoyees.filter(n => n.titre === "Titre").length;
     app.w.__visible = "visible";
     app.w.__t.notify("Titre", "Corps");
-    egal(app.w.__envoyees.length, 0, "une notification ferait doublon avec le message affiché");
+    egal(miennes(), 0, "une notification ferait doublon avec le message affiché");
     app.w.__visible = "hidden";
     app.w.__t.notify("Titre", "Corps");
     await app.attendre(60);
-    egal(app.w.__envoyees.length, 1, "onglet masqué : la notification doit partir");
+    egal(miennes(), 1, "onglet masqué : la notification doit partir");
   });
 
   verifie("le rappel du mot du jour ne se répète pas dans la journée", async () => {

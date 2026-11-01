@@ -562,7 +562,6 @@ create index if not exists defenses_active_idx on defenses (broken, updated_at);
 alter table defenses add column if not exists taunt      int default 0;   -- index 0-5 dans la liste côté client
 alter table defenses add column if not exists rate_sum   int default 0;   -- somme des étoiles reçues
 alter table defenses add column if not exists rate_count int default 0;   -- nombre de votes
-alter table defense_attacks add column if not exists stars int default 0; -- note donnée par l'attaquant (0 = pas encore noté)
 -- Ajouts v1.39 : compteurs propres au MOT EN COURS. wins/losses restent
 -- cumulés sur toute la carrière du joueur ; ceux-ci repartent à zéro à
 -- chaque nouveau mot posé.
@@ -586,6 +585,8 @@ create table if not exists defense_attacks (
 );
 create index if not exists defense_attacks_feed_idx
   on defense_attacks (defender_id, done, seen, created_at desc);
+-- (placé APRÈS la création de la table : sur une base neuve, l'ordre inverse échouait)
+alter table defense_attacks add column if not exists stars int default 0; -- note donnée par l'attaquant (0 = pas encore noté)
 
 alter table defenses        enable row level security;
 alter table defense_attacks enable row level security;
@@ -1793,3 +1794,233 @@ begin
 end $$;
 
 grant execute on function stats_ping(text) to anon, authenticated;
+
+-- =====================================================================
+-- v2.8 — Défense : un mot percé reste en jeu
+--
+-- Avant : dès qu'un joueur perçait une défense, elle passait « tombée »
+-- et PLUS PERSONNE ne pouvait l'attaquer jusqu'à ce que son propriétaire
+-- change de mot. Désormais, tant que le mot n'a pas changé, CHAQUE joueur
+-- peut l'attaquer une fois ; le mot cumule ses « repoussées » et ses
+-- « percées » (cur_wins / cur_losses), et le défenseur décide s'il en change.
+--
+-- Aussi :
+--  - une attaque commencée puis abandonnée (appli fermée) restait « en
+--    cours » pour toujours et ne comptait nulle part : après 24 h, elle est
+--    comptée comme repoussée (defense_expirer) ;
+--  - chaque attaque retient le mot visé et le pseudo du défenseur, pour un
+--    historique complet tenu par le serveur (sur tous les appareils) :
+--    defense_feed (attaques subies, par mot) et defense_history (mes attaques) ;
+--  - defense_report renvoie le bilan du mot (« tu es le 3e à le percer »).
+-- Sans risque à rejouer.
+-- =====================================================================
+alter table defense_attacks add column if not exists word text;              -- mot visé (obfusqué, comme dans defenses)
+alter table defense_attacks add column if not exists defender_pseudo text;
+create index if not exists defense_attacks_encours_idx on defense_attacks (created_at) where not done;
+create index if not exists defense_attacks_attaquant_idx on defense_attacks (attacker_id, created_at desc);
+
+-- les défenses « tombées » redeviennent attaquables (la colonne reste, inutilisée)
+update defenses set broken = false where broken;
+
+-- ---------- Attaques abandonnées depuis plus de 24 h : repoussées ----------
+create or replace function defense_expirer()
+returns void language plpgsql security definer as $$
+declare r record;
+begin
+  for r in
+    update defense_attacks set done = true, won = false, tries = 0
+     where not done and created_at < now() - interval '24 hours'
+    returning defender_id, version
+  loop
+    update defenses
+       set wins = wins + 1,
+           cur_wins = cur_wins + (case when version = r.version then 1 else 0 end)
+     where player_id = r.defender_id;
+  end loop;
+end $$;
+
+-- ---------- Ma défense (et ménage des attaques abandonnées) ----------
+create or replace function defense_mine(p_id uuid)
+returns defenses language plpgsql security definer as $$
+declare v_row defenses;
+begin
+  perform defense_expirer();
+  select * into v_row from defenses where player_id = p_id;
+  return v_row;
+end $$;
+
+-- ---------- Cibles : un mot percé reste attaquable ----------
+create or replace function defense_targets(p_id uuid, p_limit int default 20)
+returns table (
+  player_id uuid, pseudo text, level int, badge text,
+  wlen int, version int, wins int, losses int,
+  taunt int, rate_sum int, rate_count int, cur_wins int, cur_losses int
+) language sql security definer stable as $$
+  select d.player_id, d.pseudo, d.level, d.badge, d.wlen, d.version, d.wins, d.losses,
+         d.taunt, d.rate_sum, d.rate_count, d.cur_wins, d.cur_losses
+    from defenses d
+   where d.player_id <> p_id
+     and not exists (
+       select 1 from defense_attacks a
+        where a.defender_id = d.player_id
+          and a.attacker_id = p_id
+          and a.version = d.version
+     )
+   order by d.updated_at desc
+   limit greatest(1, least(coalesce(p_limit, 20), 50));
+$$;
+
+-- ---------- Lancer une attaque : plus de blocage après une percée ----------
+create or replace function defense_attack(p_id uuid, p_pseudo text, p_target uuid)
+returns table (word text, wlen int, version int, pseudo text) language plpgsql security definer as $$
+declare d defenses;
+begin
+  if p_id = p_target then raise exception 'soi-meme'; end if;
+  select * into d from defenses where player_id = p_target for update;
+  if d.player_id is null then raise exception 'introuvable'; end if;
+
+  begin
+    insert into defense_attacks (defender_id, attacker_id, attacker_pseudo, version, word, defender_pseudo)
+    values (p_target, p_id, p_pseudo, d.version, d.word, d.pseudo);
+  exception when unique_violation then
+    raise exception 'deja-tente';
+  end;
+
+  return query select d.word, d.wlen, d.version, d.pseudo;
+end $$;
+
+-- ---------- Résultat : le mot reste en jeu ; on renvoie son bilan ----------
+drop function if exists defense_report(uuid,uuid,int,int,boolean);
+create or replace function defense_report(
+  p_id uuid, p_target uuid, p_version int, p_tries int, p_won boolean
+) returns table (cur_wins int, cur_losses int, deja boolean)
+language plpgsql security definer as $$
+declare v_done boolean; v_deja boolean := false;
+begin
+  select a.done into v_done from defense_attacks a
+   where a.defender_id = p_target and a.attacker_id = p_id and a.version = p_version;
+  if v_done is null then raise exception 'introuvable'; end if;
+
+  if v_done then
+    v_deja := true;                                  -- déjà comptabilisé : on renvoie juste le bilan
+  else
+    update defense_attacks a
+       set tries = greatest(0, least(coalesce(p_tries,0), 6)), won = coalesce(p_won,false), done = true
+     where a.defender_id = p_target and a.attacker_id = p_id and a.version = p_version;
+    if p_won then
+      update defenses d set losses = d.losses + 1,
+                            cur_losses = d.cur_losses + (case when d.version = p_version then 1 else 0 end),
+                            updated_at = now()
+       where d.player_id = p_target;
+    else
+      update defenses d set wins = d.wins + 1,
+                            cur_wins = d.cur_wins + (case when d.version = p_version then 1 else 0 end)
+       where d.player_id = p_target;
+    end if;
+  end if;
+
+  return query select d.cur_wins, d.cur_losses, v_deja
+                 from defenses d where d.player_id = p_target and d.version = p_version;
+end $$;
+
+-- ---------- Attaques subies, avec le mot visé ----------
+drop function if exists defense_feed(uuid, int);
+create or replace function defense_feed(p_id uuid, p_limit int default 15)
+returns table (
+  attacker_pseudo text, tries int, won boolean, seen boolean, stars int, created_at timestamptz,
+  version int, word text, actuel boolean
+) language plpgsql security definer as $$
+begin
+  perform defense_expirer();
+  return query
+  select a.attacker_pseudo, a.tries, a.won, a.seen, a.stars, a.created_at,
+         a.version, a.word, (a.version = d.version)
+    from defense_attacks a
+    left join defenses d on d.player_id = a.defender_id
+   where a.defender_id = p_id and a.done
+   order by a.created_at desc
+   limit greatest(1, least(coalesce(p_limit, 15), 100));
+end $$;
+
+-- ---------- Mes attaques (tenues par le serveur : tous mes appareils) ----------
+create or replace function defense_history(p_id uuid, p_limit int default 40)
+returns table (
+  defender_id uuid, pseudo text, tries int, won boolean, created_at timestamptz,
+  word text, actuel boolean
+) language sql security definer stable as $$
+  select a.defender_id, coalesce(d.pseudo, a.defender_pseudo, 'Anonyme'), a.tries, a.won, a.created_at,
+         a.word, (d.version is not distinct from a.version)
+    from defense_attacks a
+    left join defenses d on d.player_id = a.defender_id
+   where a.attacker_id = p_id and a.done
+   order by a.created_at desc
+   limit greatest(1, least(coalesce(p_limit, 40), 100));
+$$;
+
+grant execute on function defense_expirer()                          to anon, authenticated;
+grant execute on function defense_mine(uuid)                         to anon, authenticated;
+grant execute on function defense_targets(uuid,int)                  to anon, authenticated;
+grant execute on function defense_attack(uuid,text,uuid)             to anon, authenticated;
+grant execute on function defense_report(uuid,uuid,int,int,boolean)  to anon, authenticated;
+grant execute on function defense_feed(uuid,int)                     to anon, authenticated;
+grant execute on function defense_history(uuid,int)                  to anon, authenticated;
+
+-- =====================================================================
+-- v2.8.1 — Défense : la première lettre avant d'attaquer, et le lien
+-- « viens attaquer ma défense » qui mène droit au bon joueur
+--
+-- Le jeu donne de toute façon la première lettre en début de partie : la
+-- montrer dans la liste évite de « gâcher » sa seule tentative sur un mot
+-- dont on découvre trop tard qu'il commence par X et fait 12 lettres.
+-- p_pseudo (facultatif) filtre sur un joueur : utilisé par le lien partagé.
+-- =====================================================================
+create or replace function defense_premiere(p_word text)
+returns text language plpgsql immutable as $$
+begin
+  -- les mots sont stockés retournés puis encodés en base64 (voir hide() dans duel.js)
+  return left(reverse(convert_from(decode(p_word, 'base64'), 'UTF8')), 1);
+exception when others then
+  return null;
+end $$;
+
+drop function if exists defense_targets(uuid,int);
+drop function if exists defense_targets(uuid,int,text);
+create or replace function defense_targets(p_id uuid, p_limit int default 20, p_pseudo text default null)
+returns table (
+  player_id uuid, pseudo text, level int, badge text,
+  wlen int, version int, wins int, losses int,
+  taunt int, rate_sum int, rate_count int, cur_wins int, cur_losses int,
+  premiere text
+) language sql security definer stable as $$
+  select d.player_id, d.pseudo, d.level, d.badge, d.wlen, d.version, d.wins, d.losses,
+         d.taunt, d.rate_sum, d.rate_count, d.cur_wins, d.cur_losses,
+         defense_premiere(d.word)
+    from defenses d
+   where d.player_id <> p_id
+     and (p_pseudo is null or lower(d.pseudo) = lower(btrim(p_pseudo)))
+     and not exists (
+       select 1 from defense_attacks a
+        where a.defender_id = d.player_id
+          and a.attacker_id = p_id
+          and a.version = d.version
+     )
+   order by d.updated_at desc
+   limit greatest(1, least(coalesce(p_limit, 20), 50));
+$$;
+
+grant execute on function defense_targets(uuid,int,text) to anon, authenticated;
+
+-- =====================================================================
+-- v2.9 — Battle Royale : les émotes de Noël (calendrier de l'avent)
+-- « noel » (🎅 Joyeux Noël !) et « bonhomme » (⛄) rejoignent la liste
+-- blanche. Le jeu ne les propose qu'aux joueurs qui les ont débloquées,
+-- mais tout le monde les voit s'afficher.
+-- =====================================================================
+create or replace function royale_emote(p_code text, p_id uuid, p_emote text)
+returns void language plpgsql security definer as $$
+begin
+  if p_emote !~ '^(gg|bravo|vite|oups|lol|coeur|feu|deception|noel|bonhomme)$' then return; end if;
+  update royale_players set emote = p_emote, emote_at = now()
+   where room_id = upper(btrim(p_code)) and player_id = p_id;
+end $$;
+grant execute on function royale_emote(text,uuid,text) to anon, authenticated;

@@ -163,7 +163,7 @@ module.exports = function ({ groupe, verifie, ok, egal, vide, RACINE }) {
     /* « returns table » ne signifie pas forcément plusieurs lignes :
        defense_attack en déclare une seule (le mot ciblé). On ne contrôle
        donc que les fonctions réellement multi-lignes. */
-    const UNE_SEULE_LIGNE = ["defense_attack"];
+    const UNE_SEULE_LIGNE = ["defense_attack", "defense_report"];   // le bilan du mot attaqué : une ligne
     const listes = [...sql.matchAll(/create or replace function\s+(\w+)\s*\([^)]*\)\s*returns table/gi)]
       .map(m => m[1])
       .filter(fn => !UNE_SEULE_LIGNE.includes(fn));
@@ -176,9 +176,42 @@ module.exports = function ({ groupe, verifie, ok, egal, vide, RACINE }) {
     /* PostgreSQL refuse un changement de type de retour, et garde deux
        surcharges si la signature change : sans drop, la migration casse. */
     const sql = fs.readFileSync(path.join(RACINE, "duel", "schema.sql"), "utf8");
-    const aVerifier = ["perso_suggest", "perso_approved", "perso_pending", "defense_set", "defense_targets", "defense_feed"];
+    const aVerifier = ["perso_suggest", "perso_approved", "perso_pending", "defense_set", "defense_targets", "defense_feed", "defense_report"];
     vide(aVerifier.filter(fn => !new RegExp("drop function if exists\\s+" + fn + "\\s*\\(", "i").test(sql)),
          "sans drop préalable");
+  });
+
+  // ------------------------------------------------------------------
+  groupe("Défense");
+
+  /* La DERNIÈRE définition d'une fonction dans schema.sql est celle qui
+     s'applique une fois le script exécuté. */
+  const derniere = (sql, fn) => {
+    const l = [...sql.matchAll(new RegExp("create or replace function\\s+" + fn + "\\s*\\(([\\s\\S]*?)\\$\\$([\\s\\S]*?)\\$\\$", "gi"))];
+    return l.length ? l[l.length - 1][2] : "";
+  };
+
+  verifie("un mot trouvé reste attaquable par les autres (v2.8)", () => {
+    const sql = fs.readFileSync(path.join(RACINE, "duel", "schema.sql"), "utf8");
+    ok(!/defense-tombee/.test(derniere(sql, "defense_attack")), "defense_attack bloque encore un mot déjà trouvé");
+    ok(!/broken\s*=\s*true/.test(derniere(sql, "defense_report")), "defense_report fait encore « tomber » la défense");
+    ok(!/not d\.broken/.test(derniere(sql, "defense_targets")), "defense_targets cache encore les mots trouvés");
+    ok(/unique \(defender_id, attacker_id, version\)/.test(sql), "une seule tentative par joueur et par mot n'est plus garantie");
+  });
+
+  verifie("on peut abandonner une attaque, et elle reprend après fermeture de l'appli", () => {
+    const idx = fs.readFileSync(path.join(RACINE, "index.html"), "utf8");
+    ok(/GIVEUP_MODES = HINT_MODES\.concat\(\[[^\]]*"defense"/.test(idx), "pas de bouton Abandonner en Défense");
+    ok(/f\.mode!=="defense"/.test(idx), "une attaque pourrait revenir comme un mot libre, sans résultat transmis");
+    ok(/last==="defense"/.test(idx) && /function defReprendre/.test(idx), "l'attaque en cours n'est pas reprise au lancement");
+    ok(/if\(m==="defense"\)\{ defOpen\(\); return; \}/.test(idx), "startFree(\"defense\") tirerait un mot dans une liste qui n'existe pas");
+  });
+
+  verifie("un seul historique (plus de « journal de guerre » en double)", () => {
+    const idx = fs.readFileSync(path.join(RACINE, "index.html"), "utf8");
+    ok(!/Journal de guerre/.test(idx), "le libellé « Journal de guerre » est encore affiché");
+    ok(!/id="defFeed"/.test(idx), "la liste « Attaques subies » est encore sur l'écran principal");
+    ok(/defense_history/.test(fs.readFileSync(path.join(RACINE, "duel", "duel.js"), "utf8")), "mes attaques ne viennent pas du serveur");
   });
 
   // ------------------------------------------------------------------

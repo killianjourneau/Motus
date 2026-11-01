@@ -129,10 +129,20 @@
     {id:"chat1", e:"🐈‍⬛", n:"Ami des chats",      d:"Adopter un chat noir dans la boutique", c:"Compagnon", t:function(b,s){return !!(s.boutique && s.boutique.objets && ("chat" in s.boutique.objets));}},
     {id:"chat5", e:"🎩", n:"Chat coquet",         d:"Offrir 5 objets à ton chat",            c:"Compagnon", t:function(b,s){return objetsChat(s)>=5;}, p:[function(b,s){return objetsChat(s);},5]},
     {id:"chatAmi", e:"💞", n:"Inséparables",      d:"Atteindre la complicité maximale avec ton chat", c:"Compagnon",
-      t:function(b,s){return ((s.boutique && s.boutique.complicite) || 0) >= 100;}, p:[function(b,s){return (s.boutique && s.boutique.complicite) || 0;}, 100]},
+      t:function(b,s){return complicMax(s) >= 100;}, p:[function(b,s){return complicMax(s);}, 100]},
     {id:"chatTout",e:"👑",n:"Chat royal",         d:"Offrir à ton chat tous les objets de la boutique", c:"Compagnon",
       t:function(b,s){ var C = window.Boutique && Boutique.catalogue; return !!C && C.every(function(x){ return x.cadeau || (s.boutique && s.boutique.objets && (x.id in s.boutique.objets)); }); },
-      p:[function(b,s){return objetsChat(s);}, 18]},
+      p:[function(b,s){return objetsChat(s);}, 22]},
+    {id:"av1",   e:"🗓️", n:"Première case",       d:"Ouvrir une case du calendrier de l'avent", c:"Saison", t:function(b,s){return casesAvent(s)>=1;}, p:[function(b,s){return casesAvent(s);},1]},
+    {id:"av12",  e:"🎄", n:"À mi-chemin",         d:"Ouvrir 12 cases du calendrier de l'avent", c:"Saison", t:function(b,s){return casesAvent(s)>=12;}, p:[function(b,s){return casesAvent(s);},12]},
+    {id:"av24",  e:"🎁", n:"Calendrier complet",  d:"Ouvrir les 24 cases du calendrier de l'avent", c:"Saison", t:function(b,s){return casesAvent(s)>=24;}, p:[function(b,s){return casesAvent(s);},24]},
+    {id:"avmot5",  e:"🧝", n:"Lutin malin",        d:"Trouver 5 mots du calendrier de l'avent", c:"Saison", t:function(b,s){return motsAvent(s)>=5;}, p:[function(b,s){return motsAvent(s);},5]},
+    {id:"avmot20", e:"❄️", n:"Maître des neiges",  d:"Trouver 20 mots du calendrier de l'avent", c:"Saison", t:function(b,s){return motsAvent(s)>=20;}, p:[function(b,s){return motsAvent(s);},20]},
+    {id:"avfidele",e:"⏰", n:"Fidèle au poste",     d:"Ouvrir les 24 cases du calendrier, chacune le jour même", c:"Saison", h:1, t:function(b,s){return aventSansRattrapage(s);}},
+    {id:"avpate",  e:"🍖", n:"Repas de fête",       d:"Offrir une pâtée de fête à ton chat", c:"Saison", t:function(b,s){return !!(s.boutique && s.boutique.pates && Object.keys(s.boutique.pates).length);}},
+    {id:"avtenue", e:"🎅", n:"Tenue de fête",       d:"Habiller un chat de 3 accessoires de Noël à la fois", c:"Saison", t:function(b,s){return tenueNoel(s)>=3;}, p:[function(b,s){return tenueNoel(s);},3]},
+    {id:"embNoel", e:"🎄", n:"Esprit de Noël",    d:"Ouvrir la case du 20 décembre du calendrier de l'avent", c:"Saison", t:function(b,s){return !!(s.boutique && s.boutique.objets && ("embleme:noel" in s.boutique.objets));}},
+    {id:"aube",  e:"🤍", n:"Une aube blanche",    d:"Accueillir Aube, la chatte blanche", c:"Saison", t:function(b,s){return !!(s.boutique && s.boutique.objets && ("aube" in s.boutique.objets));}},
     {id:"hw1",   e:"🎃", n:"Premier frisson",     d:"Jouer un Mot terrifiant (Halloween)",   c:"Saison", t:function(b){return b.hwPeur>=1;}, p:[function(b){return b.hwPeur;},1]},
     {id:"hw5",   e:"👻", n:"Chasseur de fantômes", d:"Trouver 5 Mots terrifiants",           c:"Saison", t:function(b){return b.hwPeurWin>=5;}, p:[function(b){return b.hwPeurWin;},5]},
     {id:"hw15",  e:"🧛", n:"Seigneur de la nuit", d:"Trouver 15 Mots terrifiants",           c:"Saison", t:function(b){return b.hwPeurWin>=15;}, p:[function(b){return b.hwPeurWin;},15]},
@@ -289,6 +299,8 @@
      tenue, nom et affichage au choix le plus récent. Même règle que
      boutique/boutique.js — un achat n'est jamais perdu ni compté deux fois. */
   function fusionBoutique(a, b) {
+    // la boutique chargée connaît toutes les règles (croquettes, bonus…) : elle fait foi
+    if (window.Boutique && Boutique.fusion) { try { return Boutique.fusion(a, b); } catch (e) {} }
     a = a || {}; b = b || {};
     var r = { objets: {}, porte: a.porte || {}, porteAt: a.porteAt || 0, nom: a.nom || "Minuit", nomAt: a.nomAt || 0,
               visible: a.visible !== false, visibleAt: a.visibleAt || 0 };
@@ -300,6 +312,23 @@
     if ((b.visibleAt || 0) > r.visibleAt) { r.visible = b.visible !== false; r.visibleAt = b.visibleAt; }
     // complicité avec le chat : un cumul, qui ne fait que grandir
     r.complicite = Math.max(+a.complicite || 0, +b.complicite || 0);
+    // Aube (calendrier de l'avent) : sa tenue, son nom, son affichage — au plus récent
+    var xa = a.aube || {}, ya = b.aube || {};
+    r.aube = { porte: xa.porte || {}, porteAt: xa.porteAt || 0, nom: xa.nom || "Aube", nomAt: xa.nomAt || 0,
+               visible: xa.visible !== false, visibleAt: xa.visibleAt || 0 };
+    if ((ya.porteAt || 0) > r.aube.porteAt) { r.aube.porte = ya.porte || {}; r.aube.porteAt = ya.porteAt; }
+    if ((ya.nomAt || 0) > r.aube.nomAt && ya.nom) { r.aube.nom = ya.nom; r.aube.nomAt = ya.nomAt; }
+    if ((ya.visibleAt || 0) > r.aube.visibleAt) { r.aube.visible = ya.visible !== false; r.aube.visibleAt = ya.visibleAt; }
+    r.aube.complicite = Math.max(+xa.complicite || 0, +ya.complicite || 0);
+    // croquettes (v2.9) : gains au maximum par clé, repas / bonus / pâtées en union
+    var ca = a.croq || {}, cb = b.croq || {};
+    r.croq = { gains: {}, repas: {} };
+    [ca.gains || {}, cb.gains || {}].forEach(function (g) { Object.keys(g).forEach(function (k) { r.croq.gains[k] = Math.max(r.croq.gains[k] || 0, +g[k] || 0); }); });
+    [ca.repas || {}, cb.repas || {}].forEach(function (g) { Object.keys(g).forEach(function (k) { if (!(k in r.croq.repas)) r.croq.repas[k] = g[k]; }); });
+    ["bonus", "pates"].forEach(function (f) {
+      r[f] = {};
+      [a[f] || {}, b[f] || {}].forEach(function (g) { Object.keys(g).forEach(function (k) { if (!(k in r[f])) r[f][k] = g[k]; }); });
+    });
     return r;
   }
   // objets ACHETÉS pour le chat (ni l'adoption, ni la médaille qu'il offre lui-même)
@@ -369,7 +398,25 @@
         3200, function () { try { if (window.motusSon) window.motusSon("niveau"); } catch (e) {} });
     }
   }
-  function objetsChat(s) { var o = (s && s.boutique && s.boutique.objets) || {}; return Object.keys(o).filter(function (k) { return k !== "chat" && +o[k] > 0; }).length; }
+  // les rattrapages du calendrier (« avent-07 ») sont payés mais ne sont pas des objets
+  function objetsChat(s) { var o = (s && s.boutique && s.boutique.objets) || {}; return Object.keys(o).filter(function (k) { return k !== "chat" && k.indexOf("avent") !== 0 && +o[k] > 0; }).length; }
+  // la complicité la plus haute parmi les chats (chacun a la sienne depuis la v2.9)
+  function complicMax(s) { var bq = (s && s.boutique) || {}; return Math.max(+bq.complicite || 0, +((bq.aube || {}).complicite) || 0); }
+  // calendrier de l'avent : mots trouvés, et cases toutes ouvertes le jour même (aucun rattrapage)
+  function motsAvent(s) { var o = (s && s.boutique && s.boutique.objets) || {}; return Object.keys(o).filter(function (k) { return /^avent-\d\d-ok$/.test(k); }).length; }
+  function aventSansRattrapage(s) { var o = (s && s.boutique && s.boutique.objets) || {}; return casesAvent(s) >= 24 && !Object.keys(o).some(function (k) { return /^avent-\d\d$/.test(k); }); }
+  // le plus d'accessoires de Noël portés en même temps par un même chat
+  var NOEL_ACC = ["bonnet", "lutin", "rennes", "sucreOrge", "nez", "echarpeNoel", "clochette", "manteau"];
+  function tenueNoel(s) {
+    var bq = (s && s.boutique) || {}, max = 0;
+    [bq.porte || {}, (bq.aube || {}).porte || {}].forEach(function (p) {
+      var n = Object.keys(p).filter(function (slot) { return NOEL_ACC.indexOf(p[slot]) >= 0; }).length;
+      if (n > max) max = n;
+    });
+    return max;
+  }
+  // cases du calendrier de l'avent ouvertes (jouées)
+  function casesAvent(s) { var o = (s && s.boutique && s.boutique.objets) || {}; return Object.keys(o).filter(function (k) { return /^avent-\d\d-j$/.test(k); }).length; }
   // moment de la dernière partie jouée sur CET appareil : départage les séries à la fusion
   function joue() { state.b.jeuAt = Date.now(); }
 
@@ -873,7 +920,10 @@
     });
     var boutonSave = el("compteSave");
     if (boutonSave) boutonSave.addEventListener("click", function () {
-      var lien = location.origin + location.pathname + "?compte=" + state.id;
+      // depuis l'ancienne adresse GitHub : le lien mène à la nouvelle (le compte y est récupéré via le serveur)
+      var base = /(^|\.)github\.io$/.test(location.hostname) ? "https://mot-en-six.gamesbyneur.workers.dev/"
+               : location.origin + location.pathname;
+      var lien = base + "?compte=" + state.id;
       var txt = "Mon compte " + (state.pseudo || "") + " — ouvre ce lien pour le récupérer :\n" + lien;
       marquerSauve();
       if (navigator.share) navigator.share({ text: txt }).catch(function () { copier(txt); });

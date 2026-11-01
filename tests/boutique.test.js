@@ -15,13 +15,14 @@ module.exports = async function ({ groupe, verifie, ignore, ok, egal, vide, RACI
   function charger() {
     const el = () => ({ style:{}, classList:{ toggle(){}, contains(){ return false; }, add(){}, remove(){} },
                         appendChild(){}, addEventListener(){}, querySelector(){ return null; } });
-    const d = { getElementById: () => null, createElement: el, head: el(), body: el(),
+    const d = { getElementById: () => null, createElement: el, head: el(), body: el(), addEventListener(){},
                 documentElement: el(), currentScript: null, querySelectorAll: () => [] };
     const memoire = {};
     const w = { localStorage: { getItem: k => (k in memoire ? memoire[k] : null), setItem: (k, v) => { memoire[k] = String(v); } } };
     new Function("window", "document", "localStorage", lire("boutique/chat.js"))(w, d, w.localStorage);
     // dans un navigateur, ChatNoir est global ; ici on le fournit explicitement
-    new Function("window", "document", "localStorage", "ChatNoir", lire("boutique/boutique.js"))(w, d, w.localStorage, w.ChatNoir);
+    // setInterval neutralisé (repas du jour) : le test ne doit pas rester ouvert
+    new Function("window", "document", "localStorage", "ChatNoir", "setInterval", lire("boutique/boutique.js"))(w, d, w.localStorage, w.ChatNoir, () => 0);
     return w;
   }
 

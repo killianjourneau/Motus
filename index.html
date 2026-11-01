@@ -15,13 +15,13 @@
 <meta property="og:title" content="Mot en Six — trouve le mot caché en 6 essais">
 <meta property="og:description" content="Mot du jour, grammaire et orthographe du jour, duels, Battle Royale et mode Junior. Gratuit, sans publicité, jouable hors-ligne.">
 <meta property="og:url" content="https://mot-en-six.gamesbyneur.workers.dev/">
-<meta property="og:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.7.0">
+<meta property="og:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.6.1">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Mot en Six — trouve le mot caché en 6 essais">
 <meta name="twitter:description" content="Mot du jour, grammaire et orthographe du jour, duels et Battle Royale.">
-<meta name="twitter:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.7.0">
+<meta name="twitter:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.6.1">
 <link rel="canonical" href="https://mot-en-six.gamesbyneur.workers.dev/">
 <script type="application/ld+json">
 {
@@ -63,6 +63,7 @@
   :root[data-accent="orange"]{ --accent:#d4631a; }
   :root[data-accent="pink"]{ --accent:#cf3580; }
   :root[data-accent="teal"]{ --accent:#0c8579; }
+  :root[data-accent="sapin"]{ --accent:#1f7a46; }
   :root[data-theme="light"]{
     --bg:#eef2f9; --bg-2:#dfe7f3; --cell:#cdd8ea; --cell-edge:#b6c5df;
     --red:#e23a44; --yellow:#f2be14; --absent:#aebbd0;
@@ -214,6 +215,10 @@
   /* ---------- Halloween (le décor lui-même est dans decors/halloween.js) ---------- */
   .hw-cat{ color:#f0681a !important; }
   .hw-item{ box-shadow:inset 0 0 0 1.5px #f0681a !important; }
+  /* ---------- Noël (décor : decors/noel.js ; calendrier : noel/avent.js) ---------- */
+  .noel-cat{ color:#3ddc84 !important; }
+  .noel-item{ box-shadow:inset 0 0 0 1.5px #d7263d !important; }
+  .avent-fin{ display:block; margin-top:8px; font-size:14px; line-height:1.5; }
   .hw-theme-btn{ display:block; margin:6px auto 2px; border:none; background:none; color:var(--ink-dim);
     font-size:12px; font-weight:700; text-decoration:underline; cursor:pointer; }
 
@@ -373,6 +378,7 @@
   .def-mine .w{ font-size:22px; font-weight:800; letter-spacing:3px; color:var(--accent); }
   .def-mine .s{ font-size:12.5px; color:var(--ink-dim); font-weight:700; margin-top:4px; }
   .def-mine .warn{ color:var(--red); font-weight:800; }
+  .def-mine .info{ color:var(--ink); font-weight:700; }
   .def-mine button{ width:100%; height:40px; margin-top:9px; border:none; border-radius:11px;
     background:var(--accent); color:#fff; font-weight:800; font-size:14px; cursor:pointer; }
   .def-mine button.ghost{ background:var(--bg-2); color:var(--ink); box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
@@ -384,6 +390,17 @@
   .def-ev.atk{ box-shadow:inset 3px 0 0 var(--accent); }
   .def-ev.def{ box-shadow:inset 3px 0 0 var(--ink-dim); }
   .def-journal{ max-height:52vh; overflow-y:auto; margin-bottom:10px; }
+  .def-histo-btn{ position:relative; margin:0 0 12px; }
+  .def-histo-btn .pastille{ display:inline-block; min-width:18px; padding:1px 6px; margin-left:6px; border-radius:10px;
+    background:var(--accent); color:#fff; font-size:11.5px; font-weight:800; }
+  .def-mot{ background:var(--cell); border-radius:12px; padding:9px 11px 6px; margin-bottom:10px; box-shadow:inset 0 0 0 1.5px var(--cell-edge); }
+  .def-mot.actuel{ box-shadow:inset 0 0 0 2px var(--accent); }
+  .def-mot .tete{ display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 8px; margin-bottom:6px; }
+  .def-mot .tete b{ font-size:15px; letter-spacing:2px; }
+  .def-mot .tete i{ font-style:normal; font-size:11px; font-weight:800; color:var(--accent); text-transform:uppercase; white-space:nowrap; }
+  .def-mot .tete span{ margin-left:auto; font-size:12px; font-weight:800; color:var(--ink-dim); white-space:nowrap; }
+  .def-mot .def-ev{ background:var(--bg-2); }
+  .def-fin{ display:block; margin-top:8px; font-size:14px; line-height:1.45; }
   .def-bilan{ display:flex; gap:10px; justify-content:center; font-size:13px; font-weight:800;
     padding:9px; background:var(--cell); border-radius:11px; margin-bottom:10px; }
   .def-ev .ic{ flex:none; font-size:15px; }
@@ -396,7 +413,10 @@
   .def-tg:active{ transform:scale(.98); }
   .def-tg .nm{ flex:1; font-weight:800; font-size:14.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .def-tg .meta{ font-size:11.5px; color:var(--ink-dim); font-weight:700; }
-  .def-tg .ln{ flex:none; font-weight:800; font-size:13px; color:var(--accent); }
+  .def-tg .ln{ flex:none; font-weight:800; font-size:13px; color:var(--accent); display:flex; align-items:center; gap:6px; }
+  .def-tg .pl{ display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:6px;
+    background:var(--red); color:#fff; font-size:14px; }
+  .def-tg.cible{ box-shadow:inset 0 0 0 2px var(--accent); }
   .def-none{ font-size:13px; color:var(--ink-dim); text-align:center; padding:10px 0; font-style:italic; }
   .perso-note{ min-height:70px; resize:vertical; font-family:inherit; line-height:1.4; padding:10px 12px; }
   .perso-sg{ background:var(--cell); border-radius:12px; padding:11px; margin-bottom:9px; }
@@ -776,6 +796,13 @@
         </div>
         <button class="hw-theme-btn" id="hwThemeBtn" type="button"></button>
       </div>
+      <div id="noelSection" style="display:none">
+        <div class="mode-cat noel-cat">🎄 Noël · jusqu'au 6 janvier</div>
+        <div class="mode-grid">
+          <button class="mode-item nouveau noel-item" id="modeAvent"><span class="mi">🗓️</span><b>Calendrier de l'avent</b><i id="modeAventSub">Une case par jour</i></button>
+        </div>
+        <button class="hw-theme-btn" id="noelThemeBtn" type="button"></button>
+      </div>
       <div class="mode-cat">Classique</div>
       <div class="mode-grid">
         <button class="mode-item" data-mode="court"><span class="mi">🐤</span><b>Court</b><i>4-5 lettres</i></button>
@@ -1040,8 +1067,10 @@
     <div class="modal">
       <div class="res-big" id="defAlertIc" style="text-align:center;font-size:48px">💥</div>
       <h2 id="defAlertTitle" style="text-align:center">Ta défense a été attaquée</h2>
+      <p class="sub" id="defAlertSub" style="text-align:center"></p>
       <div class="def-feed show" id="defAlertList"></div>
       <button class="btn" id="defAlertRiposte">⚔️ Contre-attaquer</button>
+      <button class="btn ghost" id="defAlertChanger" style="display:none">🔁 Changer de mot</button>
       <button class="btn ghost" id="defAlertClose">Plus tard</button>
     </div>
   </div>
@@ -1064,6 +1093,9 @@
           <button class="admin-tuile" id="adminGoPropos">
             <span class="e">📥</span><b>Propositions</b><i id="adminNbPropos">à valider</i>
           </button>
+          <button class="admin-tuile" id="adminGoNoel">
+            <span class="e">🎄</span><b>Aperçu de Noël</b><i>Tester le calendrier avant l'heure</i>
+          </button>
         </div>
       </div>
 
@@ -1078,6 +1110,17 @@
         <div class="aj-cherche"><input id="ajQ" class="duel-in" placeholder="Pseudo…" autocomplete="off" spellcheck="false"><button class="btn" id="ajGo">Chercher</button></div>
         <div id="ajListe"></div>
         <button class="btn ghost" id="adminRetour3">Retour</button>
+      </div>
+
+      <div id="adminNoel" style="display:none">
+        <p class="sub">Simule une date de l'événement sur CET appareil : décor, calendrier, cadeaux et arrivée d'Aube.
+          Rien n'est enregistré (ni cadeau, ni jeton, ni résultat), et tout revient à la normale au rechargement.</p>
+        <div class="aj-cherche"><input id="noelDate" class="duel-in" type="date" value="2026-12-07" min="2026-12-01" max="2027-01-06">
+          <button class="btn" id="noelApercuGo">Voir</button></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:8px 0">
+          <button class="btn ghost" id="noelApercuStop">Arrêter l'aperçu</button>
+        </div>
+        <button class="btn ghost" id="adminRetour4">Retour</button>
       </div>
 
       <div id="adminPropos" style="display:none">
@@ -1114,19 +1157,21 @@
       <button class="close-x" data-close>&times;</button>
       <h2>🛡️ Défense</h2>
 
-      <!-- Écran principal : ma défense + cibles -->
+      <!-- Écran principal : ma défense, l'historique, les cibles -->
       <div id="defStep1">
         <div class="def-mine" id="defMine"></div>
-        <div class="def-feed" id="defFeed"></div>
+        <button class="btn ghost def-histo-btn" id="defJournalBtn">📜 Historique</button>
+        <p class="duel-msg" id="defMsg"></p>
         <p class="race-lbl" id="defTargetsLbl">Défenses à percer</p>
         <div class="def-targets" id="defTargets"></div>
-        <button class="btn ghost" id="defJournalBtn">📜 Journal de guerre</button>
-        <p class="duel-msg" id="defMsg"></p>
       </div>
 
-      <!-- Journal de guerre : mes attaques ET mes défenses -->
+      <!-- Historique : UN seul endroit, deux onglets (ce qu'on a subi, ce qu'on a mené) -->
       <div id="defStep4" style="display:none">
-        <p class="sub">Tout ce que tu as mené et subi.</p>
+        <div class="duel-tabs" id="defHistoTabs">
+          <button class="dtab active" data-dh="mot">🛡️ Mon mot</button>
+          <button class="dtab" data-dh="atk">⚔️ Mes attaques</button>
+        </div>
         <div class="def-journal" id="defJournal"></div>
         <button class="btn ghost" id="defJournalBack">Retour</button>
       </div>
@@ -1148,8 +1193,10 @@
         <p class="sub">Tu vas attaquer la défense de</p>
         <div class="def-who" id="defAtkWho">—</div>
         <ul class="xrules">
-          <li>Le mot fait <b id="defAtkLen">?</b> lettres. Tu as <b>6 tentatives</b>.</li>
-          <li><b>Une seule chance.</b> Si tu échoues — ou si tu quittes en cours de route — tu ne pourras réessayer que lorsque ce joueur changera de mot.</li>
+          <li>Le mot fait <b id="defAtkLen">?</b> lettres<span id="defAtkPrem"></span>. Tu as <b>6 tentatives</b>.</li>
+          <li id="defAtkBilan" style="display:none"></li>
+          <li><b>Une seule chance par mot.</b> Si tu échoues ou abandonnes, tu pourras réessayer quand ce joueur changera de mot.</li>
+          <li>Si l'appli se ferme en cours de route, l'attaque reprend à la réouverture.</li>
         </ul>
         <button class="btn" id="defAtkGo">Attaquer</button>
         <button class="btn ghost" id="defAtkBack">Retour</button>
@@ -1235,25 +1282,27 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=2.7.0"></script>
-<script src="./dico/motus-grammaire.js?v=2.7.0"></script>
-<script src="./dico/motus-halloween.js?v=2.7.0"></script>
-<script src="./decors/decors.js?v=2.7.0"></script>
-<script src="./dico/motus-ortho.js?v=2.7.0"></script>
-<script src="./dico/motus-prenoms.js?v=2.7.0"></script>
-<script src="./dico/motus-prenoms-info.js?v=2.7.0"></script>
-<script src="./dico/motus-maladies.js?v=2.7.0"></script>
-<script src="./dico/motus-maladies-info.js?v=2.7.0"></script>
-<script src="./dico/motus-villes.js?v=2.7.0"></script>
-<script src="./dico/motus-villes-info.js?v=2.7.0"></script>
-<script src="./dico/motus-persos.js?v=2.7.0"></script>
-<script src="./dico/motus-persos-info.js?v=2.7.0"></script>
-<script src="./dico/motus-persos-split.js?v=2.7.0"></script>
-<script src="./dico/motus-race.js?v=2.7.0"></script>
-<script src="./dico/motus-expert.js?v=2.7.0"></script>
-<script src="./profiles/config.js?v=2.7.0"></script>
-<script src="./profiles/profile.js?v=2.7.0"></script>
-<script src="./duel/duel.js?v=2.7.0"></script>
+<script src="./dico/motus-words.js?v=2.6.1"></script>
+<script src="./dico/motus-grammaire.js?v=2.6.1"></script>
+<script src="./dico/motus-halloween.js?v=2.6.1"></script>
+<script src="./dico/motus-noel.js?v=2.6.1"></script>
+<script src="./noel/avent.js?v=2.6.1"></script>
+<script src="./decors/decors.js?v=2.6.1"></script>
+<script src="./dico/motus-ortho.js?v=2.6.1"></script>
+<script src="./dico/motus-prenoms.js?v=2.6.1"></script>
+<script src="./dico/motus-prenoms-info.js?v=2.6.1"></script>
+<script src="./dico/motus-maladies.js?v=2.6.1"></script>
+<script src="./dico/motus-maladies-info.js?v=2.6.1"></script>
+<script src="./dico/motus-villes.js?v=2.6.1"></script>
+<script src="./dico/motus-villes-info.js?v=2.6.1"></script>
+<script src="./dico/motus-persos.js?v=2.6.1"></script>
+<script src="./dico/motus-persos-info.js?v=2.6.1"></script>
+<script src="./dico/motus-persos-split.js?v=2.6.1"></script>
+<script src="./dico/motus-race.js?v=2.6.1"></script>
+<script src="./dico/motus-expert.js?v=2.6.1"></script>
+<script src="./profiles/config.js?v=2.6.1"></script>
+<script src="./profiles/profile.js?v=2.6.1"></script>
+<script src="./duel/duel.js?v=2.6.1"></script>
 <script>
 (() => {
   "use strict";
@@ -1305,17 +1354,21 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "2.7.0";
+  const VERSION = "2.6.1";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
   const DUEL_LIMIT = 5*60*1000;                  // 5 minutes pour le duel
   const AZERTY = ["AZERTYUIOP","QSDFGHJKLM","WXCVBN"];
   const DASH = "-";   // le tiret compte comme une lettre (prénoms composés)
-  /* Déduite de l'adresse réelle : un changement d'hébergement ou de nom de
-     domaine n'oblige plus à retoucher le code, et les liens partagés pointent
-     toujours vers l'endroit d'où le joueur vient. */
-  const SHARE_URL = location.origin + location.pathname.replace(/[^/]*$/, "");
+  /* Liens partagés : toujours l'adresse officielle. Déduire l'adresse de la
+     page faisait circuler l'ancienne (GitHub Pages, au nom du développeur)
+     dès qu'un joueur partageait depuis celle-ci. Ailleurs (essais en local,
+     autre hébergement), on garde l'adresse réelle. */
+  const ADRESSE_OFFICIELLE = "https://mot-en-six.gamesbyneur.workers.dev/";
+  const SHARE_URL = /(^|\.)github\.io$|gamesbyneur\.workers\.dev$/.test(location.hostname)
+    ? ADRESSE_OFFICIELLE
+    : location.origin + location.pathname.replace(/[^/]*$/, "");
   const EPOCH = Math.floor(Date.UTC(2025,0,1)/86400000);
 
   /* ---------- Persistance protégée ---------- */
@@ -1391,9 +1444,14 @@
     jetons.dev[APPAREIL] = (jetons.dev[APPAREIL]||0) + 1;
     store.set("motus.jetons", jetons); hintSyncPush();
   }
+  /* Réserve de jetons : 255 au plus. Au-delà, le jeton n'est pas compté (et
+     sa clé reste libre : rien n'est « consommé » d'un gain refusé). */
+  const JETONS_MAX = 255;
   function hintEarnOne(id){
+    if(hintBalance() >= JETONS_MAX) return false;
     jetons.set[id] = 1;
     store.set("motus.jetons", jetons); hintSyncPush();
+    return true;
   }
   function hintSyncPush(){
     // anciens cumuls tenus à jour pour les appareils pas encore mis à jour
@@ -1430,6 +1488,18 @@
     fermerTout: () => closeOverlays(),
     redimensionner: () => { if(len) computeSizing(); },
     halloween: () => hwActif(),
+    noel: () => noelActif(),
+    jouerAvent: (n) => aventDemander(n),
+    // jetons offerts sous une clé (case du calendrier) : jamais deux fois, même sur deux appareils
+    jetonsCadeau: (cle, n) => {
+      let gagnes = 0;
+      for(let i=1; i<=n; i++){ const id = "cadeau:" + cle + ":" + i; if(!jetons.set[id] && hintEarnOne(id)) gagnes++; }
+      if(gagnes < n && hintBalance() >= JETONS_MAX) toast("💡 Réserve de jetons pleine (" + JETONS_MAX + ")", 2400);
+      if(gagnes){ refreshHintUI(); }
+      return gagnes;
+    },
+    // Halloween d'abord : il retire son décor si Noël le remplace, puis Noël pose le sien
+    noelRafraichir: () => { hwAppliquerTheme(); noelAppliquerTheme(); majPastillesDuJour(); },
     mesure: (cle, parJour) => parJour ? mesureJour(cle) : mesure(cle),
     // la case où le joueur écrit (le chat vient s'installer près d'elle)
     caseActive: () => {
@@ -1449,7 +1519,7 @@
   }
   let gaveUp = false;   // vrai uniquement en cas d'abandon volontaire, jamais après 6 essais épuisés
   let hintCols = [], hintsThisGame = 0;
-  const HINT_MODES = ["court","normal","long","prenoms","maladies","villes","persos","daily","defi","pendu","memo","peur"];
+  const HINT_MODES = ["court","normal","long","prenoms","maladies","villes","persos","daily","defi","pendu","memo","peur","avent"];
   const HINT_MAX_PER_WORD = 2;
   // duel
   // course à l'écriture
@@ -1486,6 +1556,8 @@
   }
 
   /* ---------- Couleur d'accent ---------- */
+  // une récompense du calendrier (émote, couleur…) est-elle débloquée ?
+  function aRecompense(cle){ return !!(window.Boutique && Boutique.possede && Boutique.possede(cle)); }
   const ACCENTS = [
     {id:"red",    n:"Rouge",     c:"#e23a44"},
     {id:"blue",   n:"Bleu",      c:"#2f7de6"},
@@ -1493,14 +1565,20 @@
     {id:"purple", n:"Violet",    c:"#8b5cf6"},
     {id:"orange", n:"Orange",    c:"#d4631a"},
     {id:"pink",   n:"Rose",      c:"#cf3580"},
-    {id:"teal",   n:"Turquoise", c:"#0c8579"}
+    {id:"teal",   n:"Turquoise", c:"#0c8579"},
+    {id:"sapin",  n:"Vert sapin", c:"#1f7a46", cle:"couleur:sapin"}    // calendrier de l'avent, case 13
   ];
+  // les couleurs à proposer : les débloquées seulement (une couleur gagnée n'apparaît qu'une fois obtenue)
+  function accentsDispo(){ return ACCENTS.filter(a=>!a.cle || aRecompense(a.cle)); }
   function applyAccent(){ document.documentElement.dataset.accent = accent; }
   /* Thème et couleur d'accent, regroupés dans l'onglet Profil pour un
      bandeau épuré : un seul bouton (👤) donne accès à toute la personnalisation. */
   function renderPersonalize(){
     const box=document.getElementById("personalizeBox"); if(!box) return;
+    // une couleur gagnée depuis la dernière construction : on reconstruit
+    if(box.dataset.built && +box.dataset.nAcc !== accentsDispo().length) box.dataset.built = "";
     if(!box.dataset.built){
+      box.dataset.nAcc = accentsDispo().length;
       box.innerHTML =
         '<div class="perso">'
         + '<p class="perso-t">Thème</p>'
@@ -1521,7 +1599,7 @@
         + '<p class="perso-hint" id="notifHint"></p>'
         + '<p class="perso-t">Couleur d\'accent</p>'
         + '<div class="perso-swatches">'
-        + ACCENTS.map(a=>`<button class="perso-sw" data-accent="${a.id}"><span class="perso-dot" style="background:${a.c}"></span></button>`).join("")
+        + accentsDispo().map(a=>`<button class="perso-sw" data-accent="${a.id}" title="${a.n}"><span class="perso-dot" style="background:${a.c}"></span></button>`).join("")
         + '</div></div>';
       box.querySelectorAll(".perso-th").forEach(b=>b.addEventListener("click", ()=>{
         theme = b.dataset.th; store.set("motus.theme",theme); applyTheme(); markPersonalizeSel();
@@ -1636,9 +1714,9 @@
       if(!d || !d.id){
         b.classList.add("vide");
         if(sub) sub.textContent = "Pose un mot !";
-      } else if(d.broken){
+      } else if(d.curLosses > 0){
         b.classList.add("perce");
-        if(sub) sub.textContent = "Ton mot est tombé";
+        if(sub) sub.textContent = "Mot trouvé " + d.curLosses + " fois";
       } else if(sub){
         sub.textContent = "Protège ton mot";
       }
@@ -1660,6 +1738,12 @@
     const gram = $("modeGram");
     if(gram) gram.classList.toggle("fait", !!(g && g.day===jour && g.fini));
 
+    const av = $("modeAvent");
+    if(av && window.Avent){
+      av.classList.toggle("fait", Avent.faitAujourdhui());
+      const c = Avent.caseDuJour(), sub = $("modeAventSub");
+      if(sub) sub.textContent = c ? (Avent.faitAujourdhui() ? "Case " + c + " ouverte ✓" : "La case " + c + " t'attend") : Avent.ouvertes() + "/24 cases ouvertes";
+    }
     const pr = store.get("motus.peur", null), pe = $("modePeur");
     if(pe) pe.classList.toggle("fait", !!(pr && pr.day===jour && pr.done));
     const bb = store.get("motus.bonbons", null), bo = $("modeBonbons");
@@ -2051,14 +2135,17 @@
      Plafonds du jour (profile.js) : 500 XP par mode, 50 XP de défaites. */
   const MODE_FACTOR = {
     court:0.5, normal:1, long:1.4, expert:3,
-    daily:1.1, defi:1.2, peur:1,
+    daily:1.1, defi:1.2, peur:1, avent:1.2,
     prenoms:1.2, villes:1.2, persos:1.2, maladies:1.4,
     duel:1.2, race:1.2, defense:1.3, royale:1.2,
     pendu:1.0
   };
+  const XP_BONUS_RARE = 1.3;   // Expert avec « mots rares et pluriels » : +30 %
   function awardXp(win){
+    // aperçu de Noël (administration) : la case s'ouvre dans le bac à sable, rien n'est gagné
+    if(mode==="avent" && window.Avent && Avent.enApercu){ aventMessage = Avent.terminer(aventNum, win).texte; return; }
     if(!window.Profile) return;
-    const f = MODE_FACTOR[mode] || 1;
+    const f = (MODE_FACTOR[mode] || 1) * (mode==="expert" && expertRare ? XP_BONUS_RARE : 1);
     let xp = win ? Math.round((15 + Math.max(0,6-guesses.length)*4) * f) : 5;
     // un indice reste une aide : la victoire compte, mais rapporte moins
     if(win && hintsThisGame>0) xp = Math.round(xp * (1 - 0.25*hintsThisGame));
@@ -2066,7 +2153,7 @@
     const noYellow = win && !rowStates.some(st => st.indexOf("present") >= 0);
     // longueur réelle jouée (le défi et le mot du jour empruntent un autre mode)
     const sub = (mode==="defi")  ? DEFI_STEPS[Math.min(defiStep, DEFI_STEPS.length-1)]
-              : (mode==="daily" || mode==="peur") ? "normal"
+              : (mode==="daily" || mode==="peur" || mode==="avent") ? "normal"
               : mode;
     // Villes : une capitale commence par « Capitale » ; une ville française
     // porte sa région entre parenthèses, une ville étrangère n'en a pas.
@@ -2090,6 +2177,12 @@
       journalNoter("motus", dailyKey, win);
       Profile.submitDaily({ game:"motus", day:dailyKey, tries: win?guesses.length:6, won:win });
       if(win) grantHintOnce("daily", dailyKey);
+    }
+    if(mode==="avent"){
+      journalNoter("avent", aventKey, win);
+      Profile.submitDaily({ game:"avent", day:aventKey, tries: win?guesses.length:6, won:win });
+      if(win) grantHintOnce("avent", aventKey);
+      aventMessage = window.Avent ? Avent.terminer(aventNum, win).texte : "";
     }
     if(mode==="peur"){
       journalNoter("peur", peurKey, win);
@@ -2149,8 +2242,8 @@
     const b=$("expertRareBtn"); if(!b) return;
     b.classList.toggle("on", !!expertRare);
     $("expertRareSub").textContent = expertRare
-      ? "Activé — le mot peut être rare, conjugué ou au pluriel"
-      : "Désactivé — mots courants uniquement";
+      ? "Activé — le mot peut être rare, conjugué ou au pluriel · +30 % d'XP"
+      : "Désactivé — mots courants uniquement (activé : +30 % d'XP)";
   }
   function expertOpen(){
     expertRefreshOpt();
@@ -2160,8 +2253,10 @@
   /* ===================================================================
      Mode Défense — multijoueur asynchrone.
      On pose un mot que les autres tentent de percer. Chaque attaquant n'a
-     qu'une seule chance par version du mot : la base enregistre la tentative
-     dès son lancement, donc abandonner en cours vaut échec.
+     qu'une seule chance par mot : la base enregistre la tentative dès son
+     lancement, donc abandonner vaut échec. Un mot trouvé RESTE en jeu
+     (v2.8) : tant qu'il n'a pas changé, tout le monde peut l'attaquer une
+     fois, et il cumule ses repoussées et ses percées.
      =================================================================== */
   let defTarget=null, defReported=false, defMineCache=null;
 
@@ -2169,9 +2264,13 @@
   function defSetMsg(t, err){ const e=$("defMsg"); if(!e) return; e.innerHTML=t||""; e.classList.toggle("err", !!err); }
   function defShowStep(n){ [1,2,3,4].forEach(i=>{ const e=$("defStep"+i); if(e) e.style.display=(i===n)?"":"none"; }); }
 
-  function defOpen(){
+  /* qui (facultatif) : pseudo reçu par un lien partagé — sa défense passe
+     en tête de liste, prête à être attaquée. */
+  let defCible = "";
+  function defOpen(qui){
     if(!exigeConnexion("La Défense")) return;
     if(!defAvailable()){ toast("Le mode Défense nécessite la connexion au serveur"); return; }
+    defCible = typeof qui === "string" ? qui.trim().slice(0, 20) : "";
     defShowStep(1); defSetMsg("");
     openOverlay("defOverlay");
     defRefresh();
@@ -2180,39 +2279,54 @@
   function defRefresh(){
     $("defMine").innerHTML = '<div class="t">Ma défense</div><div class="s">Chargement…</div>';
     $("defTargets").innerHTML = '<div class="def-none">Chargement…</div>';
+    defMajBoutonHisto();
     Defense.mine().then(brut=>{
       const r = defMineConnu(brut);
       if(r.horsLigne){
         // on montre ce qu'on sait, sans proposer de poser un mot
         $("defMine").innerHTML = '<div class="t">Ma défense</div><div class="s">📡 Hors ligne — '
-          + (r.d ? 'ton mot de ' + (r.d.len||'?') + ' lettres est toujours posé' + (r.d.broken ? ', mais il est tombé.' : '.')
-                 : 'état inconnu pour l\'instant.') + '</div>';
+          + (r.d ? 'ton mot de ' + (r.d.len||'?') + ' lettres est toujours posé.' : 'état inconnu pour l\'instant.') + '</div>';
         $("defTargets").innerHTML = '<div class="def-none">Les défenses à percer reviendront avec la connexion.</div>';
         return;
       }
       defMineCache = r.d; defDrawMine(r.d); defDrawFeed();
     });
-    Defense.targets(20).then(t=>{ if(enLigne()) defDrawTargets(t); });
+    const cible = defCible; defCible = "";
+    Promise.all([Defense.targets(20), cible ? Defense.targets(1, cible) : Promise.resolve([])]).then(([t, c])=>{
+      if(!enLigne()) return;
+      t = t || [];
+      if(cible){
+        const moi = (window.Profile && Profile.state && (Profile.state.pseudo||"").trim().toLowerCase()) || "";
+        if(c && c.length){
+          t = [c[0]].concat(t.filter(x=>x.player_id !== c[0].player_id));
+          t[0]._cible = true;
+          defSetMsg("🛡️ Voici la défense de " + escapeHtml(c[0].pseudo||"Anonyme") + " : à toi de jouer !");
+        } else if(moi === cible.toLowerCase()){
+          defSetMsg("C'est ta propre défense : partage le lien pour que d'autres viennent l'attaquer.");
+        } else {
+          defSetMsg("La défense de " + escapeHtml(cible) + " n'est pas attaquable : tu l'as peut-être déjà tentée, ou ce joueur n'a pas de mot posé.");
+        }
+      }
+      defDrawTargets(t);
+    });
   }
 
+  /* Ma défense. Un mot percé reste en jeu (chacun peut l'attaquer une fois) :
+     on dit où il en est, et c'est au joueur de décider s'il en change. */
   function defDrawMine(d){
     const box=$("defMine");
     if(!d){
       box.innerHTML = '<div class="t">Ma défense</div>'
-        + '<div class="s">Tu n\'as pas encore de mot à défendre.</div>'
+        + '<div class="s">Tu n\'as pas encore de mot à défendre. Pose-en un : les autres joueurs essaieront de le deviner, '
+        + 'chacun une seule fois.</div>'
         + '<button id="defSetBtn">Poser un mot</button>';
-    } else if(d.broken){
-      box.innerHTML = '<div class="t">Ma défense</div>'
-        + '<div class="w broken">'+(d.word||"").replace(/[<>]/g,"")+'</div>'
-        + '<div class="s warn">🛡️ Ton mot est tombé ! Choisis-en un nouveau pour te remettre en jeu.</div>'
-        + defBilanHtml(d)
-        + '<button id="defSetBtn">Choisir un nouveau mot</button>';
     } else {
-      const acc = defTauntTxt(d.taunt);
+      const acc = defTauntTxt(d.taunt), cl = d.curLosses||0;
       box.innerHTML = '<div class="t">Ma défense</div>'
         + '<div class="w">'+(d.word||"").replace(/[<>]/g,"")+'</div>'
         + (acc ? '<div class="def-taunt">« '+acc+' »</div>' : '')
         + defBilanHtml(d)
+        + (cl ? '<div class="s info">💡 Même trouvé, ton mot reste en jeu : chacun peut encore l\'attaquer une fois. Change-le pour repartir de zéro.</div>' : '')
         + '<button id="defShareBtn">📣 Défier mes amis</button>'
         + '<button class="ghost" id="defSetBtn">Changer de mot</button>';
     }
@@ -2222,98 +2336,124 @@
     if(sh) sh.addEventListener("click", ()=>defShare(d));
   }
 
+  /* Le bouton « Historique » porte le nombre d'attaques subies pas encore
+     consultées : c'est là, et seulement là, qu'on les retrouve. */
+  let defNouvelles = 0, defHistoOnglet = "mot";
+  function defMajBoutonHisto(){
+    const b = $("defJournalBtn"); if(!b) return;
+    b.innerHTML = '📜 Historique' + (defNouvelles ? '<span class="pastille">' + defNouvelles + '</span>' : '');
+  }
+
+  /* Nouvelles attaques subies : alerte, notification, badges. Plus de liste
+     sur l'écran principal (elle faisait doublon avec le journal). */
   function defDrawFeed(){
-    const box=$("defFeed");
     Defense.feed(15).then(rows=>{
-      rows = rows || [];
-      // les attaques subies rejoignent le journal local, pour qu'il garde
-      // les deux camps même hors ligne
-      const unseen = rows.filter(r=>!r.seen);
-      if(!rows.length && !defLogGet().length){ box.classList.remove("show"); box.innerHTML=""; return; }
-      box.innerHTML = '<div class="t">Attaques subies'+(unseen.length?' · '+unseen.length+' nouvelle'+(unseen.length>1?'s':''):'')+'</div>'
-        + (rows.length ? rows.slice(0,10).map(r=>{
-            const who=(r.attacker_pseudo||"Anonyme").replace(/[<>]/g,"");
-            const txt = r.won
-              ? who+" a percé ta défense en "+r.tries+" essai"+(r.tries>1?"s":"")
-              : who+" a tenté et a échoué";
-            return '<div class="def-ev'+(r.seen?"":" new")+'"><span class="ic">'+(r.won?"💥":"🛡️")+'</span><span class="tx">'+txt+'</span></div>';
-          }).join("") : '<div class="def-none">Personne ne t\'a encore attaqué.</div>');
-      box.classList.add("show");
-      if(unseen.length){
-        /* markSeen() confirme au serveur de façon asynchrone : si defRefresh()
-           est rappelée avant cette confirmation (double ouverture rapide du
-           panneau, ou après une attaque qui rafraîchit aussitôt), la même
-           ligne repasserait par ici deux fois. On déduplique localement par
-           horodatage, seul repère stable que le serveur fournit. */
-        const vus = defJournalVus();
-        const neuves = unseen.filter(r=>!vus.has(""+r.created_at));
-        if(neuves.length){
-          const fresh = neuves.slice().reverse();
-          fresh.forEach(r=>{
-            defLogAdd({ dir:"def", who:(r.attacker_pseudo||"Anonyme"),
-                        won:!!r.won, tries:r.tries||0, at: Date.now(), src: ""+r.created_at });
-          });
-          if(window.Profile && Profile.defenseFeedNew) Profile.defenseFeedNew(fresh);
-          defShowAlert(neuves);
-          notifDefense(neuves);
-          majPastilleDefense();
-        }
-        Defense.markSeen();
+      const unseen = (rows || []).filter(r=>!r.seen);
+      defNouvelles = unseen.length; defMajBoutonHisto();
+      if(!unseen.length) return;
+      /* markSeen() confirme au serveur de façon asynchrone : si defRefresh()
+         est rappelée avant cette confirmation, la même ligne repasserait par
+         ici deux fois. On déduplique localement par horodatage. */
+      const vus = defJournalVus();
+      const neuves = unseen.filter(r=>!vus.has(""+r.created_at));
+      if(neuves.length){
+        const fresh = neuves.slice().reverse();
+        fresh.forEach(r=>{
+          defLogAdd({ dir:"def", who:(r.attacker_pseudo||"Anonyme"),
+                      won:!!r.won, tries:r.tries||0, at: Date.now(), src: ""+r.created_at });
+        });
+        if(window.Profile && Profile.defenseFeedNew) Profile.defenseFeedNew(fresh);
+        defShowAlert(neuves);
+        notifDefense(neuves);
+        majPastilleDefense();
       }
+      Defense.markSeen();
     });
   }
 
-  /* Alerte : on ne découvre plus ses attaques en fouillant la liste, elles
-     s'annoncent — avec la possibilité de riposter dans la foulée. */
+  /* Alerte : on ne découvre plus ses attaques en fouillant une liste, elles
+     s'annoncent — avec de quoi riposter, ou changer de mot s'il a été percé. */
   function defShowAlert(list){
     if(!list || !list.length) return;
     const perces = list.filter(r=>r.won).length;
     const repousses = list.length - perces;
     $("defAlertIc").textContent = perces ? "💥" : "🛡️";
     $("defAlertTitle").textContent = perces
-      ? (perces>1 ? "Ta défense est tombée "+perces+" fois !" : "Ta défense est tombée !")
+      ? (perces>1 ? "Ton mot a été percé "+perces+" fois !" : "Ton mot a été percé !")
       : (repousses>1 ? repousses+" assauts repoussés !" : "Assaut repoussé !");
+    $("defAlertSub").textContent = perces
+      ? "Il reste en jeu : les autres peuvent encore l'attaquer. Tu peux aussi en changer."
+      : "";
+    $("defAlertChanger").style.display = perces ? "" : "none";
     $("defAlertList").innerHTML = list.map(r=>{
       const who=(r.attacker_pseudo||"Anonyme").replace(/[<>]/g,"");
       return '<div class="def-ev"><span class="ic">'+(r.won?"💥":"🛡️")+'</span><span class="tx">'
-        + (r.won ? who+" a percé en "+r.tries+" essai"+(r.tries>1?"s":"") : who+" a échoué")
+        + (r.won ? who+" a trouvé ton mot en "+r.tries+" essai"+(r.tries>1?"s":"") : who+" n'a pas trouvé ton mot")
         + '</span></div>';
     }).join("");
     openOverlay("defAlertOverlay");
   }
 
-  /* Journal de guerre : mes offensives (locales) et mes défenses (serveur,
-     recopiées localement à mesure) réunies sur une seule frise. */
+  /* Historique : UN seul écran, tenu par le serveur (le même sur tous les
+     appareils), en deux onglets.
+       - Mon mot : les attaques subies, groupées par mot posé (le mot actuel
+         en tête, avec son bilan : combien l'ont trouvé, combien ont échoué) ;
+       - Mes attaques : les défenses que j'ai tentées, et leur issue. */
   function defDrawJournal(){
+    document.querySelectorAll("#defHistoTabs .dtab").forEach(b=>b.classList.toggle("active", b.dataset.dh===defHistoOnglet));
     const box=$("defJournal");
-    const l = defLogGet();
-    if(!l.length){
-      box.innerHTML = '<div class="def-none">Rien à raconter pour l\'instant. Attaque quelqu\'un ou attends d\'être attaqué.</div>';
-      return;
-    }
-    const atk = l.filter(e=>e.dir==="atk"), def = l.filter(e=>e.dir==="def");
-    const atkWin = atk.filter(e=>e.won).length, defWin = def.filter(e=>!e.won).length;
-    box.innerHTML =
-      '<div class="def-bilan">'
-      + '<span>⚔️ '+atkWin+'/'+atk.length+' percée'+(atkWin>1?'s':'')+'</span>'
-      + '<span>🛡️ '+defWin+'/'+def.length+' repoussée'+(defWin>1?'s':'')+'</span>'
-      + '</div>'
-      + l.map(e=>{
-          const who=(e.who||"Anonyme").replace(/[<>]/g,"");
-          const quand = defAgo(e.at);
-          let ic, tx;
-          if(e.dir==="atk"){
-            ic = e.won ? "⚔️" : "❌";
-            tx = e.won ? "Tu as percé la défense de "+who+" en "+e.tries+" essai"+(e.tries>1?"s":"")
-                       : "Tu as échoué contre "+who;
-          } else {
-            ic = e.won ? "💥" : "🛡️";
-            tx = e.won ? who+" a percé ta défense en "+e.tries+" essai"+(e.tries>1?"s":"")
-                       : who+" a attaqué et a échoué";
-          }
-          return '<div class="def-ev '+e.dir+'"><span class="ic">'+ic+'</span><span class="tx">'+tx
-               + '</span><span class="ago">'+quand+'</span></div>';
+    box.innerHTML = '<div class="def-none">Chargement…</div>';
+    const ev = (ic, tx, quand) => '<div class="def-ev"><span class="ic">'+ic+'</span><span class="tx">'+tx+'</span><span class="ago">'+quand+'</span></div>';
+    const esc = t => String(t||"").replace(/[<>]/g,"");
+    if(defHistoOnglet === "mot"){
+      Defense.feed(100).then(rows=>{
+        if(defHistoOnglet !== "mot") return;
+        defNouvelles = 0; defMajBoutonHisto();
+        if(!rows || !rows.length){
+          box.innerHTML = '<div class="def-none">Personne n\'a encore attaqué ton mot.<br>Partage-le avec « Défier mes amis » !</div>';
+          return;
+        }
+        // groupes par mot posé, du plus récent au plus ancien
+        const groupes = [];
+        rows.forEach(r=>{
+          let g = groupes.find(x=>x.version===r.version);
+          if(!g){ g = { version:r.version, mot:r.mot, actuel:!!r.actuel, l:[] }; groupes.push(g); }
+          g.l.push(r);
+        });
+        box.innerHTML = groupes.map(g=>{
+          const ok = g.l.filter(r=>!r.won).length, ko = g.l.length - ok;
+          return '<div class="def-mot'+(g.actuel?" actuel":"")+'"><div class="tete"><b>'+esc(g.mot||"?")+'</b>'
+            + (g.actuel ? '<i>en jeu</i>' : '')
+            + '<span>🛡️ '+ok+' repoussée'+(ok>1?"s":"")+' · 💥 '+ko+' trouvé'+(ko>1?"s":"")+'</span></div>'
+            + g.l.map(r=>{
+                const who = esc(r.attacker_pseudo||"Anonyme");
+                return ev(r.won?"💥":"🛡️",
+                  r.won ? who+" l'a trouvé en "+r.tries+" essai"+(r.tries>1?"s":"")
+                        : who+(r.tries ? " a échoué" : " a abandonné"),
+                  defAgo(new Date(r.created_at).getTime()));
+              }).join("")
+            + '</div>';
         }).join("");
+      });
+    } else {
+      Defense.history(60).then(rows=>{
+        if(defHistoOnglet !== "atk") return;
+        if(rows === null){ box.innerHTML = '<div class="def-none">Historique indisponible pour l\'instant — réessaie.</div>'; return; }
+        if(!rows.length){
+          box.innerHTML = '<div class="def-none">Tu n\'as encore attaqué personne. Choisis une défense dans la liste !</div>';
+          return;
+        }
+        const ok = rows.filter(r=>r.won).length;
+        box.innerHTML = '<div class="def-bilan"><span>⚔️ '+ok+' mot'+(ok>1?"s":"")+' trouvé'+(ok>1?"s":"")+' sur '+rows.length+'</span></div>'
+          + rows.map(r=>{
+              const who = esc(r.pseudo||"Anonyme"), mot = r.mot ? ' · <b>'+esc(r.mot)+'</b>' : '';
+              return ev(r.won?"⚔️":"❌",
+                (r.won ? "Trouvé chez "+who+" en "+r.tries+" essai"+(r.tries>1?"s":"")
+                       : "Raté chez "+who) + mot + (r.actuel ? "" : ' <small>(mot changé)</small>'),
+                defAgo(new Date(r.created_at).getTime()));
+            }).join("");
+      });
+    }
   }
   function defAgo(ts){
     if(!ts) return "";
@@ -2328,8 +2468,8 @@
     const box=$("defTargets");
     if(!list || !list.length){
       box.innerHTML = '<div class="def-none">Aucune défense à attaquer pour le moment.<br>'
-        + 'Tu as déjà tenté toutes celles en jeu : elles ne redeviendront attaquables que '
-        + 'lorsque leur propriétaire changera de mot.</div>';
+        + 'Tu as déjà tenté toutes celles en jeu : chacune redevient attaquable '
+        + 'quand son propriétaire change de mot.</div>';
       return;
     }
     box.innerHTML = list.map((t,i)=>{
@@ -2337,16 +2477,17 @@
       const acc = defTauntTxt(t.taunt);
       const note = t.rate_count ? ' · '+defStars(t.rate_sum/t.rate_count) : '';
       const cw = t.cur_wins||0, cl = t.cur_losses||0;
-      return '<button class="def-tg" data-i="'+i+'">'
+      const bilan = (cw||cl) ? ' · 🛡️ '+cw+' · 💥 '+cl : ' · jamais attaqué';
+      return '<button class="def-tg'+(t._cible?" cible":"")+'" data-i="'+i+'">'
            + '<span class="nm">'+who
-           + '<span class="meta"> · 🛡️ '+cw+' · 💥 '+cl+note+'</span>'
+           + '<span class="meta">'+bilan+note+'</span>'
            + (acc ? '<span class="tt">« '+acc+' »</span>' : '')
            + '</span>'
-           + '<span class="ln">'+t.wlen+' lettres</span></button>';
+           + '<span class="ln">'+(t.premiere ? '<b class="pl">'+String(t.premiere).replace(/[^A-Z]/g,"")+'</b>' : '')+t.wlen+' lettres</span></button>';
     }).join("")
     + (list.length<3
-        ? '<div class="def-none">Une seule chance par défense : les autres joueurs réapparaîtront ici '
-          + 'quand ils changeront de mot.</div>'
+        ? '<div class="def-none">Une seule chance par mot : les défenses déjà tentées réapparaîtront ici '
+          + 'quand leur propriétaire changera de mot.</div>'
         : "");
     Array.prototype.forEach.call(box.querySelectorAll(".def-tg"), b=>{
       b.addEventListener("click", ()=>defConfirmAttack(list[+b.dataset.i]));
@@ -2407,20 +2548,30 @@
     defTarget = t;
     $("defAtkWho").textContent = (t.pseudo||"Anonyme");
     $("defAtkLen").textContent = t.wlen;
+    $("defAtkPrem").innerHTML = t.premiere ? ' et commence par <b>' + String(t.premiere).replace(/[^A-Z]/g,"") + '</b>' : '';
+    const cw = t.cur_wins||0, cl = t.cur_losses||0, bl = $("defAtkBilan");
+    bl.style.display = "";
+    bl.innerHTML = (cw||cl)
+      ? 'Ce mot a déjà été trouvé <b>'+cl+' fois</b> et a repoussé <b>'+cw+' attaque'+(cw>1?'s':'')+'</b>.'
+      : 'Personne n\'a encore attaqué ce mot : tu seras le premier.';
     defShowStep(3);
   }
+  let defFinTexte = "";
   function defStartAttack(){
     if(!defTarget) return;
     $("defAtkGo").disabled=true;
     Defense.attack(defTarget.player_id).then(a=>{
       $("defAtkGo").disabled=false;
       closeOverlays();
-      defTarget = Object.assign({}, defTarget, { version:a.version, pseudo:a.pseudo });
+      defTarget = Object.assign({}, defTarget, { version:a.version, pseudo:a.pseudo, wlen:a.len });
+      fermerZones();
       mode="defense"; over=false; ended=false; won=false; guesses=[]; rowStates=[];
-      defReported=false;
+      defReported=false; defFinTexte=""; gaveUp=false; hintsThisGame=0;
       answer = a.target;
       setupBoardForAnswer(); loadDicoForce(len); setActiveSeg("defense");
       timerStart(0); updateHud();
+      defSauver();
+      refreshGiveUpUI();
       toast("Une seule chance — bonne chance !", 2600);
     }).catch(e=>{
       $("defAtkGo").disabled=false;
@@ -2428,21 +2579,74 @@
       defRefresh();
     });
   }
-  /* Résultat transmis à la base : c'est elle qui compte les points. */
-  function defFinish(win){
+
+  /* Attaque en cours : gardée sur l'appareil pour la reprendre si l'appli se
+     ferme (le serveur a déjà compté la tentative au lancement). Sans ça, la
+     partie revenait comme un mot « libre » : le résultat n'était jamais
+     transmis et le défenseur ne voyait jamais l'attaque. */
+  const DEF_CLE = "motus.defEnCours";
+  function defSauver(){
+    if(mode!=="defense" || !defTarget) return;
+    if(ended){ store.set(DEF_CLE, null); return; }
+    store.set(DEF_CLE, { cible: { player_id:defTarget.player_id, pseudo:defTarget.pseudo, version:defTarget.version,
+                                   wlen:defTarget.wlen, cur_wins:defTarget.cur_wins||0, cur_losses:defTarget.cur_losses||0 },
+                         answer, guesses, ms: timerValue(), at: Date.now() });
+    store.set("motus.last", "defense");
+  }
+  function defReprendre(){
+    const e = store.get(DEF_CLE, null);
+    if(!e || !e.cible || !e.answer) return false;
+    // plus de 23 h : le serveur l'a (ou va l'avoir) comptée comme repoussée
+    if(Date.now() - (e.at||0) > 23*3600*1000){
+      store.set(DEF_CLE, null);
+      defTarget = e.cible; guesses = []; defReported = false;
+      defFinish(false, true);
+      return false;
+    }
+    defTarget = e.cible; defReported = false; defFinTexte = ""; gaveUp = false; hintsThisGame = 0;
+    mode="defense"; answer=e.answer; guesses=[]; rowStates=[]; won=false; ended=false; over=false;
+    setupBoardForAnswer(); loadDicoForce(len); setActiveSeg("defense");
+    replay(e.guesses||[]);
+    const trouve = (e.guesses||[]).indexOf(answer) >= 0;
+    over = trouve || row>=MAX_ROWS; ended = over;
+    if(over){
+      // la partie était finie mais le résultat n'était pas parti : on l'envoie
+      won = trouve; timerStart(e.ms||0); timerStop(); updateHud();
+      defFinish(trouve, true); showEnd(trouve, false, true);
+      return true;
+    }
+    col=1; setCell(row,0,answer[0]); tileAt(row,0).classList.add("correct");
+    timerStart(e.ms||0); updateHud(); drawCursor(); refreshGiveUpUI();
+    toast("🛡️ Attaque reprise contre " + (defTarget.pseudo||"Anonyme"), 2400);
+    return true;
+  }
+
+  /* Résultat transmis à la base : c'est elle qui compte les points, et elle
+     renvoie le bilan du mot (« tu es le 3e à le trouver »). */
+  function defFinish(win, silencieux){
     if(defReported || !defTarget) return;
     defReported = true;
+    store.set(DEF_CLE, null);
     if(window.Profile && Profile.defenseAttackResult) Profile.defenseAttackResult({ won: win });
     defLogAdd({ dir:"atk", who: defTarget.pseudo || "Anonyme",
                 won: !!win, tries: win ? guesses.length : 0, at: Date.now() });
     const cible = defTarget;
+    defFinTexte = "Envoi du résultat…";
     Defense.report(cible.player_id, cible.version, { tries: win ? guesses.length : 0, won: win })
-      .then(()=>{ defMineCache=null; defAskRate(cible); });
+      .then(b=>{
+        defMineCache=null;
+        const qui = (cible.pseudo||"Anonyme").replace(/[<>]/g,"");
+        defFinTexte = !b ? "📡 Résultat pas encore transmis : il le sera à la prochaine connexion."
+          : win ? (b.curLosses<=1 ? "🥇 Tu es le premier à trouver le mot de "+qui+" !"
+                                  : "💥 Tu es le "+b.curLosses+"e à trouver le mot de "+qui+".")
+                  + (b.curWins ? " Il avait repoussé "+b.curWins+" attaque"+(b.curWins>1?"s":"")+"." : "")
+          : "🛡️ Le mot de "+qui+" a repoussé "+b.curWins+" attaque"+(b.curWins>1?"s":"")
+            + (b.curLosses ? " et a été trouvé "+b.curLosses+" fois." : ", et personne ne l'a encore trouvé.");
+        const el = $("defFinInfo"); if(el) el.textContent = defFinTexte;
+        if(!silencieux && !gaveUp) defAskRate(cible);
+      });
   }
 
-  /* Journal de guerre : la base ne conserve que les attaques SUBIES
-     (defense_feed). Mes propres offensives sont donc tenues ici, en local,
-     puis fusionnées à l'affichage. */
   /* Six phrases d'accroche : de quoi donner un ton à sa défense sans
      laisser passer de texte libre (donc rien à modérer). */
   const DEF_TAUNTS = [
@@ -2459,9 +2663,9 @@
      toute la carrière — les confondre rendait les chiffres illisibles. */
   function defBilanHtml(d){
     const cw = d.curWins||0, cl = d.curLosses||0;
-    return '<div class="s">Ce mot : '+cw+' repoussée'+(cw>1?'s':'')+' · percé '+cl+' fois</div>'
+    return '<div class="s">Ce mot : 🛡️ '+cw+' attaque'+(cw>1?'s':'')+' repoussée'+(cw>1?'s':'')+' · 💥 trouvé '+cl+' fois</div>'
       + '<div class="s rate">Note du mot : '+defRateTxt(d.rateSum, d.rateCount)+'</div>'
-      + '<div class="s tot">En tout : '+d.wins+' repoussée'+(d.wins>1?'s':'')+' · percé '+d.losses+' fois</div>';
+      + '<div class="s tot">Depuis tes débuts : '+d.wins+' repoussée'+(d.wins>1?'s':'')+' · trouvé '+d.losses+' fois</div>';
   }
   function defStars(n, max){
     n = Math.round(n||0); max = max||5;
@@ -2575,7 +2779,7 @@
   });
   /* ---- Espace d'administration ---- */
   function adminVue(nom){
-    ["adminAccueil","adminAudience","adminPropos","adminJoueurs"].forEach(id=>{
+    ["adminAccueil","adminAudience","adminPropos","adminJoueurs","adminNoel"].forEach(id=>{
       $(id).style.display = (id===nom) ? "" : "none";
     });
     // le tableau de bord a besoin de place
@@ -2608,6 +2812,18 @@
   $("adminRetour1").addEventListener("click", ()=>adminOpen());
   $("adminRetour2").addEventListener("click", ()=>adminOpen());
   $("adminRetour3").addEventListener("click", ()=>adminOpen());
+  $("adminRetour4").addEventListener("click", ()=>adminOpen());
+  $("adminGoNoel").addEventListener("click", ()=>adminVue("adminNoel"));
+  $("noelApercuGo").addEventListener("click", ()=>{
+    const d = $("noelDate").value;
+    if(!window.Avent || !/^\d{4}-\d{2}-\d{2}$/.test(d)){ toast("Date invalide", 1800); return; }
+    Avent.apercu(d); closeOverlays(); Avent.ouvrir();
+  });
+  $("noelApercuStop").addEventListener("click", ()=>{
+    if(window.Avent) Avent.apercu(null);
+    if(mode==="avent") startFree("normal");
+    toast("Aperçu de Noël arrêté", 1800);
+  });
   $("adminGoJoueurs").addEventListener("click", ()=>{ adminVue("adminJoueurs"); $("ajQ").value = ""; joueursListe(""); });
   $("ajGo").addEventListener("click", ()=>joueursListe($("ajQ").value));
   $("ajQ").addEventListener("keydown", e=>{ if(e.key==="Enter") joueursListe($("ajQ").value); });
@@ -2655,7 +2871,7 @@
         .filter(([,k])=>(b[k]||0)>0).sort((x,y)=>(b[y[1]]||0)-(b[x[1]]||0));
       const maxM = Math.max(1, ...modes.map(([,k])=>b[k]||0));
       // exercices du jour : 60 derniers jours
-      const JEUX = [["motus","📅"],["defi","🔥"],["gram","✍️"],["ortho","🔤"],["peur","🎃"],["bonbons","🍬"]];
+      const JEUX = [["motus","📅"],["defi","🔥"],["gram","✍️"],["ortho","🔤"],["peur","🎃"],["bonbons","🍬"],["avent","🗓️"]];
       const parJour = {};
       (f.jours||[]).forEach(r=>{ (parJour[r.day] = parJour[r.day] || {})[r.game] = r; });
       const cellule = (jeu, r) => {
@@ -3330,7 +3546,7 @@
     if(!list || !list.length) return;
     const perces = list.filter(r=>r.won).length;
     notify(
-      perces ? "🛡️ Ta défense est tombée" : "🛡️ Assaut repoussé",
+      perces ? "💥 Ton mot a été percé" : "🛡️ Assaut repoussé",
       perces
         ? (perces>1 ? perces+" adversaires ont percé ton mot." : (list.find(r=>r.won).attacker_pseudo||"Quelqu'un")+" a percé ton mot.")
         : list.length+" attaque"+(list.length>1?"s":"")+" repoussée"+(list.length>1?"s":"")+" !",
@@ -3395,15 +3611,25 @@
 
   /* Partage : on n'envoie JAMAIS le mot, seulement l'invitation à venir
      l'attaquer — c'est tout l'intérêt du mode. */
+  /* Le bilan cité est celui du MOT POSÉ (curWins / curLosses), pas le cumul
+     de toute la carrière : un mot tout neuf affichait « 4 attaques déjà
+     repoussées », gagnées par les mots précédents. Le lien mène droit à CETTE
+     défense (par pseudo — jamais l'identifiant, qui sert à récupérer le compte). */
   function defShare(d){
     if(!d) return;
-    const acc = defTauntTxt(d.taunt);
+    const acc = defTauntTxt(d.taunt), cw = d.curWins||0, cl = d.curLosses||0;
+    const premiere = (d.word||"").charAt(0);
+    const bilan = !cw && !cl ? "Personne ne l'a encore attaqué : sois le premier !"
+      : (cw ? cw + " attaque" + (cw>1?"s":"") + " déjà repoussée" + (cw>1?"s":"") : "")
+        + (cw && cl ? ", " : "") + (cl ? "trouvé " + cl + " fois" : "") + ".";
+    const pseudo = (window.Profile && Profile.state && (Profile.state.pseudo||"").trim()) || "";
+    const lien = SHARE_URL + "?defense=" + (pseudo ? encodeURIComponent(pseudo) : "1") + "&src=partdef";
     const txt = "🛡️ J'ai posé une défense sur Mot en Six !\n"
-      + "Un mot de " + d.len + " lettres, " + d.wins + " attaque" + (d.wins>1?"s":"")
-      + " déjà repoussée" + (d.wins>1?"s":"") + "."
+      + "Un mot de " + d.len + " lettres" + (premiere ? " qui commence par " + premiere : "") + ".\n"
+      + bilan.charAt(0).toUpperCase() + bilan.slice(1)
       + (acc ? "\n« " + acc + " »" : "")
-      + "\nSauras-tu le percer ? " + SHARE_URL + "?defense=1&src=partdef";
-    if(navigator.share) navigator.share({text:txt}).catch(()=>copy(txt)); else copy(txt);
+      + "\nSauras-tu le trouver ? Une seule tentative :\n" + lien;
+    if(navigator.share) navigator.share({text:txt}).catch(e=>{ if(!e || e.name!=="AbortError") copy(txt); }); else copy(txt);
   }
 
   function defLogGet(){ const l = store.get("motus.defLog", []); return Array.isArray(l) ? l : []; }
@@ -4672,9 +4898,9 @@
       if(em) toast(nom.replace(/<[^>]*>/g,"") + " : " + em.e + " " + em.t, 2600);
     }
     const bar = $(choix ? "duelChoixEmotes" : "duelWaitEmotes");
-    if(!bar.dataset.pret){
-      bar.dataset.pret = "1";
-      bar.innerHTML = DUEL_EMOTES.map((m,i)=>
+    if(bar.dataset.pret !== String(duelEmotesDispo().length)){
+      bar.dataset.pret = String(duelEmotesDispo().length);
+      bar.innerHTML = duelEmotesDispo().map(({m,i})=>
         '<button class="roy-em" data-i="'+i+'" title="'+m.t+'">'+m.e+'</button>').join("");
       bar.querySelectorAll(".roy-em").forEach(b=> b.addEventListener("click", ()=>{
         // même format que le Duel : « indice:horodatage », pour que deux
@@ -4722,8 +4948,14 @@
     {t:"Incroyable", e:"🤯"},
     {t:"Je vous traquerai", e:"😈"},
     {t:"Oups", e:"😅"},
-    {t:"Bien essayé", e:"🙂"}
+    {t:"Bien essayé", e:"🙂"},
+    // calendrier de l'avent : ajoutées à la FIN (les numéros des autres ne bougent pas)
+    {t:"Joyeux Noël !", e:"🎅", cle:"emote:noel"},
+    {t:"Bonhomme de neige", e:"⛄", cle:"emote:bonhomme"}
   ];
+  /* Les émotes que JE peux envoyer : les débloquées seulement, mais avec leur
+     numéro d'origine (c'est lui qui voyage jusqu'à l'adversaire). */
+  function duelEmotesDispo(){ return DUEL_EMOTES.map((m,i)=>({m,i})).filter(x=>!x.m.cle || aRecompense(x.m.cle)); }
   /* Sourdine : permet de ne plus recevoir les émotes d'un joueur insistant.
      Le choix est conservé entre les parties, et l'icône du bandeau le rappelle. */
   function duelMuted(){ return !!store.get("motus.duelMute", false); }
@@ -4742,9 +4974,11 @@
   }
   function duelEmoteBtnShow(on){ const b=$("duelEmoteBtn"); if(b){ b.classList.toggle("show", !!on); duelRefreshEmoteBtn(); } if(!on) duelClosePicker(); }
   function duelBuildPicker(){
-    const p=$("duelEmotePicker"); if(!p || p.dataset.built) return;
-    p.innerHTML = DUEL_EMOTES.map((m,i)=>`<button class="emote-item" data-emote="${i}"><span class="ee">${m.e}</span>${m.t}</button>`).join("")
+    const p=$("duelEmotePicker"); if(!p) return;
+    if(p.dataset.built === String(duelEmotesDispo().length)) return;      // une émote gagnée entre-temps : on reconstruit
+    p.innerHTML = duelEmotesDispo().map(({m,i})=>`<button class="emote-item" data-emote="${i}"><span class="ee">${m.e}</span>${m.t}</button>`).join("")
                + '<button class="emote-item emote-mute" id="duelMuteBtn"></button>';
+    const nDispo = String(duelEmotesDispo().length);
     p.querySelectorAll(".emote-item[data-emote]").forEach(btn=>btn.addEventListener("click", ()=>{ duelSendEmote(+btn.dataset.emote); }));
     $("duelMuteBtn").addEventListener("click", ()=>{
       const now = !duelMuted();
@@ -4752,7 +4986,7 @@
       toast(now ? "Émotes coupées" : "Émotes réactivées");
       duelClosePicker();
     });
-    p.dataset.built="1";
+    p.dataset.built=nDispo;
   }
   function duelTogglePicker(){ duelBuildPicker(); duelRefreshMuteLabel(); $("duelEmotePicker").classList.toggle("open"); }
   function duelClosePicker(){ const p=$("duelEmotePicker"); if(p) p.classList.remove("open"); }
@@ -4857,22 +5091,25 @@
   function grantHintOnce(kind, key){
     const id = kind + ":" + key;
     if(jetons.set[id]) return;                          // déjà gagné, ici ou sur un autre appareil
+    if(!hintEarnOne(id)){ toast("💡 Réserve de jetons pleine (" + JETONS_MAX + ") : utilise-en avant d'en gagner d'autres", 2600); return; }
     const seen = store.get("motus.hintGrants", {});
     seen[kind] = key; store.set("motus.hintGrants", seen);
-    hintEarnOne(id);
     refreshHintUI();
     toast("💡 Jeton d'indice gagné !", 2200);
   }
 
   /* ---------- Abandon ---------- */
-  const GIVEUP_MODES = HINT_MODES.concat(["expert"]);   // "pendu" et "memo" déjà inclus via HINT_MODES
+  const GIVEUP_MODES = HINT_MODES.concat(["expert", "defense"]);   // "pendu" et "memo" déjà inclus via HINT_MODES
   function refreshGiveUpUI(){
     const b=$("giveUpBtn"); if(!b) return;
-    b.classList.toggle("show", GIVEUP_MODES.indexOf(mode)>=0 && !over && !ended && rowHasInput());
+    // Défense : la tentative est consommée dès le lancement, on peut donc abandonner tout de suite
+    b.classList.toggle("show", GIVEUP_MODES.indexOf(mode)>=0 && !over && !ended && (rowHasInput() || (mode==="defense" && !!defTarget)));
   }
   function giveUp(){
     if(over || ended || GIVEUP_MODES.indexOf(mode)<0) return;
-    askConfirm("Abandonner ?", "Le mot te sera révélé et la partie comptera comme perdue.", doGiveUp);
+    askConfirm("Abandonner ?", mode==="defense"
+      ? "Le mot te sera révélé et l'attaque comptera comme repoussée. Tu pourras réessayer quand ce joueur changera de mot."
+      : "Le mot te sera révélé et la partie comptera comme perdue.", doGiveUp);
   }
   function doGiveUp(){
     gaveUp=true;
@@ -4883,6 +5120,7 @@
     recordResult(false); awardXp(false);
     chatEv("defaite");
     if(mode==="defi"){ save(); defiAdvance(false); return; }
+    if(mode==="defense"){ defFinish(false); showEnd(false); return; }
     save(); showEnd(false);
   }
 
@@ -4978,6 +5216,18 @@
        locaux (motus.stats) ne servent plus qu'en l'absence de profil. */
   function refreshStats(){
     const lab = (i, t) => { const e = document.querySelectorAll("#endOverlay .stat .l")[i]; if(e) e.textContent = t; };
+    if(mode==="avent" && window.Avent && window.MOTUS_NOEL){
+      // le calendrier : cases ouvertes, mots trouvés, et l'arrivée d'Aube
+      const nb = Avent.ouvertes(), N = MOTUS_NOEL;
+      let ok = 0; for(let n=1; n<=24; n++) if(Avent.etatCase(n)==="trouvee") ok++;
+      $("sPlayed").textContent = nb + "/24";
+      $("sWin").textContent = nb ? Math.round(ok/nb*100) + "%" : "0%";
+      const aube = window.Boutique && Boutique.aube;
+      $("sStreak").textContent = aube ? "🤍" : Math.max(0, N.seuilAube - nb);
+      lab(0, "Cases ouvertes"); lab(1, "Mots trouvés"); lab(2, aube ? "Aube est là" : "Cases avant Aube");
+      $("sStreak").parentNode.title = "";
+      return;
+    }
     const jeu = (mode==="daily") ? "motus" : (mode==="peur") ? "peur" : null;
     if(jeu){
       const j = journalStats(jeu);
@@ -5166,7 +5416,7 @@
   }
   function timerValue(){ return tTimer ? tElapsed + (Date.now()-tStart) : tElapsed; }
   function updateHud(){
-    const names={court:"Court",normal:"Normal",long:"Long",expert:"Expert",daily:"Mot du jour",defi:"Défi du jour",prenoms:"Prénoms",maladies:"Maladies",villes:"Villes",duel:"Duel",race:"Course",defense:"Défense",pendu:"Le Pendu",memo:"Mémorisation",royale:"Battle Royale",gram:"Grammaire du jour",ortho:"Orthographe du jour",peur:"Mot terrifiant",bonbons:"Bonbons"};
+    const names={court:"Court",normal:"Normal",long:"Long",expert:"Expert",daily:"Mot du jour",defi:"Défi du jour",prenoms:"Prénoms",maladies:"Maladies",villes:"Villes",duel:"Duel",race:"Course",defense:"Défense",pendu:"Le Pendu",memo:"Mémorisation",royale:"Battle Royale",gram:"Grammaire du jour",ortho:"Orthographe du jour",peur:"Mot terrifiant",bonbons:"Bonbons",avent:"Calendrier de l'avent"};
     let label = names[mode]||"";
     if(mode==="race") label = "Course · " + raceThemeName(raceTheme);
     if(mode==="expert") label = "Expert" + (expertRare ? " · mots rares" : "");
@@ -5187,12 +5437,17 @@
     } else if(mode==="peur"){
       store.set("motus.peur", {day:peurKey, guesses, done:over, won, ms:timerValue()});
       store.set("motus.last","peur");
+    } else if(mode==="avent"){
+      store.set("motus.avent", {n:aventNum, key:aventKey, guesses, done:over, won, ms:timerValue(), apercu: !!(window.Avent && Avent.enApercu)});
+      store.set("motus.last","avent");
     } else if(mode==="bonbons"){
       return;                                   // le mini-jeu gère sa propre sauvegarde
     } else if(mode==="defi"){
       store.set("motus.defi", {day:defiKey, step:defiStep, guesses, over, won,
                                times:defiTimes, tries:defiTries, failed:defiFailed, ms:timerValue()});
       store.set("motus.last","defi");
+    } else if(mode==="defense"){
+      defSauver();                              // jamais dans motus.free : le mot serait rejoué sans rien transmettre
     } else if(mode==="race"){
       saveRace();
     } else if(mode==="duel"){
@@ -5207,12 +5462,14 @@
   function startFree(m){
     bbArreter();
     if(m==="peur"){ enterPeur(); return; }
+    if(m==="avent"){ if(window.Avent) Avent.ouvrir(); return; }
     if(m==="bonbons"){ bbOuvrir(); return; }
     if(m==="pendu"){ penduStart(); return; }
     if(m==="memo"){ memoStart(); return; }
     if(m==="gram"){ gramStart("gram"); return; }
     if(m==="ortho"){ gramStart("ortho"); return; }
     if(m==="royale"){ royOuvrir(); return; }
+    if(m==="defense"){ defOpen(); return; }    // pas de mot au hasard : on retourne aux défenses
     mode=m; over=false; ended=false; won=false; guesses=[]; rowStates=[];
     const pool = (m==="expert") ? expertPool() : POOLS[m];
     answer=pool[Math.floor(Math.random()*pool.length)];
@@ -5259,10 +5516,11 @@
   /* --- thème : actif par défaut pendant l'événement, désactivable --- */
   function hwThemeVoulu(){ return hwActif() && store.get("motus.hwTheme", true) !== false; }
   function hwAppliquerTheme(){
-    const on = hwThemeVoulu();
+    const on = hwThemeVoulu() && !noelThemeVoulu();
     if(window.Decors){ if(on) Decors.activer("halloween"); else if(Decors.actif==="halloween") Decors.retirer(); }
     const sec = $("hwSection"); if(sec) sec.style.display = hwActif() ? "" : "none";
-    const bt = $("hwThemeBtn"); if(bt) bt.textContent = on ? "🎃 Décor d'Halloween : activé" : "🎃 Décor d'Halloween : désactivé";
+    // le choix du joueur (même quand le décor de Noël passe devant, pendant un aperçu)
+    const bt = $("hwThemeBtn"); if(bt) bt.textContent = hwThemeVoulu() ? "🎃 Décor d'Halloween : activé" : "🎃 Décor d'Halloween : désactivé";
   }
 
   /* ================= MOT TERRIFIANT ================= */
@@ -5292,6 +5550,54 @@
       store.set("motus.peur", { day:peurKey, guesses:[], done:true, won:!!r.won, ailleurs:r.tries||0 });
       journalNoter("peur", peurKey, !!r.won);
       finAilleurs("Déjà joué !", texteAilleurs(r, "le Mot terrifiant"));
+    });
+  }
+
+  /* ================= NOËL : CALENDRIER DE L'AVENT =================
+     Le calendrier (cases, cadeaux, rattrapage, Aube) vit dans noel/avent.js ;
+     ici, seulement la partie de mots d'une case, comme le Mot terrifiant. */
+  let aventNum = 0, aventKey = "", aventMessage = "";
+  function noelActif(){ return !!(window.Avent && Avent.actif()); }
+  function noelThemeVoulu(){ return noelActif() && store.get("motus.noelTheme", true) !== false; }
+  function noelAppliquerTheme(){
+    const on = noelThemeVoulu();
+    if(window.Decors){ if(on) Decors.activer("noel"); else if(Decors.actif==="noel") Decors.retirer(); }
+    const sec = $("noelSection"); if(sec) sec.style.display = noelActif() ? "" : "none";
+    const bt = $("noelThemeBtn"); if(bt) bt.textContent = on ? "🎄 Décor de Noël : activé" : "🎄 Décor de Noël : désactivé";
+  }
+  // depuis le calendrier : une partie en cours se perdrait, on demande d'abord
+  function aventDemander(n){
+    const risque = mode!=="daily" && mode!=="peur" && mode!=="avent" && mode!=="bonbons" && mode!=="defi" && mode!=="duel" && mode!=="race" && !ended && rowHasInput();
+    if(risque) askConfirm("Ouvrir la case " + n + " ?", "La partie en cours sera perdue.", ()=>{ closeOverlays(); enterAvent(n); });
+    else { closeOverlays(); duelPause(); racePause(); bbArreter(); enterAvent(n); }
+  }
+  function enterAvent(n){
+    const N = window.MOTUS_NOEL;
+    if(!N || !window.Avent || !Avent.jouable(n)){ toast("Cette case n'est pas ouverte 🎄", 2000); if(window.Avent) Avent.ouvrir(); return; }
+    fermerZones();
+    mode="avent"; guesses=[]; rowStates=[]; ended=false;
+    aventNum = n; aventKey = Avent.jourCase(n); answer = N.mots[n-1]; aventMessage = "";
+    setupBoardForAnswer(); loadDico(len); setActiveSeg("avent");
+    const apercu = Avent.enApercu;
+    let d = store.get("motus.avent", null);
+    if(!d || d.n!==n || d.key!==aventKey || !!d.apercu!==apercu){ d={n, key:aventKey, guesses:[], done:false, won:false, apercu}; store.set("motus.avent", d); }
+    if(d.guesses.length){ replay(d.guesses); }
+    over = d.done || row>=MAX_ROWS; ended = over;
+    if(!over){ col=1; setCell(row,0,answer[0]); tileAt(row,0).classList.add("correct"); }
+    store.set("motus.last","avent");
+    updateHud();
+    if(over){ timerStart(d.ms||0); timerStop(); }
+    else if(d.guesses.length>0) timerStart(d.ms||0);
+    else timerReset();
+    if(d.done){ showEnd(d.won, true, true); return; }
+    if(!apercu) verifierAilleurs("avent", aventKey, r=>{
+      // déjà ouverte sur un autre appareil : la case (et son cadeau) arrive ici aussi
+      store.set("motus.avent", { n, key:aventKey, guesses:[], done:true, won:!!r.won });
+      journalNoter("avent", aventKey, !!r.won);
+      const fin = Avent.terminer(n, !!r.won);
+      finAilleurs("Case déjà ouverte", (r.won ? `Tu as déjà trouvé ce mot sur un autre appareil, en <b>${r.tries} essai${r.tries>1?"s":""}</b>.`
+                                            : "Tu as déjà ouvert cette case sur un autre appareil.")
+        + (fin.texte ? '<span class="avent-fin">' + fin.texte + '</span>' : ""));
     });
   }
 
@@ -6064,13 +6370,16 @@
     {id:"coeur",    e:"❤️", t:"Sympa"},
     {id:"oups",     e:"😅", t:"Oups"},
     {id:"lol",      e:"😂", t:"Mdr"},
-    {id:"deception",e:"😩", t:"Argh"}
+    {id:"deception",e:"😩", t:"Argh"},
+    {id:"noel",     e:"🎅", t:"Joyeux Noël !",     cle:"emote:noel"},
+    {id:"bonhomme", e:"⛄", t:"Bonhomme de neige", cle:"emote:bonhomme"}
   ];
+  function royEmotesDispo(){ return ROY_EMOTES.filter(m=>!m.cle || aRecompense(m.cle)); }
   let royDerniersEmotes = {};   // pour ne montrer une bulle qu'une fois par message
 
   function royDessinerEmotes(joueurs, zoneId){
     const bar = $(zoneId || "royEmotesBar"); if(!bar) return;
-    bar.innerHTML = ROY_EMOTES.map(m=>
+    bar.innerHTML = royEmotesDispo().map(m=>
       '<button class="roy-em" data-e="'+m.id+'" title="'+m.t+'">'+m.e+'</button>').join("");
     bar.querySelectorAll(".roy-em").forEach(b=>{
       b.addEventListener("click", ()=>{
@@ -6094,7 +6403,7 @@
      et sans l'option « ne plus recevoir » (qui vise un adversaire précis). */
   function royTogglePicker(){
     const p = $("duelEmotePicker"); if(!p) return;
-    p.innerHTML = ROY_EMOTES.map(m=>
+    p.innerHTML = royEmotesDispo().map(m=>
       '<button class="emote-item" data-roy="'+m.id+'"><span class="ee">'+m.e+'</span>'+m.t+'</button>').join("");
     p.querySelectorAll("[data-roy]").forEach(b=>b.addEventListener("click", ()=>{
       p.classList.remove("open");
@@ -6340,6 +6649,7 @@
     if(window.Profile && Profile.memoDone){
       Profile.memoDone({ won:gagne, sec:memoSec, best:memoBest, reussites:memoReussites });
     }
+    if(gagne) chatEv("victoire");            // une grille réussie remplit aussi la gamelle
     // XP : réussite = 15 + 0,75 par seconde en dessous de 60 (30 s → 38 XP,
     // 10 s → 53 XP, 2 s → 59 XP) ; échec = 5 XP, comme partout ailleurs.
     if(window.Profile && Profile.ajouterXp){
@@ -6515,7 +6825,7 @@
     else timerReset();                                        // mot pas encore entamé
   }
 
-  const MODE_LABELS={daily:"📅 Mot du jour",defi:"🔥 Défi du jour",court:"🐤 Court",normal:"🎯 Normal",long:"🐘 Long",expert:"🎓 Expert",prenoms:"👶 Prénoms",maladies:"🩺 Maladies",villes:"🏙️ Villes",duel:"⚔️ Duel",race:"⌨️ Course",defense:"🛡️ Défense",pendu:"🪢 Le Pendu",memo:"🧠 Mémorisation",royale:"👑 Battle Royale",gram:"✍️ Grammaire du jour",ortho:"🔤 Orthographe du jour",peur:"🎃 Mot terrifiant",bonbons:"🍬 Bonbons"};
+  const MODE_LABELS={daily:"📅 Mot du jour",defi:"🔥 Défi du jour",court:"🐤 Court",normal:"🎯 Normal",long:"🐘 Long",expert:"🎓 Expert",prenoms:"👶 Prénoms",maladies:"🩺 Maladies",villes:"🏙️ Villes",duel:"⚔️ Duel",race:"⌨️ Course",defense:"🛡️ Défense",pendu:"🪢 Le Pendu",memo:"🧠 Mémorisation",royale:"👑 Battle Royale",gram:"✍️ Grammaire du jour",ortho:"🔤 Orthographe du jour",peur:"🎃 Mot terrifiant",bonbons:"🍬 Bonbons",avent:"🗓️ Calendrier de l'avent"};
   function setActiveSeg(m){
     $("modeBtnLabel").textContent = MODE_LABELS[m] || m;
     document.querySelectorAll(".mode-item").forEach(b=>b.classList.toggle("active", b.dataset.mode===m));
@@ -6531,6 +6841,11 @@
            + `3 mots, 15 minutes. Tu fais mieux ?\n${SHARE_URL}?mode=defi&src=partdefi`;
     }
     const tries = won ? guesses.length : "X";
+    if(mode==="avent"){
+      const g = rowStates.map(st => st.map(s => s==="correct"?"🎄":s==="present"?"⭐":"⬜").join("")).join("\n");
+      return `🗓️ Calendrier de l'avent · case ${aventNum} — ${tries}/6 en ${fmtTime(timerValue())}\n${g}\n`
+           + `Un mot de Noël par jour sur Mot en Six :\n${SHARE_URL}?mode=avent&src=partavent`;
+    }
     if(mode==="peur"){
       const g = rowStates.map(st => st.map(s => s==="correct"?"🎃":s==="present"?"🟣":"⬛").join("")).join("\n");
       return `🎃 Mot terrifiant #${peurNum} — ${tries}/6 en ${fmtTime(timerValue())}\n${g}\n`
@@ -6545,12 +6860,13 @@
   }
   function share(){
     const text=shareText();
-    if(navigator.share){ navigator.share({text}).catch(()=>copy(text)); }
+    // annuler la fenêtre de partage ne doit pas copier quand même
+    if(navigator.share){ navigator.share({text}).catch(e=>{ if(!e || e.name!=="AbortError") copy(text); }); }
     else copy(text);
   }
   function copy(text){
     if(!navigator.share) mesure("fun:partage");
-    try{ navigator.clipboard.writeText(text).then(()=>toast("Résultat copié"), ()=>toast("Copie impossible")); }
+    try{ navigator.clipboard.writeText(text).then(()=>toast("Copié ✓ — colle-le où tu veux"), ()=>toast("Copie impossible")); }
     catch(e){ toast("Copie impossible"); }
   }
 
@@ -6572,11 +6888,13 @@
   function showEnd(win, isDaily, rouvert){
     if(!win && !rouvert) son("perdu");      // rouvrir un mot du jour perdu ne rejoue pas le son
     refreshStats();
-    const daily = isDaily || mode==="daily" || mode==="peur";
+    const daily = isDaily || mode==="daily" || mode==="peur" || mode==="avent";
     $("endTitle").textContent = win ? "Bravo !" : "Dommage…";
     $("endSub").innerHTML = (win
       ? `Trouvé en ${guesses.length} essai${guesses.length>1?"s":""} · <b>${fmtTime(timerValue())}</b>`
-      : `Le mot était <b>${answer}</b>.`) + cityNote();
+      : `Le mot était <b>${answer}</b>.`) + cityNote()
+      + (mode==="avent" && aventMessage ? '<span class="avent-fin">' + aventMessage + '</span>' : "")
+      + (mode==="defense" ? '<span class="def-fin" id="defFinInfo">' + defFinTexte + '</span>' : "");
     $("btnShare").style.display = daily ? "block" : "none";
     /* Trois modes où la tentative est unique et ne peut jamais se rejouer
        à l'identique : le bouton doit alors proposer autre chose plutôt que
@@ -6585,8 +6903,8 @@
     // Le Pendu n'a pas ce problème (aucun coût côté serveur) : seule la
     // Défense l'exige, une tentative y étant déjà comptée.
     const unique = daily || mode==="defense";
-    $("btnAgain").textContent = unique ? "Jouer un mot au hasard" : "Rejouer";
-    endAgainMode = unique ? "normal" : mode;
+    $("btnAgain").textContent = mode==="avent" ? "🗓️ Retour au calendrier" : mode==="defense" ? "🛡️ Retour aux défenses" : unique ? "Jouer un mot au hasard" : "Rejouer";
+    endAgainMode = mode==="avent" ? "avent" : mode==="defense" ? "defense" : unique ? "normal" : mode;
     openOverlay("endOverlay");
   }
 
@@ -6603,8 +6921,8 @@
     // vaut échec — on prévient clairement et on reporte le résultat honnêtement.
     if(mode==="defense" && m!=="defense" && !ended && defTarget){
       askConfirm("Abandonner l'attaque ?",
-        "Ta seule tentative sera perdue : tu ne pourras réessayer que si ce joueur change de mot.",
-        ()=>{ defFinish(false); ended=true; over=true; timerStop(); switchMode(m); });
+        "L'attaque comptera comme repoussée : tu pourras réessayer quand ce joueur changera de mot.",
+        ()=>{ gaveUp=true; ended=true; over=true; timerStop(); recordResult(false); awardXp(false); defFinish(false); switchMode(m); });
       return;
     }
     if(mode==="duel" && m!=="duel" && duelStarted && !ended){
@@ -6620,7 +6938,7 @@
     // revenir à un duel en cours ne doit jamais demander de confirmation
     if(m==="duel" && duelActive()){ switchMode(m); return; }
     if(m==="race" && raceActive()){ switchMode(m); return; }
-    const risque = mode!=="daily" && mode!=="peur" && mode!=="bonbons" && mode!=="defi" && mode!=="duel" && mode!=="race" && !ended && rowHasInput();
+    const risque = mode!=="daily" && mode!=="peur" && mode!=="avent" && mode!=="bonbons" && mode!=="defi" && mode!=="duel" && mode!=="race" && !ended && rowHasInput();
     if(risque) askConfirm("Changer de mode ?", "La partie en cours sera perdue.", ()=>switchMode(m));
     else switchMode(m);
   }
@@ -6633,6 +6951,7 @@
     if(m!=="bonbons") bbArreter();             // quitter le mini-jeu arrête sa boucle
     if(m==="daily") enterDaily();
     else if(m==="peur") enterPeur();
+    else if(m==="avent"){ if(window.Avent) Avent.ouvrir(); }
     else if(m==="bonbons") bbOuvrir();
     else if(m==="defi") enterDefi();
     else if(m==="expert") expertOpen();
@@ -6716,10 +7035,16 @@
   /* ---------- Mode Défense ---------- */
   $("defSetGo").addEventListener("click", defSubmitWord);
   $("defSetBack").addEventListener("click", ()=>{ defShowStep(1); defSetMsg(""); });
-  $("defJournalBtn").addEventListener("click", ()=>{ defDrawJournal(); defShowStep(4); });
+  $("defJournalBtn").addEventListener("click", ()=>{ defHistoOnglet = defNouvelles ? "mot" : defHistoOnglet; defDrawJournal(); defShowStep(4); });
+  document.querySelectorAll("#defHistoTabs .dtab").forEach(b=>b.addEventListener("click", ()=>{ defHistoOnglet = b.dataset.dh; defDrawJournal(); }));
   $("defRateSkip").addEventListener("click", ()=>$("defRateOverlay").classList.remove("open"));
   $("defJournalBack").addEventListener("click", ()=>defShowStep(1));
   $("defAlertClose").addEventListener("click", ()=>$("defAlertOverlay").classList.remove("open"));
+  $("defAlertChanger").addEventListener("click", ()=>{
+    $("defAlertOverlay").classList.remove("open");
+    if(!$("defOverlay").classList.contains("open")) defOpen();
+    defOpenSet(true);
+  });
   $("defAlertRiposte").addEventListener("click", ()=>{
     $("defAlertOverlay").classList.remove("open");
     // on rouvre la Défense sur la liste des cibles, prêt à riposter
@@ -6823,10 +7148,15 @@
     closeOverlays();
     if(mode==="daily"){ switchMode("normal"); return; }        // le mot du jour est unique : on lance un mot au hasard
     if(mode==="peur"){ switchMode("normal"); return; }
+    if(mode==="avent"){ if(window.Avent) Avent.ouvrir(); return; }
     if(mode==="bonbons"){ bbOuvrir(); return; }
     if(mode==="defi"){ switchMode("normal"); return; }         // le défi est unique aussi
     if(mode==="expert"){ startFree("expert"); return; }        // relance directe, sans rappeler les règles
     if(mode==="duel"){ duelOpen(); return; }                   // le duel se relance depuis sa fenêtre
+    if(mode==="defense"){                                       // une attaque en cours ne se relance pas
+      if(!ended && defTarget){ requestMode("normal"); return; }
+      defOpen(); return;
+    }
     if(mode==="race"){
       if(raceTraining && raceStarted && !ended){ askConfirm("Quitter l'entraînement ?", "Ta progression sera perdue.", raceOpen); return; }
       raceOpen(); return;                                       // la course aussi
@@ -6901,7 +7231,10 @@
        l'icône (appui long) et aux liens de diffusion ciblés. On passe par
        le bouton du menu lui-même : toute sa logique s'applique. */
     const md = (q.get("mode")||"").trim().toLowerCase().replace(/[^a-z]/g,"");
-    if(md && md !== "junior"){
+    if(md === "avent"){
+      // le calendrier n'est pas un mode du menu : on l'ouvre directement
+      setTimeout(()=>{ if(window.Avent && Avent.actif()) Avent.ouvrir(); }, 600);
+    } else if(md && md !== "junior"){
       const bouton = document.querySelector('.mode-item[data-mode="'+md+'"]');
       if(bouton) setTimeout(()=>bouton.click(), 400);
     } else if(md === "junior"){
@@ -6928,7 +7261,7 @@
         toast("Appuie sur « Rejoindre » pour entrer dans la salle", 4000);
         return;
       }
-      if(df){ defOpen(); return; }     // lien « viens attaquer ma défense »
+      if(df){ defOpen(df === "1" ? "" : df); return; }     // lien « viens attaquer ma défense »
       if(dc){
         duelFresh();
         duelMode="join";
@@ -6981,6 +7314,11 @@
   }, 1600);
   setTimeout(notifDaily, 2500);   // après l'installation de l'écran
   hwAppliquerTheme();
+  noelAppliquerTheme();
+  $("noelThemeBtn").addEventListener("click", ()=>{
+    store.set("motus.noelTheme", !noelThemeVoulu()); hwAppliquerTheme(); noelAppliquerTheme();
+  });
+  $("modeAvent").addEventListener("click", ()=>{ closeOverlays(); if(window.Avent) Avent.ouvrir(); });
   $("hwThemeBtn").addEventListener("click", ()=>{
     store.set("motus.hwTheme", !hwThemeVoulu()); hwAppliquerTheme();
   });
@@ -6997,10 +7335,17 @@
   else if(last==="race"){ const a=raceActive(); if(a) raceResume(a); else startFree("normal"); }
   else if(last==="daily"){ enterDaily(); }
   else if(last==="peur"){ if(hwActif()) enterPeur(); else startFree("normal"); }
+  else if(last==="avent"){
+    // une case en cours : on la reprend une fois la boutique chargée (elle sait quelles cases sont débloquées)
+    startFree("normal");
+    const a = store.get("motus.avent", null);
+    if(a && !a.apercu && a.n && !a.done) setTimeout(()=>{ if(window.Avent && Avent.jouable(a.n) && mode==="normal" && !rowHasInput()) enterAvent(a.n); }, 0);
+  }
   else if(last==="defi"){ enterDefi(); }
+  else if(last==="defense"){ if(!defReprendre()) startFree("normal"); }
   else {
     const f = store.get("motus.free",null);
-    if(f && f.answer && f.mode!=="pendu" && !f.over && (f.guesses||[]).length < MAX_ROWS && (f.guesses||[])[(f.guesses||[]).length-1] !== f.answer){ restoreFree(f); }
+    if(f && f.answer && f.mode!=="pendu" && f.mode!=="defense" && !f.over && (f.guesses||[]).length < MAX_ROWS && (f.guesses||[])[(f.guesses||[]).length-1] !== f.answer){ restoreFree(f); }
     else startFree("normal");
   }
   // Premier lancement : le guide remplace l'ancien pavé de règles.
@@ -7010,7 +7355,7 @@
   }
 })();
 </script>
-<script src="./boutique/boutique.js?v=2.7.0"></script>
+<script src="./boutique/boutique.js?v=2.6.1"></script>
 <noscript><p><a href="./decouvrir.html">Découvrir Mot en Six, le jeu de mots en français</a></p></noscript>
 </body>
 </html>
