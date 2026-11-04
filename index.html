@@ -15,13 +15,13 @@
 <meta property="og:title" content="Mot en Six — trouve le mot caché en 6 essais">
 <meta property="og:description" content="Mot du jour, grammaire et orthographe du jour, duels, Battle Royale et mode Junior. Gratuit, sans publicité, jouable hors-ligne.">
 <meta property="og:url" content="https://mot-en-six.gamesbyneur.workers.dev/">
-<meta property="og:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.6.2">
+<meta property="og:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.7.2">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Mot en Six — trouve le mot caché en 6 essais">
 <meta name="twitter:description" content="Mot du jour, grammaire et orthographe du jour, duels et Battle Royale.">
-<meta name="twitter:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.6.2">
+<meta name="twitter:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.7.2">
 <link rel="canonical" href="https://mot-en-six.gamesbyneur.workers.dev/">
 <script type="application/ld+json">
 {
@@ -258,6 +258,8 @@
     background:var(--cell); margin-bottom:6px; }
   .roy-j .e{ font-size:18px; } .roy-j .n{ flex:1; font-weight:700; font-size:14px; }
   .roy-j .lv{ font-size:11.5px; color:var(--ink-dim); font-weight:700; }
+  .roy-j .pr{ font-size:12px; font-weight:800; white-space:nowrap; }
+  .roy-j.absent{ opacity:.55; }
   .roy-r{ position:relative; }
   .roy-r small{ display:block; font-size:11px; color:var(--ink-dim); font-weight:600; margin-top:1px; }
   .roy-r.fantome{ opacity:.75; }
@@ -359,6 +361,7 @@
     opacity:0; transition:opacity .2s ease, transform .2s ease; }
   #duelEmoteBubble.show{ display:flex; opacity:1; transform:translateX(-50%) translateY(0); }
   #duelEmoteBubble .ee{ font-size:19px; }
+  #duelEmoteBubble b{ white-space:nowrap; }
   .duel-rematch-offer{ display:none; margin:6px 0 10px; padding:10px 12px; border-radius:11px; background:var(--cell);
     box-shadow:inset 0 0 0 1.5px var(--cell-edge); font-size:14px; font-weight:700; text-align:center; }
   .duel-rematch-offer.show{ display:block; }
@@ -1283,28 +1286,28 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=2.6.2"></script>
-<script src="./dico/motus-grammaire.js?v=2.6.2"></script>
-<script src="./dico/motus-halloween.js?v=2.6.2"></script>
-<script src="./dico/motus-noel.js?v=2.6.2"></script>
-<script src="./noel/avent.js?v=2.6.2"></script>
-<script src="./noel/traineau.js?v=2.6.2"></script>
-<script src="./decors/decors.js?v=2.6.2"></script>
-<script src="./dico/motus-ortho.js?v=2.6.2"></script>
-<script src="./dico/motus-prenoms.js?v=2.6.2"></script>
-<script src="./dico/motus-prenoms-info.js?v=2.6.2"></script>
-<script src="./dico/motus-maladies.js?v=2.6.2"></script>
-<script src="./dico/motus-maladies-info.js?v=2.6.2"></script>
-<script src="./dico/motus-villes.js?v=2.6.2"></script>
-<script src="./dico/motus-villes-info.js?v=2.6.2"></script>
-<script src="./dico/motus-persos.js?v=2.6.2"></script>
-<script src="./dico/motus-persos-info.js?v=2.6.2"></script>
-<script src="./dico/motus-persos-split.js?v=2.6.2"></script>
-<script src="./dico/motus-race.js?v=2.6.2"></script>
-<script src="./dico/motus-expert.js?v=2.6.2"></script>
-<script src="./profiles/config.js?v=2.6.2"></script>
-<script src="./profiles/profile.js?v=2.6.2"></script>
-<script src="./duel/duel.js?v=2.6.2"></script>
+<script src="./dico/motus-words.js?v=2.7.2"></script>
+<script src="./dico/motus-grammaire.js?v=2.7.2"></script>
+<script src="./dico/motus-halloween.js?v=2.7.2"></script>
+<script src="./dico/motus-noel.js?v=2.7.2"></script>
+<script src="./noel/avent.js?v=2.7.2"></script>
+<script src="./noel/traineau.js?v=2.7.2"></script>
+<script src="./decors/decors.js?v=2.7.2"></script>
+<script src="./dico/motus-ortho.js?v=2.7.2"></script>
+<script src="./dico/motus-prenoms.js?v=2.7.2"></script>
+<script src="./dico/motus-prenoms-info.js?v=2.7.2"></script>
+<script src="./dico/motus-maladies.js?v=2.7.2"></script>
+<script src="./dico/motus-maladies-info.js?v=2.7.2"></script>
+<script src="./dico/motus-villes.js?v=2.7.2"></script>
+<script src="./dico/motus-villes-info.js?v=2.7.2"></script>
+<script src="./dico/motus-persos.js?v=2.7.2"></script>
+<script src="./dico/motus-persos-info.js?v=2.7.2"></script>
+<script src="./dico/motus-persos-split.js?v=2.7.2"></script>
+<script src="./dico/motus-race.js?v=2.7.2"></script>
+<script src="./dico/motus-expert.js?v=2.7.2"></script>
+<script src="./profiles/config.js?v=2.7.2"></script>
+<script src="./profiles/profile.js?v=2.7.2"></script>
+<script src="./duel/duel.js?v=2.7.2"></script>
 <script>
 (() => {
   "use strict";
@@ -1356,7 +1359,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "2.6.2";
+  const VERSION = "2.7.2";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -2882,7 +2885,7 @@
       const solde = J ? Math.max(0, (+J.base||0) + Object.keys(J.set||{}).length - (+J.spentBase||0)
                         - Object.values(J.dev||{}).reduce((a,v)=>a+(+v||0),0) - coutBq) : null;
       const modes = [["Court","mC"],["Normal","mN"],["Long","mL"],["Expert","mX"],["Prénoms","mP"],["Personnages","mPe"],["Maladies","mM"],["Villes","mV"],
-        ["Pendu","penduPlay"],["Mémorisation","memoTotal"],["Duel","duelPlay"],["Course","racePlay"],["Battle Royale","royParties"],
+        ["Pendu","penduPlay"],["Mémorisation","memoTotal"],["Duel","duelPlay"],["Course","racePlay"],["Battle Royale","royJouees"],
         ["Grammaire (jours)","gramJours"],["Orthographe (jours)","orthoJours"],["Mot terrifiant","hwPeur"]]
         .filter(([,k])=>(b[k]||0)>0).sort((x,y)=>(b[y[1]]||0)-(b[x[1]]||0));
       const maxM = Math.max(1, ...modes.map(([,k])=>b[k]||0));
@@ -2919,7 +2922,7 @@
         + (modes.length ? titre("Modes joués") + '<div class="dist">' + modes.map(([n,k])=>
             '<div class="bar"><span class="k aud-l">'+n+'</span><div class="t" style="width:'+Math.max(Math.round((b[k]||0)/maxM*100),8)+'%">'+b[k]+'</div></div>').join("") + '</div>' : "")
         + titre("Exercices du jour (60 jours)") + calendrier
-        + '<p class="perso-hint">Identifiant : <code>'+escA(p.id)+'</code></p>';
+        + '<p class="perso-hint">Identifiant public : <code>'+escA(p.id)+'</code> (le code du compte n\'est jamais affiché)</p>';
       $("ajRetour").onclick = ()=>joueursListe(q);
     });
   }
@@ -4960,15 +4963,17 @@
 
   /* ---------- Émotes du duel ---------- */
   const DUEL_EMOTES = [
-    {t:"Bonjour", e:"👋"},
-    {t:"Bien joué", e:"👏"},
-    {t:"Incroyable", e:"🤯"},
-    {t:"Je vous traquerai", e:"😈"},
-    {t:"Oups", e:"😅"},
-    {t:"Bien essayé", e:"🙂"},
+    // id : ce qui voyage en Battle Royale (liste blanche du serveur) ;
+    // le Duel, lui, envoie le numéro dans la liste
+    {id:"bonjour",    t:"Bonjour", e:"👋"},
+    {id:"bienjoue",   t:"Bien joué", e:"👏"},
+    {id:"incroyable", t:"Incroyable", e:"🤯"},
+    {id:"traque",     t:"Je vous traquerai", e:"😈"},
+    {id:"oups",       t:"Oups", e:"😅"},
+    {id:"essai",      t:"Bien essayé", e:"🙂"},
     // calendrier de l'avent : ajoutées à la FIN (les numéros des autres ne bougent pas)
-    {t:"Joyeux Noël !", e:"🎅", cle:"emote:noel"},
-    {t:"Bonhomme de neige", e:"⛄", cle:"emote:bonhomme"}
+    {id:"noel",       t:"Joyeux Noël !", e:"🎅", cle:"emote:noel"},
+    {id:"bonhomme",   t:"Bonhomme de neige", e:"⛄", cle:"emote:bonhomme"}
   ];
   /* Les émotes que JE peux envoyer : les débloquées seulement, mais avec leur
      numéro d'origine (c'est lui qui voyage jusqu'à l'adversaire). */
@@ -5012,15 +5017,16 @@
   function mpOpp(){ const r = (mode==="race") ? raceRow : duelRow; return (r && r.opp) || null; }
   function duelSendEmote(i){
     duelClosePicker();
+    if(mode==="royale" || roySalleOuverte()){ royEnvoyerEmote(i); return; }
     const code = mpCode();
     if(!code || !window.Duel) return;
     Duel.emote(code, i + ":" + Date.now());
     duelShowEmote(i, true);
   }
   let duelBubbleTimer=null;
-  function duelShowEmote(i, mine){
+  function duelShowEmote(i, mine, qui){
     const m=DUEL_EMOTES[i]; if(!m) return;
-    const who = mine ? "" : "<b>"+(((mpOpp()&&mpOpp().pseudo)||"Adversaire").replace(/[<>]/g,""))+" :</b> ";
+    const who = mine ? "" : "<b>"+((qui || (mpOpp()&&mpOpp().pseudo) || "Adversaire").replace(/[<>&]/g,""))+" :</b> ";
     const b=$("duelEmoteBubble");
     b.innerHTML = `${who}<span class="ee">${m.e}</span>${m.t}`;
     b.classList.add("show");
@@ -6109,7 +6115,10 @@
      --------------------------------------------------------------- */
   const ROY_MANCHES = 4, ROY_TEMPS = 90000;
   let royCodeCourant = "", royStop = null, royManche = 0, royMots = [];
-  let royReporte = -1, royDeadline = 0, royEtat = null;
+  let royReporte = -1, royDeadline = 0, royEtat = null, royFinComptee = "", royPingAt = 0, royPretMoi = false;
+  // la salle de Battle Royale est ouverte (attente ou classement) : le panneau
+  // d'émotes y parle à la salle, pas à un adversaire de Duel
+  function roySalleOuverte(){ const o = $("royaleOverlay"); return !!(royCodeCourant && o && o.classList.contains("open")); }
 
   function royDispo(){ return !!(window.Royale && Royale.configured()); }
 
@@ -6157,9 +6166,11 @@
 
   function royVeille(){
     if(royStop) royStop();
+    royPretMoi = false; royPingAt = 0; royDerniersEmotes = {}; royEmotesInit = false;
     royStop = Royale.watch(royCodeCourant, (err, d)=>{
       if(err || !d) return;
       royEtat = d;
+      royRecevoirEmotes(d);
       royDessine(d);
     });
   }
@@ -6169,17 +6180,36 @@
     if(d.status === "waiting"){
       royEtape("royLobby");
       $("royCodeShow").textContent = d.id;
-      const vrais = d.joueurs.filter(j=>!j.fantome).length;
-      $("royLobbySub").textContent = vrais + " joueur" + (vrais>1?"s":"") + " sur 4"
-        + (vrais < 4 ? " — les places libres seront tenues par des fantômes." : " — salle complète !");
-      $("royJoueurs").innerHTML = d.joueurs.map(j=>
-        '<div class="roy-j"><span class="e">'+(j.badge||"🎖️")+'</span>'
+      const moi = d.joueurs.find(j=>j.moi);
+      if(!moi){ royHorsSalle("Tu n'es plus dans cette salle."); return; }
+      royPretMoi = !!moi.pret;
+      // signe de vie : un joueur parti sans prévenir ne bloque pas le vote
+      // plus d'une minute (le serveur l'écarte au lancement)
+      if(Date.now() - royPingAt > 8000){ royPingAt = Date.now(); Royale.lobby(royCodeCourant, null); }
+      const presents = d.joueurs.filter(j=>!j.fantome && j.present);
+      const vrais = presents.length, prets = presents.filter(j=>j.pret).length;
+      let sub = vrais + " joueur" + (vrais>1?"s":"") + " sur 4";
+      if(vrais === 1) sub += " — tu es seul : les 3 autres places seront tenues par des fantômes.";
+      else if(vrais < 4) sub += " — la partie démarre quand tout le monde est prêt (" + prets + "/" + vrais + ").";
+      else sub += " — salle complète : le premier prêt lance la partie.";
+      $("royLobbySub").textContent = sub;
+      $("royJoueurs").innerHTML = d.joueurs.filter(j=>!j.fantome).map(j=>
+        '<div class="roy-j'+(j.present?"":" absent")+'"><span class="e">'+(j.badge||"🎖️")+'</span>'
         + '<span class="n">'+escapeHtml(j.pseudo||"Anonyme")+(j.moi?" (toi)":"")+'</span>'
-        + '<span class="lv">niv. '+(j.level||1)+'</span></div>').join("");
+        + '<span class="lv">niv. '+(j.level||1)+'</span>'
+        + '<span class="pr">'+(!j.present ? "💤 absent" : j.pret ? "✅ prêt" : "⏳")+'</span></div>').join("");
+      const go = $("royGo");
+      go.textContent = royPretMoi ? "Je ne suis plus prêt"
+        : vrais === 1 ? "Lancer avec 3 fantômes"
+        : vrais >= 4 ? "Lancer la partie" : "Je suis prêt";
+      go.classList.toggle("ghost", royPretMoi);
       // on peut se parler DÈS la salle d'attente, pas seulement entre les manches
-      royDessinerEmotes(d.joueurs, "royLobbyEmotes");
+      royDessinerEmotes("royLobbyEmotes");
       return;
     }
+
+    // la partie a démarré sans moi (j'étais absent au lancement)
+    if(!d.joueurs.some(j=>j.moi)){ royHorsSalle("La partie a commencé sans toi : tu étais absent au lancement."); return; }
 
     // partie lancée : on joue la manche courante
     if(d.status === "playing"){
@@ -6280,7 +6310,7 @@
     $("royAttente").textContent = attend.length
       ? "En attente de " + attend.map(j=>j.pseudo).join(", ") + "…"
       : "Tout le monde a joué — la manche suivante arrive.";
-    royDessinerEmotes(d.joueurs);
+    royDessinerEmotes();
     if(!fini) $("roySuivant").style.display = "none";
     royMajAttente(d);
     // observer un joueur : uniquement possible une fois qu'on a soi-même fini
@@ -6392,83 +6422,71 @@
     $("royAttente").textContent = "";
     $("roySuivant").style.display = "";
     $("roySuivant").textContent = "Quitter";
-    if(window.Profile && Profile.royaleDone && rang>0){
-      Profile.royaleDone({ rang, joueurs:d.joueurs.length, total: moi ? moi.total : 0 });
+    royDessinerEmotes();
+    // L'écran de fin se redessine à chaque relecture de la salle (2,5 s) :
+    // la partie ne doit être comptée qu'une fois.
+    if(royFinComptee !== d.id){
+      royFinComptee = d.id;
+      if(window.Profile && Profile.royaleDone && rang>0)
+        Profile.royaleDone({ code: d.id, rang, joueurs:d.joueurs.length, total: moi ? moi.total : 0 });
+      mesure("partie:royale"); if(rang===1) mesure("gagne:royale");
     }
-    mesure("partie:royale"); if(rang===1) mesure("gagne:royale");
     openOverlay("royaleOverlay");
   }
 
-  const ROY_EMOTES = [
-    {id:"gg",       e:"🤝", t:"GG"},
-    {id:"bravo",    e:"👏", t:"Bravo"},
-    {id:"vite",     e:"⚡", t:"Trop vite !"},
-    {id:"feu",      e:"🔥", t:"En feu"},
-    {id:"coeur",    e:"❤️", t:"Sympa"},
-    {id:"oups",     e:"😅", t:"Oups"},
-    {id:"lol",      e:"😂", t:"Mdr"},
-    {id:"deception",e:"😩", t:"Argh"},
-    {id:"noel",     e:"🎅", t:"Joyeux Noël !",     cle:"emote:noel"},
-    {id:"bonhomme", e:"⛄", t:"Bonhomme de neige", cle:"emote:bonhomme"}
-  ];
-  function royEmotesDispo(){ return ROY_EMOTES.filter(m=>!m.cle || aRecompense(m.cle)); }
-  let royDerniersEmotes = {};   // pour ne montrer une bulle qu'une fois par message
-
-  function royDessinerEmotes(joueurs, zoneId){
+  /* Émotes : les mêmes que le Duel (liste, sourdine, bulle). Le serveur
+     n'accepte que leurs identifiants ; ceux des versions précédentes sont
+     encore compris, le temps que tout le monde ait la mise à jour. */
+  const ROY_ALIAS = { gg:"bienjoue", bravo:"bienjoue", vite:"incroyable", feu:"incroyable",
+                      coeur:"bonjour", lol:"oups", deception:"essai" };
+  function royIndexEmote(id){ id = ROY_ALIAS[id] || id; return DUEL_EMOTES.findIndex(m=>m.id===id); }
+  function royEnvoyerEmote(i){
+    const m = DUEL_EMOTES[i];
+    if(!m || !royCodeCourant || !window.Royale) return;
+    Royale.emote(royCodeCourant, m.id);
+    duelShowEmote(i, true);                // aperçu immédiat de mon propre envoi
+  }
+  function royDessinerEmotes(zoneId){
     const bar = $(zoneId || "royEmotesBar"); if(!bar) return;
-    bar.innerHTML = royEmotesDispo().map(m=>
-      '<button class="roy-em" data-e="'+m.id+'" title="'+m.t+'">'+m.e+'</button>').join("");
-    bar.querySelectorAll(".roy-em").forEach(b=>{
-      b.addEventListener("click", ()=>{
-        if(!royCodeCourant || !window.Royale) return;
-        Royale.emote(royCodeCourant, b.dataset.e);
-        royAfficherBulle(b.dataset.e, null);   // aperçu immédiat de mon propre envoi
-      });
-    });
-    // bulles des AUTRES joueurs : un message récent (moins de 6 s) et pas
-    // déjà montré
-    (joueurs||[]).filter(j=>!j.moi && j.emote && j.emoteAt).forEach(j=>{
+    const n = String(duelEmotesDispo().length);
+    if(bar.dataset.pret === n) return;     // la barre ne change qu'avec une émote débloquée
+    bar.dataset.pret = n;
+    bar.innerHTML = duelEmotesDispo().map(({m,i})=>
+      '<button class="roy-em" data-i="'+i+'" title="'+m.t+'">'+m.e+'</button>').join("");
+    bar.querySelectorAll(".roy-em").forEach(b=> b.addEventListener("click", ()=> royEnvoyerEmote(+b.dataset.i)));
+  }
+  /* Émotes des AUTRES joueurs : lues à CHAQUE relecture de la salle, quel que
+     soit l'écran (salle d'attente, manche en cours, classement). Une émote
+     n'est montrée qu'une fois ; à l'entrée dans la salle, celles déjà là
+     depuis plus de 8 s sont ignorées. L'âge se mesure à l'heure du serveur,
+     pas à celle du téléphone (souvent décalée). */
+  let royDerniersEmotes = {}, royEmotesInit = false;
+  function royRecevoirEmotes(d){
+    const ref = d.maintenant ? new Date(d.maintenant).getTime() : Date.now();
+    (d.joueurs||[]).filter(j=>!j.moi && !j.fantome && j.emote && j.emoteAt).forEach(j=>{
       const cle = j.id + ":" + j.emoteAt;
       if(royDerniersEmotes[cle]) return;
-      const age = Date.now() - new Date(j.emoteAt).getTime();
-      if(age > 6000) return;
       royDerniersEmotes[cle] = true;
-      royAfficherBulle(j.emote, j.pseudo);
+      if(!royEmotesInit && ref - new Date(j.emoteAt).getTime() > 8000) return;
+      if(duelMuted()) return;
+      const i = royIndexEmote(j.emote);
+      if(i >= 0) duelShowEmote(i, false, j.pseudo || "Joueur");
     });
-  }
-  /* Réutilise le panneau du duel, mais rempli avec les émotes de la salle
-     et sans l'option « ne plus recevoir » (qui vise un adversaire précis). */
-  function royTogglePicker(){
-    const p = $("duelEmotePicker"); if(!p) return;
-    p.innerHTML = royEmotesDispo().map(m=>
-      '<button class="emote-item" data-roy="'+m.id+'"><span class="ee">'+m.e+'</span>'+m.t+'</button>').join("");
-    p.querySelectorAll("[data-roy]").forEach(b=>b.addEventListener("click", ()=>{
-      p.classList.remove("open");
-      if(!royCodeCourant || !window.Royale) return;
-      Royale.emote(royCodeCourant, b.dataset.roy);
-      royAfficherBulle(b.dataset.roy, null);
-    }));
-    p.dataset.built = "";           // le duel le reconstruira à son tour
-    p.classList.toggle("open");
+    royEmotesInit = true;
   }
 
-  let royBulleTimer = null;
-  function royAfficherBulle(id, pseudo){
-    const m = ROY_EMOTES.find(x=>x.id===id); if(!m) return;
-    const b = $("royEmoteBulle") || (function(){
-      const e = document.createElement("div"); e.id = "royEmoteBulle"; e.className = "roy-bulle";
-      document.body.appendChild(e); return e;
-    })();
-    b.innerHTML = (pseudo ? '<b>'+escapeHtml(pseudo)+' :</b> ' : "") + m.e + " " + m.t;
-    b.classList.add("show");
-    clearTimeout(royBulleTimer);
-    royBulleTimer = setTimeout(()=> b.classList.remove("show"), 2800);
+  function royHorsSalle(msg){
+    if(royStop){ royStop(); royStop = null; }
+    royCodeCourant = ""; royEtat = null;
+    royEtape("roySetup"); royMsg(msg, true);
+    openOverlay("royaleOverlay");
   }
-
   function royQuitter(){
+    // quitter la salle d'attente libère la place (et ne bloque plus le vote)
+    if(royCodeCourant && royEtat && royEtat.status === "waiting" && window.Royale && Royale.quitter) Royale.quitter(royCodeCourant);
     if(royStop){ royStop(); royStop = null; }
     royCodeCourant = ""; royManche = 0; royEtat = null; royReporte = -1;
-    royDerniersEmotes = {}; roySpyId = null;
+    royDerniersEmotes = {}; royEmotesInit = false; roySpyId = null; royFinComptee = "";
     clearInterval(royPauseTick); clearInterval(roySpyTick);
     duelEmoteBtnShow(false);
     closeOverlays(); startFree("normal");
@@ -7043,8 +7061,15 @@
     if(c.length < 4){ royMsg("Le code fait 4 caractères.", true); return; }
     royEntrer(Royale.join(c));
   });
+  // Lancer = se déclarer prêt : à moins de 4, la partie part quand TOUS les
+  // joueurs présents sont prêts ; à 4, le premier prêt la lance.
   $("royGo").addEventListener("click", ()=>{
-    Royale.start(royCodeCourant).then(()=>{ if(royStop) royStop.now(); });
+    if(!royCodeCourant) return;
+    royPretMoi = !royPretMoi;
+    $("royGo").textContent = royPretMoi ? "Je ne suis plus prêt" : "Je suis prêt";
+    $("royGo").classList.toggle("ghost", royPretMoi);
+    royPingAt = Date.now();
+    Royale.lobby(royCodeCourant, royPretMoi).then(()=>{ if(royStop) royStop.now(); });
   });
   $("royShare").addEventListener("click", ()=>{
     // lien direct vers LA SALLE, pas vers l'accueil du jeu : le code est
@@ -7137,7 +7162,7 @@
   $("duelEmoteBtn").addEventListener("click", ()=>{
     // même bouton, deux systèmes : le duel s'adresse à UN adversaire,
     // la Battle Royale à toute la salle.
-    if(mode === "royale") royTogglePicker(); else duelTogglePicker();
+    duelTogglePicker();
   });
   $("duelResEmote").addEventListener("click", duelTogglePicker);
   $("raceResEmote").addEventListener("click", duelTogglePicker);
@@ -7395,7 +7420,7 @@
   }
 })();
 </script>
-<script src="./boutique/boutique.js?v=2.6.2"></script>
+<script src="./boutique/boutique.js?v=2.7.2"></script>
 <noscript><p><a href="./decouvrir.html">Découvrir Mot en Six, le jeu de mots en français</a></p></noscript>
 </body>
 </html>

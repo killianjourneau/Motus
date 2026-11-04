@@ -2074,3 +2074,700 @@ $$;
 
 grant execute on function traineau_record(uuid,text,int,int,text) to anon, authenticated;
 grant execute on function traineau_top(text,int)                  to anon, authenticated;
+
+-- =====================================================================
+-- v2.11 — Battle Royale : lancement à l'unanimité, émotes du Duel, bilan
+--
+-- 1. Lancer la partie : avec moins de 4 joueurs, TOUS les joueurs présents
+--    doivent se déclarer prêts ; à 4, le premier « prêt » lance. Un joueur
+--    qui n'a plus donné signe de vie depuis 1 min ne bloque pas le vote, et
+--    il est retiré de la salle au lancement (sa place va à un fantôme).
+--    royale_start (anciennes versions du jeu) applique la même règle :
+--    plus personne ne peut lancer seul une partie à plusieurs.
+-- 2. Émotes : les mêmes que le Duel (bonjour, bienjoue, incroyable,
+--    traque, oups, essai, noel, bonhomme). Les anciennes restent acceptées
+--    le temps que tout le monde ait la nouvelle version.
+-- 3. royale_bilan : les parties réellement terminées d'un joueur, avec son
+--    rang. Sert à recompter les badges, gonflés par un bug d'affichage
+--    (le classement final comptait une partie à chaque rafraîchissement).
+-- =====================================================================
+alter table royale_players add column if not exists pret  boolean default false;
+alter table royale_players add column if not exists vu_at timestamptz default now();
+
+create or replace function royale_inscrire(
+  p_room text, p_id uuid, p_pseudo text, p_level int, p_badge text
+) returns void language sql security definer as $$
+  insert into royale_players (room_id, player_id, pseudo, level, badge, vu_at)
+  values (p_room, p_id, left(coalesce(p_pseudo,'Anonyme'),24), coalesce(p_level,1), p_badge, now())
+  on conflict (room_id, player_id) do update
+    set pseudo = excluded.pseudo, level = excluded.level, badge = excluded.badge, vu_at = now();
+$$;
+
+-- Lancement effectif (interne) : retire les absents, comble par des fantômes.
+create or replace function royale_demarrer(p_code text)
+returns void language plpgsql security definer as $$
+declare v_code text := upper(btrim(p_code)); v_nb int; i int;
+        v_noms text[] := array['Ombre','Écho','Mirage','Spectre'];
+begin
+  perform 1 from royale_rooms where id = v_code and status = 'waiting' for update;
+  if not found then return; end if;
+  delete from royale_players
+   where room_id = v_code and not fantome and vu_at < now() - interval '60 seconds';
+  select count(*) into v_nb from royale_players where room_id = v_code;
+  i := 0;
+  while v_nb < 4 loop
+    i := i + 1;
+    insert into royale_players (room_id, player_id, pseudo, level, badge, fantome)
+    values (v_code, md5(v_code || ':fantome:' || i)::uuid, v_noms[i] || ' 🤖', 1 + (i * 2), '🤖', true)
+    on conflict do nothing;
+    v_nb := v_nb + 1;
+  end loop;
+  update royale_rooms
+     set status = 'playing', manche = 1, started_at = now(), manche_at = now()
+   where id = v_code;
+end $$;
+revoke execute on function royale_demarrer(text) from public, anon, authenticated;
+
+-- La règle de lancement : moins de 4 présents → tous prêts ; 4 → un seul suffit.
+create or replace function royale_peut_lancer(p_code text)
+returns boolean language sql security definer stable as $$
+  select count(*) > 0
+     and (case when count(*) >= 4 then bool_or(coalesce(pret, false))
+               else bool_and(coalesce(pret, false)) end)
+    from royale_players
+   where room_id = upper(btrim(p_code)) and not fantome
+     and vu_at >= now() - interval '60 seconds';
+$$;
+revoke execute on function royale_peut_lancer(text) from public, anon, authenticated;
+
+-- Ancien bouton « Lancer » : ne passe plus en force.
+create or replace function royale_start(p_code text)
+returns void language plpgsql security definer as $$
+begin
+  if royale_peut_lancer(p_code) then perform royale_demarrer(p_code); end if;
+end $$;
+grant execute on function royale_start(text) to anon, authenticated;
+
+-- Salle d'attente : signe de vie (p_pret null) ou changement d'avis.
+-- Rend 'lance' si la partie démarre, 'absent' si le joueur n'est plus inscrit.
+create or replace function royale_lobby(p_code text, p_id uuid, p_pret boolean)
+returns text language plpgsql security definer as $$
+declare v_code text := upper(btrim(p_code));
+begin
+  if not exists (select 1 from royale_rooms where id = v_code and status = 'waiting') then return 'ferme'; end if;
+  update royale_players set vu_at = now(), pret = coalesce(p_pret, pret)
+   where room_id = v_code and player_id = p_id and not fantome;
+  if not found then return 'absent'; end if;
+  if royale_peut_lancer(v_code) then perform royale_demarrer(v_code); return 'lance'; end if;
+  return 'ok';
+end $$;
+grant execute on function royale_lobby(text,uuid,boolean) to anon, authenticated;
+
+-- Quitter la salle d'attente libère la place.
+create or replace function royale_quitter(p_code text, p_id uuid)
+returns void language plpgsql security definer as $$
+declare v_code text := upper(btrim(p_code));
+begin
+  delete from royale_players p using royale_rooms r
+   where r.id = v_code and r.status = 'waiting' and p.room_id = r.id and p.player_id = p_id and not p.fantome;
+  if royale_peut_lancer(v_code) then perform royale_demarrer(v_code); end if;
+end $$;
+grant execute on function royale_quitter(text,uuid) to anon, authenticated;
+
+create or replace function royale_emote(p_code text, p_id uuid, p_emote text)
+returns void language plpgsql security definer as $$
+begin
+  if p_emote !~ '^(bonjour|bienjoue|incroyable|traque|oups|essai|noel|bonhomme|gg|bravo|vite|lol|coeur|feu|deception)$' then return; end if;
+  update royale_players set emote = p_emote, emote_at = now()
+   where room_id = upper(btrim(p_code)) and player_id = p_id;
+end $$;
+grant execute on function royale_emote(text,uuid,text) to anon, authenticated;
+
+create or replace function masque(p uuid) returns uuid
+language sql immutable strict as $$ select md5('mes-public:' || p::text)::uuid $$;
+
+drop function if exists royale_state(text);
+create or replace function royale_state(p_code text)
+returns table (
+  id text, status text, is_public boolean, words text[], manche int, manche_at timestamptz,
+  pause_jusqu timestamptz,
+  player_id uuid, pseudo text, level int, badge text, fantome boolean,
+  scores int[], essais int[], temps_ms int[], total int, emote text, emote_at timestamptz,
+  moves text, moves_manche int, pret boolean, present boolean, maintenant timestamptz
+) language sql security definer stable as $$
+  select r.id, r.status, r.is_public, r.words, r.manche, r.manche_at, r.pause_jusqu,
+         masque(p.player_id), p.pseudo, p.level, p.badge, p.fantome,
+         p.scores, p.essais, p.temps_ms, p.total, p.emote, p.emote_at,
+         p.moves, p.moves_manche, coalesce(p.pret, false),
+         p.fantome or p.vu_at >= now() - interval '60 seconds', now()
+    from royale_rooms r
+    join royale_players p on p.room_id = r.id
+   where r.id = upper(btrim(p_code))
+   order by p.total desc, p.joined_at asc;
+$$;
+grant execute on function royale_state(text) to anon, authenticated;
+
+-- Les parties terminées d'un joueur et son rang (fantômes compris, comme
+-- à l'écran de fin). Même ordre que le classement : total, puis arrivée.
+create or replace function royale_bilan(p_id uuid)
+returns table (code text, rang int, total int)
+language sql security definer stable as $$
+  select x.room_id, x.rang::int, x.total from (
+    select p.room_id, p.player_id, p.total,
+           row_number() over (partition by p.room_id order by p.total desc, p.joined_at asc) as rang
+      from royale_players p
+      join royale_rooms r on r.id = p.room_id and r.status = 'done'
+     where p.room_id in (select q.room_id from royale_players q where q.player_id = p_id)
+  ) x
+   where x.player_id = p_id
+   order by x.room_id
+   limit 5000;
+$$;
+grant execute on function royale_bilan(uuid) to anon, authenticated;
+
+-- =====================================================================
+-- v2.12 — SÉCURITÉ DES COMPTES
+--
+-- L'identifiant d'un profil (uuid) est aussi son CODE DE RÉCUPÉRATION :
+-- qui le connaît peut ouvrir le compte. Or il sortait de la base à
+-- plusieurs endroits : classements (select=id), Duel et Course (p1_id /
+-- p2_id de l'adversaire), Défense (player_id des cibles), Battle Royale
+-- (player_id de tous les joueurs de la salle), et les tables lisibles par
+-- tous (royale_players, race_records, memo_records, traineau_records).
+--
+-- Règle désormais : l'identifiant d'un AUTRE joueur ne sort jamais. À sa
+-- place, son « masque » : md5('mes-public:' || id), mis au format uuid.
+-- Il est stable (le jeu peut reconnaître un joueur d'une partie à l'autre)
+-- mais ne permet pas de remonter au code. Chaque joueur calcule son propre
+-- masque (profiles/profile.js, Profile.pub) pour se reconnaître.
+--
+-- Profils et résultats du jour : plus aucune écriture directe, plus de
+-- lecture de l'identifiant ni des données privées (data) ; tout passe par
+-- des fonctions qui demandent son propre code.
+--
+-- Enfin, compte_nouveau_code : un joueur peut changer son code (l'ancien
+-- est alors refusé partout), pour les comptes dont le code a déjà pu fuiter.
+-- =====================================================================
+create or replace function masque(p uuid) returns uuid
+language sql immutable strict as $$ select md5('mes-public:' || p::text)::uuid $$;
+
+-- ---------- Profils ----------
+alter table profiles add column if not exists pub uuid generated always as (masque(id)) stored;
+create index if not exists profiles_pub_idx on profiles (pub);
+
+create table if not exists comptes_retires (id uuid primary key, at timestamptz default now());
+alter table comptes_retires enable row level security;
+revoke all on comptes_retires from anon, authenticated;
+
+-- Lecture publique : uniquement ce qu'affichent les classements.
+revoke all on profiles from anon, authenticated;
+grant select (pub, pseudo, level, xp, games, wins, badge, elo, elo_games, updated_at)
+  on profiles to anon, authenticated;
+
+drop function if exists profil_lire(uuid);
+create or replace function profil_lire(p_id uuid)
+returns setof profiles language plpgsql security definer stable as $$
+begin
+  if exists (select 1 from comptes_retires where id = p_id) then raise exception 'code-change'; end if;
+  return query select * from profiles where id = p_id;
+end $$;
+
+create or replace function profil_ecrire(
+  p_id uuid, p_pseudo text, p_xp int, p_games int, p_wins int, p_level int,
+  p_badge text, p_data jsonb, p_updated_at timestamptz
+) returns void language plpgsql security definer as $$
+begin
+  if p_id is null then return; end if;
+  if exists (select 1 from comptes_retires where id = p_id) then raise exception 'code-change'; end if;
+  insert into profiles (id, pseudo, xp, games, wins, level, badge, data, updated_at)
+  values (p_id, left(p_pseudo, 24), greatest(0, coalesce(p_xp, 0)), greatest(0, coalesce(p_games, 0)),
+          greatest(0, coalesce(p_wins, 0)), greatest(1, coalesce(p_level, 1)), left(p_badge, 16),
+          p_data, coalesce(p_updated_at, now()))
+  on conflict (id) do update
+    set pseudo = excluded.pseudo, xp = excluded.xp, games = excluded.games, wins = excluded.wins,
+        level = excluded.level, badge = excluded.badge, data = excluded.data, updated_at = excluded.updated_at;
+end $$;
+
+-- ---------- Résultats du jour ----------
+-- (écrits en SQL dynamique : la table a été créée à la main au début du
+-- projet, ses types exacts — texte ou date, texte ou uuid — ne sont pas
+-- garantis ; les littéraux s'adaptent à la colonne)
+revoke all on daily_results from anon, authenticated;
+grant select (pseudo, game, day, tries, won, created_at) on daily_results to anon, authenticated;
+
+create or replace function jour_ecrire(
+  p_id uuid, p_pseudo text, p_game text, p_day text, p_tries int, p_won boolean
+) returns boolean language plpgsql security definer as $$
+begin
+  if p_id is null or coalesce(p_game, '') !~ '^[a-z]{2,16}$' or coalesce(p_day, '') !~ '^\d{4}-\d{2}-\d{2}$' then return false; end if;
+  if exists (select 1 from comptes_retires where id = p_id) then raise exception 'code-change'; end if;
+  -- le PREMIER résultat du jour fait foi (comme avant : ignore-duplicates)
+  execute format('insert into daily_results (player_id, pseudo, game, day, tries, won) values (%L, %L, %L, %L, %L, %L)
+                  on conflict (player_id, game, day) do nothing',
+                 p_id, left(coalesce(p_pseudo, ''), 24), p_game, p_day,
+                 p_tries, coalesce(p_won, false));
+  return true;
+end $$;
+
+create or replace function jour_mes_resultats(p_id uuid, p_game text, p_day text default null, p_limit int default 400)
+returns table (day text, tries int, won boolean) language plpgsql security definer stable as $$
+begin
+  return query execute format(
+    'select day::text, tries::int, won from daily_results
+      where player_id::text = %L and game = %L %s order by day desc limit %s',
+    p_id::text, p_game, case when p_day is null then '' else format('and day::text = %L', p_day) end,
+    greatest(1, least(coalesce(p_limit, 400), 400)));
+end $$;
+
+-- ---------- Administration (modérateurs seulement) ----------
+create or replace function admin_joueurs(p_admin uuid, p_q text default null)
+returns table (pub uuid, pseudo text, level int, games int, wins int, badge text, updated_at timestamptz)
+language plpgsql security definer stable as $$
+begin
+  if not is_admin(p_admin) then return; end if;
+  return query
+  select p.pub, p.pseudo::text, p.level::int, p.games::int, p.wins::int, p.badge::text, p.updated_at
+    from profiles p
+   where p_q is null or p_q = '' or p.pseudo ilike '%' || replace(replace(p_q, '%', ''), '_', '') || '%'
+   order by p.updated_at desc nulls last
+   limit case when coalesce(p_q, '') = '' then 25 else 30 end;
+end $$;
+
+create or replace function admin_fiche(p_admin uuid, p_pub uuid)
+returns table (pseudo text, xp int, games int, wins int, level int, badge text, data jsonb,
+               updated_at timestamptz, elo int, elo_games int)
+language plpgsql security definer stable as $$
+begin
+  if not is_admin(p_admin) then return; end if;
+  return query select p.pseudo::text, p.xp::int, p.games::int, p.wins::int, p.level::int, p.badge::text,
+                      p.data, p.updated_at, p.elo::int, p.elo_games::int
+                 from profiles p where p.pub = p_pub;
+end $$;
+
+create or replace function admin_jours(p_admin uuid, p_pub uuid, p_depuis text)
+returns table (game text, day text, tries int, won boolean)
+language plpgsql security definer stable as $$
+declare v_id uuid;
+begin
+  if not is_admin(p_admin) then return; end if;
+  select id into v_id from profiles where pub = p_pub;
+  if v_id is null then return; end if;
+  return query execute format(
+    'select game::text, day::text, tries::int, won from daily_results
+      where player_id::text = %L and day::text >= %L order by day desc limit 600', v_id::text, p_depuis);
+end $$;
+
+-- ---------- Tables de records : plus de player_id lisible ----------
+revoke all on race_records from anon, authenticated;
+grant select (theme, pseudo, ms, words, at) on race_records to anon, authenticated;
+revoke all on memo_records, traineau_records, royale_rooms, royale_players from anon, authenticated;
+drop policy if exists "lecture memo"      on memo_records;
+drop policy if exists "lecture traineau"  on traineau_records;
+drop policy if exists "lecture salles"    on royale_rooms;
+drop policy if exists "lecture joueurs"   on royale_players;
+revoke all on duels, defenses, defense_attacks, app_admins, perso_suggestions from anon, authenticated;
+
+-- ---------- Duel et Course : l'adversaire masqué ----------
+create or replace function duel_masque(d duels) returns duels language plpgsql immutable as $$
+begin
+  d.p1_id := masque(d.p1_id); d.p2_id := masque(d.p2_id);
+  return d;
+end $$;
+
+create or replace function duel_create(
+  p_id uuid, p_pseudo text, p_level int, p_badge text, p_word text
+) returns duels language plpgsql security definer as $$
+declare v_code text; v_row duels; v_n int := 0;
+begin
+  perform duel_gc();
+  loop
+    v_n := v_n + 1;
+    v_code := '';
+    for i in 1..5 loop
+      v_code := v_code || substr('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 1 + floor(random() * 32)::int, 1);
+    end loop;
+    begin
+      insert into duels (id, status, p1_id, p1_pseudo, p1_level, p1_badge, word1, p1_elo)
+      values (v_code, 'waiting', p_id, p_pseudo, p_level, p_badge, p_word,
+              coalesce((select elo from profiles where id = p_id), 1000))
+      returning * into v_row;
+      return duel_masque(v_row);
+    exception when unique_violation then
+      if v_n > 12 then raise exception 'code-indisponible'; end if;
+    end;
+  end loop;
+end $$;
+
+create or replace function duel_join(
+  p_code text, p_id uuid, p_pseudo text, p_level int, p_badge text, p_word text
+) returns duels language plpgsql security definer as $$
+declare v_row duels; v_code text := upper(trim(p_code));
+begin
+  update duels set
+    p2_id = p_id, p2_pseudo = p_pseudo, p2_level = p_level, p2_badge = p_badge,
+    word2 = p_word, status = 'playing',
+    p2_elo = coalesce((select elo from profiles where id = p_id), 1000),
+    started_at = coalesce(started_at, now())
+  where id = v_code and p1_id <> p_id and (p2_id is null or p2_id = p_id)
+    and created_at > now() - interval '2 hours'
+  returning * into v_row;
+  if v_row.id is null then
+    if not exists (select 1 from duels where id = v_code) then raise exception 'introuvable';
+    elsif exists (select 1 from duels where id = v_code and p1_id = p_id) then raise exception 'soi-meme';
+    elsif exists (select 1 from duels where id = v_code and created_at <= now() - interval '2 hours') then raise exception 'expiree';
+    else raise exception 'complet';
+    end if;
+  end if;
+  return duel_masque(v_row);
+end $$;
+
+create or replace function duel_get(p_code text)
+returns duels language plpgsql security definer stable as $$
+declare v_row duels;
+begin
+  select * into v_row from duels where id = upper(trim(p_code));
+  if v_row.id is null then return null; end if;
+  return duel_masque(v_row);
+end $$;
+
+create or replace function duel_report(
+  p_code text, p_id uuid, p_tries int, p_ms int, p_won boolean
+) returns duels language plpgsql security definer as $$
+declare v_row duels; v_code text := upper(trim(p_code));
+begin
+  update duels set
+    p1_tries = case when p1_id = p_id then p_tries else p1_tries end,
+    p1_ms    = case when p1_id = p_id then p_ms    else p1_ms    end,
+    p1_won   = case when p1_id = p_id then p_won   else p1_won   end,
+    p1_done  = case when p1_id = p_id then true    else p1_done  end,
+    p2_tries = case when p2_id = p_id then p_tries else p2_tries end,
+    p2_ms    = case when p2_id = p_id then p_ms    else p2_ms    end,
+    p2_won   = case when p2_id = p_id then p_won   else p2_won   end,
+    p2_done  = case when p2_id = p_id then true    else p2_done  end
+  where id = v_code and (p1_id = p_id or p2_id = p_id)
+  returning * into v_row;
+  if v_row.id is null then raise exception 'introuvable'; end if;
+  if coalesce(v_row.kind,'duel') = 'race' and p_won then
+    perform race_record_check(v_code, p_id);
+  end if;
+  if coalesce(v_row.p1_done,false) and coalesce(v_row.p2_done,false) then
+    update duels set status = 'done' where id = v_code returning * into v_row;
+    perform duel_apply_elo(v_code);
+    select * into v_row from duels where id = v_code;
+  end if;
+  return duel_masque(v_row);
+end $$;
+
+create or replace function duel_emote(p_code text, p_id uuid, p_emote text)
+returns duels language plpgsql security definer as $$
+declare v_row duels; v_code text := upper(trim(p_code));
+begin
+  update duels set
+    p1_emote = case when p1_id = p_id then p_emote else p1_emote end,
+    p2_emote = case when p2_id = p_id then p_emote else p2_emote end
+  where id = v_code and (p1_id = p_id or p2_id = p_id)
+  returning * into v_row;
+  if v_row.id is null then raise exception 'introuvable'; end if;
+  return duel_masque(v_row);
+end $$;
+
+create or replace function duel_moves(p_code text, p_id uuid, p_moves text)
+returns duels language plpgsql security definer as $$
+declare v_row duels; v_code text := upper(trim(p_code));
+begin
+  update duels set
+    p1_moves = case when p1_id = p_id then p_moves else p1_moves end,
+    p2_moves = case when p2_id = p_id then p_moves else p2_moves end
+  where id = v_code and (p1_id = p_id or p2_id = p_id)
+  returning * into v_row;
+  if v_row.id is null then raise exception 'introuvable'; end if;
+  return duel_masque(v_row);
+end $$;
+
+create or replace function race_create(
+  p_id uuid, p_pseudo text, p_level int, p_badge text, p_words text, p_theme text
+) returns duels language plpgsql security definer as $$
+declare v_code text; v_row duels; v_n int := 0;
+begin
+  perform duel_gc();
+  loop
+    v_n := v_n + 1;
+    v_code := '';
+    for i in 1..5 loop
+      v_code := v_code || substr('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 1 + floor(random() * 32)::int, 1);
+    end loop;
+    begin
+      insert into duels (id, status, kind, p1_id, p1_pseudo, p1_level, p1_badge, words, race_theme)
+      values (v_code, 'waiting', 'race', p_id, p_pseudo, p_level, p_badge, p_words, p_theme)
+      returning * into v_row;
+      return duel_masque(v_row);
+    exception when unique_violation then
+      if v_n > 12 then raise exception 'code-indisponible'; end if;
+    end;
+  end loop;
+end $$;
+
+create or replace function race_join(
+  p_code text, p_id uuid, p_pseudo text, p_level int, p_badge text
+) returns duels language plpgsql security definer as $$
+declare v_row duels; v_code text := upper(trim(p_code));
+begin
+  update duels set
+    p2_id = p_id, p2_pseudo = p_pseudo, p2_level = p_level, p2_badge = p_badge,
+    status = 'playing', started_at = coalesce(started_at, now())
+  where id = v_code and kind = 'race' and p1_id <> p_id and (p2_id is null or p2_id = p_id)
+    and created_at > now() - interval '2 hours'
+  returning * into v_row;
+  if v_row.id is null then
+    if not exists (select 1 from duels where id = v_code) then raise exception 'introuvable';
+    elsif exists (select 1 from duels where id = v_code and kind <> 'race') then raise exception 'mauvais-type';
+    elsif exists (select 1 from duels where id = v_code and p1_id = p_id) then raise exception 'soi-meme';
+    elsif exists (select 1 from duels where id = v_code and created_at <= now() - interval '2 hours') then raise exception 'expiree';
+    else raise exception 'complet';
+    end if;
+  end if;
+  return duel_masque(v_row);
+end $$;
+
+create or replace function duel_quick(
+  p_id uuid, p_pseudo text, p_level int, p_badge text, p_word text
+) returns duels language plpgsql security definer as $$
+declare v_row duels; v_code text; v_n int := 0; v_target text;
+begin
+  perform duel_gc();
+  select id into v_target from duels
+   where kind = 'duel' and coalesce(is_public, false) and status = 'waiting'
+     and p1_id <> p_id and p2_id is null and created_at > now() - interval '30 minutes'
+   order by created_at limit 1 for update skip locked;
+  if v_target is not null then
+    return duel_join(v_target, p_id, p_pseudo, p_level, p_badge, p_word);   -- déjà masqué
+  end if;
+  loop
+    v_n := v_n + 1;
+    v_code := '';
+    for i in 1..5 loop
+      v_code := v_code || substr('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 1 + floor(random() * 32)::int, 1);
+    end loop;
+    begin
+      insert into duels (id, status, kind, is_public, p1_id, p1_pseudo, p1_level, p1_badge, word1)
+      values (v_code, 'waiting', 'duel', true, p_id, p_pseudo, p_level, p_badge, p_word)
+      returning * into v_row;
+      return duel_masque(v_row);
+    exception when unique_violation then
+      if v_n > 12 then raise exception 'code-indisponible'; end if;
+    end;
+  end loop;
+end $$;
+
+create or replace function race_quick(
+  p_id uuid, p_pseudo text, p_level int, p_badge text, p_words text, p_theme text
+) returns duels language plpgsql security definer as $$
+declare v_row duels; v_code text; v_n int := 0; v_target text;
+begin
+  perform duel_gc();
+  select id into v_target from duels
+   where kind = 'race' and coalesce(is_public, false) and status = 'waiting'
+     and p1_id <> p_id and p2_id is null and created_at > now() - interval '30 minutes'
+   order by created_at limit 1 for update skip locked;
+  if v_target is not null then
+    return race_join(v_target, p_id, p_pseudo, p_level, p_badge);            -- déjà masqué
+  end if;
+  loop
+    v_n := v_n + 1;
+    v_code := '';
+    for i in 1..5 loop
+      v_code := v_code || substr('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', 1 + floor(random() * 32)::int, 1);
+    end loop;
+    begin
+      insert into duels (id, status, kind, is_public, p1_id, p1_pseudo, p1_level, p1_badge, words, race_theme)
+      values (v_code, 'waiting', 'race', true, p_id, p_pseudo, p_level, p_badge, p_words, p_theme)
+      returning * into v_row;
+      return duel_masque(v_row);
+    exception when unique_violation then
+      if v_n > 12 then raise exception 'code-indisponible'; end if;
+    end;
+  end loop;
+end $$;
+-- duel_rematch / race_rematch et les anciennes signatures appellent les
+-- fonctions ci-dessus : leur résultat est donc déjà masqué.
+
+-- ---------- Défense : les cibles masquées ----------
+create or replace function defense_cible(p_target uuid) returns uuid
+language sql security definer stable as $$
+  select player_id from defenses where masque(player_id) = p_target limit 1;
+$$;
+revoke execute on function defense_cible(uuid) from public, anon, authenticated;
+
+drop function if exists defense_targets(uuid,int,text);
+create or replace function defense_targets(p_id uuid, p_limit int default 20, p_pseudo text default null)
+returns table (
+  player_id uuid, pseudo text, level int, badge text,
+  wlen int, version int, wins int, losses int,
+  taunt int, rate_sum int, rate_count int, cur_wins int, cur_losses int,
+  premiere text
+) language sql security definer stable as $$
+  select masque(d.player_id), d.pseudo, d.level, d.badge, d.wlen, d.version, d.wins, d.losses,
+         d.taunt, d.rate_sum, d.rate_count, d.cur_wins, d.cur_losses,
+         defense_premiere(d.word)
+    from defenses d
+   where d.player_id <> p_id
+     and (p_pseudo is null or lower(d.pseudo) = lower(btrim(p_pseudo)))
+     and not exists (
+       select 1 from defense_attacks a
+        where a.defender_id = d.player_id and a.attacker_id = p_id and a.version = d.version)
+   order by d.updated_at desc
+   limit greatest(1, least(coalesce(p_limit, 20), 50));
+$$;
+grant execute on function defense_targets(uuid,int,text) to anon, authenticated;
+
+create or replace function defense_attack(p_id uuid, p_pseudo text, p_target uuid)
+returns table (word text, wlen int, version int, pseudo text) language plpgsql security definer as $$
+declare d defenses; v_t uuid := defense_cible(p_target);
+begin
+  if v_t is null then raise exception 'introuvable'; end if;
+  if p_id = v_t then raise exception 'soi-meme'; end if;
+  select * into d from defenses where player_id = v_t for update;
+  begin
+    insert into defense_attacks (defender_id, attacker_id, attacker_pseudo, version, word, defender_pseudo)
+    values (v_t, p_id, p_pseudo, d.version, d.word, d.pseudo);
+  exception when unique_violation then
+    raise exception 'deja-tente';
+  end;
+  return query select d.word, d.wlen, d.version, d.pseudo;
+end $$;
+
+drop function if exists defense_report(uuid,uuid,int,int,boolean);
+create or replace function defense_report(
+  p_id uuid, p_target uuid, p_version int, p_tries int, p_won boolean
+) returns table (cur_wins int, cur_losses int, deja boolean)
+language plpgsql security definer as $$
+declare v_done boolean; v_deja boolean := false; v_t uuid := defense_cible(p_target);
+begin
+  select a.done into v_done from defense_attacks a
+   where a.defender_id = v_t and a.attacker_id = p_id and a.version = p_version;
+  if v_done is null then raise exception 'introuvable'; end if;
+  if v_done then
+    v_deja := true;
+  else
+    update defense_attacks a
+       set tries = greatest(0, least(coalesce(p_tries,0), 6)), won = coalesce(p_won,false), done = true
+     where a.defender_id = v_t and a.attacker_id = p_id and a.version = p_version;
+    if p_won then
+      update defenses d set losses = d.losses + 1,
+                            cur_losses = d.cur_losses + (case when d.version = p_version then 1 else 0 end),
+                            updated_at = now()
+       where d.player_id = v_t;
+    else
+      update defenses d set wins = d.wins + 1,
+                            cur_wins = d.cur_wins + (case when d.version = p_version then 1 else 0 end)
+       where d.player_id = v_t;
+    end if;
+  end if;
+  return query select d.cur_wins, d.cur_losses, v_deja
+                 from defenses d where d.player_id = v_t and d.version = p_version;
+end $$;
+grant execute on function defense_report(uuid,uuid,int,int,boolean) to anon, authenticated;
+
+create or replace function defense_rate(p_id uuid, p_target uuid, p_version int, p_stars int)
+returns void language plpgsql security definer as $$
+declare v_old int; v_new int; v_t uuid := defense_cible(p_target);
+begin
+  v_new := greatest(1, least(coalesce(p_stars,0), 5));
+  select stars into v_old from defense_attacks
+   where defender_id = v_t and attacker_id = p_id and version = p_version and done;
+  if v_old is null then return; end if;
+  update defense_attacks set stars = v_new
+   where defender_id = v_t and attacker_id = p_id and version = p_version;
+  update defenses
+     set rate_sum   = rate_sum   + v_new - coalesce(v_old,0),
+         rate_count = rate_count + (case when coalesce(v_old,0) = 0 then 1 else 0 end)
+   where player_id = v_t and version = p_version;
+end $$;
+
+create or replace function defense_history(p_id uuid, p_limit int default 40)
+returns table (
+  defender_id uuid, pseudo text, tries int, won boolean, created_at timestamptz,
+  word text, actuel boolean
+) language sql security definer stable as $$
+  select masque(a.defender_id), coalesce(d.pseudo, a.defender_pseudo, 'Anonyme'), a.tries, a.won, a.created_at,
+         a.word, (d.version is not distinct from a.version)
+    from defense_attacks a
+    left join defenses d on d.player_id = a.defender_id
+   where a.attacker_id = p_id and a.done
+   order by a.created_at desc
+   limit greatest(1, least(coalesce(p_limit, 40), 100));
+$$;
+
+-- ---------- Battle Royale : les joueurs de la salle masqués ----------
+drop function if exists royale_state(text);
+create or replace function royale_state(p_code text)
+returns table (
+  id text, status text, is_public boolean, words text[], manche int, manche_at timestamptz,
+  pause_jusqu timestamptz,
+  player_id uuid, pseudo text, level int, badge text, fantome boolean,
+  scores int[], essais int[], temps_ms int[], total int, emote text, emote_at timestamptz,
+  moves text, moves_manche int, pret boolean, present boolean, maintenant timestamptz
+) language sql security definer stable as $$
+  select r.id, r.status, r.is_public, r.words, r.manche, r.manche_at, r.pause_jusqu,
+         masque(p.player_id), p.pseudo, p.level, p.badge, p.fantome,
+         p.scores, p.essais, p.temps_ms, p.total, p.emote, p.emote_at,
+         p.moves, p.moves_manche, coalesce(p.pret, false),
+         p.fantome or p.vu_at >= now() - interval '60 seconds', now()
+    from royale_rooms r
+    join royale_players p on p.room_id = r.id
+   where r.id = upper(btrim(p_code))
+   order by p.total desc, p.joined_at asc;
+$$;
+
+-- ---------- Changer son code de récupération ----------
+-- Tout ce qui appartient au compte passe sous un nouveau code ; l'ancien
+-- est inscrit dans comptes_retires et refusé partout ensuite.
+create or replace function compte_nouveau_code(p_id uuid)
+returns uuid language plpgsql security definer as $$
+declare v_new uuid := gen_random_uuid(); v_cols text;
+begin
+  if p_id is null or not exists (select 1 from profiles where id = p_id) then raise exception 'introuvable'; end if;
+  if exists (select 1 from comptes_retires where id = p_id) then raise exception 'code-change'; end if;
+  -- le profil change de code ; si une autre table s'y rattache par une clé
+  -- étrangère (base créée à la main), on passe par une copie
+  begin
+    update profiles set id = v_new where id = p_id;
+  exception when foreign_key_violation then
+    select string_agg(quote_ident(column_name), ', ' order by ordinal_position) into v_cols
+      from information_schema.columns
+     where table_schema = 'public' and table_name = 'profiles'
+       and column_name <> 'id' and is_generated = 'NEVER';
+    execute format('insert into profiles (id, %s) select %L, %s from profiles where id = %L', v_cols, v_new, v_cols, p_id);
+  end;
+  execute format('update daily_results set player_id = %L where player_id::text = %L', v_new, p_id::text);
+  update defenses         set player_id   = v_new where player_id   = p_id;
+  update defense_attacks  set defender_id = v_new where defender_id = p_id;
+  update defense_attacks  set attacker_id = v_new where attacker_id = p_id;
+  update duels            set p1_id = v_new where p1_id = p_id;
+  update duels            set p2_id = v_new where p2_id = p_id;
+  update royale_players   set player_id = v_new where player_id = p_id;
+  update race_records     set player_id = v_new where player_id = p_id;
+  update memo_records     set player_id = v_new where player_id = p_id;
+  update traineau_records set player_id = v_new where player_id = p_id;
+  update app_admins       set player_id = v_new where player_id = p_id;
+  update perso_suggestions set author_id = v_new where author_id = p_id;
+  delete from profiles where id = p_id;
+  insert into comptes_retires (id) values (p_id);
+  return v_new;
+end $$;
+
+-- Le pronom d'un autre joueur (textes du Duel) : lu par son masque, sans
+-- rien révéler d'autre de son profil.
+create or replace function profil_pronom(p_pub uuid) returns text
+language sql security definer stable as $$
+  select case when data->>'pronom' = 'elle' then 'elle' else 'il' end from profiles where pub = p_pub limit 1;
+$$;
+grant execute on function profil_pronom(uuid)                                          to anon, authenticated;
+grant execute on function profil_lire(uuid)                                            to anon, authenticated;
+grant execute on function profil_ecrire(uuid,text,int,int,int,int,text,jsonb,timestamptz) to anon, authenticated;
+grant execute on function jour_ecrire(uuid,text,text,text,int,boolean)                  to anon, authenticated;
+grant execute on function jour_mes_resultats(uuid,text,text,int)                        to anon, authenticated;
+grant execute on function admin_joueurs(uuid,text)                                      to anon, authenticated;
+grant execute on function admin_fiche(uuid,uuid)                                        to anon, authenticated;
+grant execute on function admin_jours(uuid,uuid,text)                                   to anon, authenticated;
+grant execute on function compte_nouveau_code(uuid)                                     to anon, authenticated;

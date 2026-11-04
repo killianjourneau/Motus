@@ -49,9 +49,14 @@ indisponibles.
 > select tablename, rowsecurity from pg_tables where schemaname = 'public';
 > ```
 >
-> `rowsecurity` doit valoir `true` partout. Presque tout passe par des fonctions
-> `security definer` ; seules `profiles` et `daily_results` sont écrites
-> directement par le navigateur et méritent une attention particulière.
+> `rowsecurity` doit valoir `true` partout. Tout passe par des fonctions
+> `security definer` : depuis la v2.12 du schéma, le navigateur n'écrit plus
+> aucune table directement, et ne peut lire que des colonnes sans identifiant.
+>
+> **Règle à garder pour toute nouvelle fonctionnalité** : l'identifiant d'un
+> profil (uuid) est aussi son code de récupération. Il ne doit JAMAIS sortir de
+> la base pour un autre joueur — on renvoie `masque(player_id)` à la place, et
+> le jeu se reconnaît avec `Profile.pub`.
 
 ### Se déclarer modérateur
 

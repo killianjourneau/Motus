@@ -70,8 +70,12 @@
       var list = (window.Profile && window.Profile.badges) || [];
       for (var i = 0; i < list.length; i++) if (list[i].id === p.emblem) { badge = list[i].e; break; }
     } catch (e) {}
+    var id = String(p.id || "00000000-0000-4000-8000-000000000000").toLowerCase();
     return {
-      id: p.id || "00000000-0000-4000-8000-000000000000",
+      id: id,
+      // ce que la base renvoie pour me désigner (elle ne renvoie jamais le code
+      // d'un joueur, seulement ce masque) : c'est lui qui me reconnaît
+      pub: (window.Profile && window.Profile.masque) ? window.Profile.masque(id) : "",
       pseudo: (p.pseudo || "").trim() || "Anonyme",
       level: p.level || 1,
       badge: badge
@@ -191,7 +195,7 @@
     /* Ajoute les champs pratiques : mots déchiffrés, camp, échéance. */
     parse: function (d) {
       var m = me();
-      d.side = (d.p1_id === m.id) ? 1 : (d.p2_id === m.id ? 2 : 0);
+      d.side = (d.p1_id === m.pub) ? 1 : (d.p2_id === m.pub ? 2 : 0);
       d.myWord = d.side === 2 ? show(d.word2) : show(d.word1);
       d.target = d.side === 2 ? show(d.word1) : show(d.word2);
       d.opp = d.side === 2
@@ -372,7 +376,7 @@
 
     parse: function (d) {
       var m = me();
-      d.side = (d.p1_id === m.id) ? 1 : (d.p2_id === m.id ? 2 : 0);
+      d.side = (d.p1_id === m.pub) ? 1 : (d.p2_id === m.pub ? 2 : 0);
       d.opp = d.side === 2
         ? { id: d.p1_id, pseudo: d.p1_pseudo, level: d.p1_level, badge: d.p1_badge }
         : { id: d.p2_id, pseudo: d.p2_pseudo, level: d.p2_level, badge: d.p2_badge };
@@ -648,6 +652,22 @@
       return rpc("royale_emote", { p_code: code, p_id: m.id, p_emote: emote })
         .catch(function () { return null; });
     },
+    /* Salle d'attente : signe de vie (pret null) ou « je suis prêt » / « pas
+       prêt ». Le serveur lance la partie quand la règle est remplie. */
+    lobby: function (code, pret) {
+      var m = me();
+      return rpc("royale_lobby", { p_code: code, p_id: m.id, p_pret: pret == null ? null : !!pret })
+        .catch(function () { return null; });
+    },
+    quitter: function (code) {
+      var m = me();
+      return rpc("royale_quitter", { p_code: code, p_id: m.id }).catch(function () { return null; });
+    },
+    /* Mes parties terminées et mon rang dans chacune (recompte des badges). */
+    bilan: function () {
+      var m = me();
+      return rpcList("royale_bilan", { p_id: m.id }).catch(function () { return null; });
+    },
 
     /* Une seule requête rend la salle ET ses joueurs : on regroupe. */
     state: function (code) {
@@ -659,6 +679,9 @@
             id: r.id, status: r.status, isPublic: r.is_public,
             words: r.words || [], manche: r.manche || 0, mancheAt: r.manche_at,
             pauseJusqu: r.pause_jusqu,
+            // heure du serveur : l'âge d'une émote se mesure avec elle, pas
+            // avec l'horloge du téléphone (souvent décalée de plusieurs secondes)
+            maintenant: r.maintenant || null,
             joueurs: rows.map(function (x) {
               return { id: x.player_id, pseudo: x.pseudo, level: x.level,
                        badge: x.badge, fantome: x.fantome,
@@ -667,9 +690,10 @@
                        ms: x.temps_ms || [0,0,0,0],
                        total: x.total || 0,
                        emote: x.emote, emoteAt: x.emote_at,
+                       pret: !!x.pret, present: x.present !== false,
                        moves: (x.moves && x.moves_manche === (r.manche||0))
                                 ? show(x.moves).split(",").filter(Boolean) : [],
-                       moi: x.player_id === m.id };
+                       moi: x.player_id === m.pub };
             })
           };
         });

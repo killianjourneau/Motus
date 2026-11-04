@@ -23,7 +23,11 @@ module.exports = async function ({ groupe, verifie, ok, egal, vide, RACINE }) {
     if (objets) memoire["motus.boutique"] = JSON.stringify(Object.assign({ objets }, extra || {}));
     const w = { localStorage: { getItem: k => (k in memoire ? memoire[k] : null), setItem: (k, v) => { memoire[k] = String(v); } },
                 MOTUS_NOEL: N, MotusPont: Object.assign({ jetons: () => 10, toast(){}, mesure(){} }, pont || {}) };
-    new Function("window", "document", "localStorage", lire("boutique/chat.js"))(w, d, w.localStorage);
+    // minuteries neutralisées : un chat qui se réveille après la fin du test
+    // tomberait sur le faux document et ferait planter la suite
+    new Function("window", "document", "localStorage", "setTimeout", "setInterval", lire("boutique/chat.js"))(w, d, w.localStorage, () => 0, () => 0);
+    // pas de scène à animer dans ce faux document : le chat reste « rangé »
+    [w.ChatNoir, w.ChatBlanc].forEach(c => { if (c) { c.demarrer = () => {}; c.habiller = () => {}; } });
     // setInterval neutralisé : le test ne doit pas rester ouvert
     new Function("window", "document", "localStorage", "ChatNoir", "setInterval", "setTimeout", lire("boutique/boutique.js"))(w, d, w.localStorage, w.ChatNoir, () => 0, () => 0);
     new Function("window", "document", "Boutique", "setTimeout", lire("noel/avent.js"))(w, d, w.Boutique, () => 0);
@@ -261,6 +265,26 @@ module.exports = async function ({ groupe, verifie, ok, egal, vide, RACINE }) {
     ok(/data-mode="traineau"/.test(idx), "pas d'entrée Traîneau dans le menu");
     ok(sw.includes('"./noel/traineau.js?v="'), "traineau.js absent du cache");
     ok(idx.indexOf('src="./dico/motus-noel.js') < idx.indexOf('src="./noel/traineau.js'), "les données de Noël doivent précéder le Traîneau");
+  });
+
+  verifie("règles de la 2.7.1 : une seule vie, cadeaux obligatoires, murs à taper, six zones", () => {
+    const js = lire("noel/traineau.js");
+    const w = { MOTUS_NOEL: N };
+    function Image() {}
+    new Function("window", "Image", js)(w, Image);
+    const Z = w.Traineau.zones;
+    egal(Z.length, 6, "six zones");
+    ok(Z.every((z, i) => i === 0 || z.d > Z[i - 1].d), "les zones doivent se suivre dans l'ordre");
+    ok(Z[Z.length - 1].d <= 3500, "la dernière zone doit arriver avant 3500 m");
+    ok(Z.every(z => z.motifs.cadeau > 0), "des cadeaux dans chaque zone");
+    ok(Z.every(z => (z.motifs.triple || 0) > 0), "un mur de trois (il faut taper) dans chaque zone");
+    // les murs de trois (qu'on ne peut pas esquiver) pèsent de plus en plus lourd
+    const partMurs = Z.map(z => (z.motifs.triple || 0) / Object.values(z.motifs).reduce((a, b) => a + b, 0));
+    ok(partMurs.every((p, i) => i === 0 || p >= partMurs[i - 1]), "la part des murs ne doit jamais baisser d'une zone à l'autre");
+    ok(partMurs[5] > partMurs[0] + 0.2, "la fin de course doit être nettement plus chargée que le début");
+    ok(!/\bvies\b/.test(js), "il ne doit plus y avoir de vies");
+    ok(/Cadeau oublié/.test(js), "un cadeau manqué doit arrêter la course");
+    ok(/return accident\("💥 Choc/.test(js), "un choc doit arrêter la course");
   });
 
   verifie("records de la saison : le serveur garde le meilleur et borne les scores", () => {

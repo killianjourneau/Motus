@@ -23,6 +23,53 @@
       var r = Math.random() * 16 | 0; return (c === "x" ? r : (r & 3 | 8)).toString(16);
     });
   }
+  /* MD5 (texte ASCII) — sert uniquement à calculer son propre « masque »
+     public, identique à celui de la base (fonction SQL masque). */
+  function md5hex(str) {
+    function add(x, y) { var l = (x & 0xffff) + (y & 0xffff); return (((x >> 16) + (y >> 16) + (l >> 16)) << 16) | (l & 0xffff); }
+    function rol(n, c) { return (n << c) | (n >>> (32 - c)); }
+    function cmn(q, a, b, x, s, t) { return add(rol(add(add(a, q), add(x, t)), s), b); }
+    function ff(a, b, c, d, x, s, t) { return cmn((b & c) | (~b & d), a, b, x, s, t); }
+    function gg(a, b, c, d, x, s, t) { return cmn((b & d) | (c & ~d), a, b, x, s, t); }
+    function hh(a, b, c, d, x, s, t) { return cmn(b ^ c ^ d, a, b, x, s, t); }
+    function ii(a, b, c, d, x, s, t) { return cmn(c ^ (b | ~d), a, b, x, s, t); }
+    var n = str.length, x = [], i;
+    for (i = 0; i < n; i++) x[i >> 2] |= (str.charCodeAt(i) & 0xff) << ((i % 4) * 8);
+    x[n >> 2] |= 0x80 << ((n % 4) * 8);
+    x[(((n + 8) >> 6) + 1) * 16 - 2] = n * 8;
+    var len = (((n + 8) >> 6) + 1) * 16;
+    for (i = 0; i < len; i++) x[i] = x[i] | 0;
+    var a = 1732584193, b = -271733879, c = -1732584194, d = 271733878;
+    for (i = 0; i < len; i += 16) {
+      var oa = a, ob = b, oc = c, od = d;
+      a = ff(a, b, c, d, x[i], 7, -680876936); d = ff(d, a, b, c, x[i + 1], 12, -389564586); c = ff(c, d, a, b, x[i + 2], 17, 606105819); b = ff(b, c, d, a, x[i + 3], 22, -1044525330);
+      a = ff(a, b, c, d, x[i + 4], 7, -176418897); d = ff(d, a, b, c, x[i + 5], 12, 1200080426); c = ff(c, d, a, b, x[i + 6], 17, -1473231341); b = ff(b, c, d, a, x[i + 7], 22, -45705983);
+      a = ff(a, b, c, d, x[i + 8], 7, 1770035416); d = ff(d, a, b, c, x[i + 9], 12, -1958414417); c = ff(c, d, a, b, x[i + 10], 17, -42063); b = ff(b, c, d, a, x[i + 11], 22, -1990404162);
+      a = ff(a, b, c, d, x[i + 12], 7, 1804603682); d = ff(d, a, b, c, x[i + 13], 12, -40341101); c = ff(c, d, a, b, x[i + 14], 17, -1502002290); b = ff(b, c, d, a, x[i + 15], 22, 1236535329);
+      a = gg(a, b, c, d, x[i + 1], 5, -165796510); d = gg(d, a, b, c, x[i + 6], 9, -1069501632); c = gg(c, d, a, b, x[i + 11], 14, 643717713); b = gg(b, c, d, a, x[i], 20, -373897302);
+      a = gg(a, b, c, d, x[i + 5], 5, -701558691); d = gg(d, a, b, c, x[i + 10], 9, 38016083); c = gg(c, d, a, b, x[i + 15], 14, -660478335); b = gg(b, c, d, a, x[i + 4], 20, -405537848);
+      a = gg(a, b, c, d, x[i + 9], 5, 568446438); d = gg(d, a, b, c, x[i + 14], 9, -1019803690); c = gg(c, d, a, b, x[i + 3], 14, -187363961); b = gg(b, c, d, a, x[i + 8], 20, 1163531501);
+      a = gg(a, b, c, d, x[i + 13], 5, -1444681467); d = gg(d, a, b, c, x[i + 2], 9, -51403784); c = gg(c, d, a, b, x[i + 7], 14, 1735328473); b = gg(b, c, d, a, x[i + 12], 20, -1926607734);
+      a = hh(a, b, c, d, x[i + 5], 4, -378558); d = hh(d, a, b, c, x[i + 8], 11, -2022574463); c = hh(c, d, a, b, x[i + 11], 16, 1839030562); b = hh(b, c, d, a, x[i + 14], 23, -35309556);
+      a = hh(a, b, c, d, x[i + 1], 4, -1530992060); d = hh(d, a, b, c, x[i + 4], 11, 1272893353); c = hh(c, d, a, b, x[i + 7], 16, -155497632); b = hh(b, c, d, a, x[i + 10], 23, -1094730640);
+      a = hh(a, b, c, d, x[i + 13], 4, 681279174); d = hh(d, a, b, c, x[i], 11, -358537222); c = hh(c, d, a, b, x[i + 3], 16, -722521979); b = hh(b, c, d, a, x[i + 6], 23, 76029189);
+      a = hh(a, b, c, d, x[i + 9], 4, -640364487); d = hh(d, a, b, c, x[i + 12], 11, -421815835); c = hh(c, d, a, b, x[i + 15], 16, 530742520); b = hh(b, c, d, a, x[i + 2], 23, -995338651);
+      a = ii(a, b, c, d, x[i], 6, -198630844); d = ii(d, a, b, c, x[i + 7], 10, 1126891415); c = ii(c, d, a, b, x[i + 14], 15, -1416354905); b = ii(b, c, d, a, x[i + 5], 21, -57434055);
+      a = ii(a, b, c, d, x[i + 12], 6, 1700485571); d = ii(d, a, b, c, x[i + 3], 10, -1894986606); c = ii(c, d, a, b, x[i + 10], 15, -1051523); b = ii(b, c, d, a, x[i + 1], 21, -2054922799);
+      a = ii(a, b, c, d, x[i + 8], 6, 1873313359); d = ii(d, a, b, c, x[i + 15], 10, -30611744); c = ii(c, d, a, b, x[i + 6], 15, -1560198380); b = ii(b, c, d, a, x[i + 13], 21, 1309151649);
+      a = ii(a, b, c, d, x[i + 4], 6, -145523070); d = ii(d, a, b, c, x[i + 11], 10, -1120210379); c = ii(c, d, a, b, x[i + 2], 15, 718787259); b = ii(b, c, d, a, x[i + 9], 21, -343485551);
+      a = add(a, oa); b = add(b, ob); c = add(c, oc); d = add(d, od);
+    }
+    var out = "", w = [a, b, c, d];
+    for (i = 0; i < 16; i++) out += ((w[i >> 2] >>> ((i % 4) * 8)) & 0xff).toString(16).padStart(2, "0");
+    return out;
+  }
+  /* Le masque public d'un code de compte : md5('mes-public:' + code) au
+     format uuid — exactement ce que renvoie la base à la place du code. */
+  function masqueDe(id) {
+    var h = md5hex("mes-public:" + String(id || "").toLowerCase());
+    return h.slice(0, 8) + "-" + h.slice(8, 12) + "-" + h.slice(12, 16) + "-" + h.slice(16, 20) + "-" + h.slice(20);
+  }
   function todayStr() { var d = new Date(), p = function (n) { return String(n).padStart(2, "0"); }; return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); }
 
   /* ---------- Niveaux ---------- */
@@ -42,7 +89,7 @@
              qActes:0, qFins:0, qSecrets:0, qMonstres:0, qNiveau:0, qSansMort:0,
              jrTotal:0, jrTousJeux:0, jrDuo:0, jrSerieDuo:0, jrJours:0,
              memoTotal:0, memoReussites:0, memoBest:60, memoSerie:0, memoBestSerie:0,
-             royParties:0, royVictoires:0, royPodiums:0, royMeilleurTotal:0,
+             royParties:0, royVictoires:0, royPodiums:0, royMeilleurTotal:0, royCodes:{}, royBilan:0, royJouees:0,
              gramJours:0, gramParfaits:0, gramSerie:0, gramBestSerie:0, gramBonnes:0, gramDernier:"",
              hwPeur:0, hwPeurWin:0, hwBonbonsTotal:0, hwBonbonsBest:0, hwJours:[],
              trCourses:0, trMeilleur:0, trObstacles:0, trCadeaux:0,
@@ -168,11 +215,13 @@
     {id:"grp10", e:"🎓", n:"Grammairien",          d:"10 sans-faute en Grammaire",           c:"Grammaire", t:function(b){return b.gramParfaits>=10;}, p:[function(b){return b.gramParfaits;},10]},
     {id:"grser", e:"🔥", n:"Régularité",           d:"7 jours de suite en Grammaire",        c:"Grammaire", t:function(b){return b.gramBestSerie>=7;}, p:[function(b){return b.gramBestSerie;},7]},
     {id:"gr50",  e:"📚", n:"Cinquante bonnes",     d:"50 bonnes réponses au total",          c:"Grammaire", t:function(b){return b.gramBonnes>=50;}, p:[function(b){return b.gramBonnes;},50]},
-    {id:"br1",   e:"👑", n:"Entrée dans l'arène", d:"Jouer 1 Battle Royale",              c:"Battle Royale", t:function(b){return b.royParties>=1;}, p:[function(b){return b.royParties;},1]},
-    {id:"br10",  e:"⚔️", n:"Habitué de l'arène",  d:"Jouer 10 Battle Royale",             c:"Battle Royale", t:function(b){return b.royParties>=10;}, p:[function(b){return b.royParties;},10]},
-    {id:"brwin", e:"🏆", n:"Dernier debout",      d:"Gagner une Battle Royale",            c:"Battle Royale", t:function(b){return b.royVictoires>=1;}, p:[function(b){return b.royVictoires;},1]},
-    {id:"brw5",  e:"👑", n:"Souverain",           d:"Gagner 5 Battle Royale",              c:"Battle Royale", t:function(b){return b.royVictoires>=5;}, p:[function(b){return b.royVictoires;},5]},
-    {id:"brpod", e:"🥉", n:"Régulier du podium",  d:"Finir 10 fois dans les 3 premiers",   c:"Battle Royale", t:function(b){return b.royPodiums>=10;}, p:[function(b){return b.royPodiums;},10]},
+    // Battle Royale : comptées partie par partie (code de salle → rang), pour
+    // qu'une même partie ne compte jamais deux fois (voir royC)
+    {id:"br1",   e:"👑", n:"Entrée dans l'arène", d:"Jouer 1 Battle Royale",              c:"Battle Royale", t:function(b){return royC(b).j>=1;}, p:[function(b){return royC(b).j;},1]},
+    {id:"br10",  e:"⚔️", n:"Habitué de l'arène",  d:"Jouer 10 Battle Royale",             c:"Battle Royale", t:function(b){return royC(b).j>=10;}, p:[function(b){return royC(b).j;},10]},
+    {id:"brwin", e:"🏆", n:"Dernier debout",      d:"Gagner une Battle Royale",            c:"Battle Royale", t:function(b){return royC(b).v>=1;}, p:[function(b){return royC(b).v;},1]},
+    {id:"brw5",  e:"👑", n:"Souverain",           d:"Gagner 5 Battle Royale",              c:"Battle Royale", t:function(b){return royC(b).v>=5;}, p:[function(b){return royC(b).v;},5]},
+    {id:"brpod", e:"🥉", n:"Régulier du podium",  d:"Finir 10 fois dans les 3 premiers",   c:"Battle Royale", t:function(b){return royC(b).p>=10;}, p:[function(b){return royC(b).p;},10]},
     {id:"br300", e:"💯", n:"Score massif",        d:"Dépasser 300 points sur une partie",  c:"Battle Royale", t:function(b){return b.royMeilleurTotal>=300;}, p:[function(b){return b.royMeilleurTotal;},300]},
     {id:"me1",   e:"🧠", n:"Première mémoire",   d:"Réussir 1 grille de Mémorisation",       c:"Mémorisation", t:function(b){return b.memoReussites>=1;}, p:[function(b){return b.memoReussites;},1]},
     {id:"me10",  e:"💡", n:"Bonne mémoire",       d:"Réussir 10 grilles de Mémorisation",     c:"Mémorisation", t:function(b){return b.memoReussites>=10;}, p:[function(b){return b.memoReussites;},10]},
@@ -283,6 +332,43 @@
     {id:"giveup1",e:"🏳️", n:"Abandonné",          d:"Abandonner une partie", c:"Cachés", h:1, t:function(b){return b.giveups>=1;}}
   ];
 
+  /* Battle Royale : b.royCodes = { CODE: rang } ; parties, victoires,
+     podiums en découlent. royJouees en garde une copie pour les statistiques. */
+  function royC(b) {
+    var c = (b && b.royCodes) || {}, r = { j: 0, v: 0, p: 0 };
+    Object.keys(c).forEach(function (k) { var g = +c[k] || 0; if (g < 1) return; r.j++; if (g === 1) r.v++; if (g <= 3) r.p++; });
+    return r;
+  }
+  function royFusion(b, autres) {
+    if (!b.royCodes || typeof b.royCodes !== "object") b.royCodes = {};
+    Object.keys(autres || {}).forEach(function (k) {
+      var g = +autres[k] || 0;
+      if (g >= 1 && !b.royCodes[k]) b.royCodes[k] = g;
+    });
+    b.royJouees = royC(b).j;
+  }
+  /* Relit une fois par session les parties terminées côté serveur : rattrape
+     celles jouées avant la 2.7.2 (ou sur un appareil hors ligne), et autorise
+     le retrait des badges gonflés. */
+  var royBilanLu = false;
+  function royBilanSync(essai) {
+    if (royBilanLu) return;
+    if (!window.Royale || !Royale.bilan || !Royale.configured || !Royale.configured()) {
+      if ((essai || 0) < 5) setTimeout(function () { royBilanSync((essai || 0) + 1); }, 3000);
+      return;
+    }
+    royBilanLu = true;
+    Royale.bilan().then(function (rows) {
+      if (!Array.isArray(rows)) { royBilanLu = false; return; }
+      var f = {};
+      rows.forEach(function (r) { if (r && r.code) f[String(r.code).toUpperCase()] = +r.rang || 0;
+                                  if ((+r.total || 0) > (state.b.royMeilleurTotal || 0)) state.b.royMeilleurTotal = +r.total; });
+      royFusion(state.b, f);
+      state.b.royBilan = 1;
+      checkBadges(true); saveLocal(); pushDebounced(); refreshOpen();
+    });
+  }
+
   var BADGE_BY_ID = {};
   BADGES.forEach(function (b) { BADGE_BY_ID[b.id] = b; });
   var CATS = [];
@@ -298,6 +384,12 @@
   else { var f = freshCounters(); for (var k in f) if (state.b[k] === undefined) state.b[k] = f[k]; }
   if (!state.badges) state.badges = [];
   if (!state.emblem) state.emblem = "";
+  // Duel : les adversaires sont désormais désignés par leur masque, plus par
+  // leur code. Les anciennes entrées (codes) sont converties une fois.
+  if (!state.b.duelLostToMasque) {
+    state.b.duelLostTo = (state.b.duelLostTo || []).map(masqueDe);
+    state.b.duelLostToMasque = 1;
+  }
   state.level = levelFromXp(state.xp);
   function saveLocal() { store.set("motus.profile", state); }
 
@@ -437,8 +529,29 @@
   function emblemEmoji() { var b = BADGE_BY_ID[state.emblem]; return b ? b.e : ""; }
 
   /* ---------- Déblocage des badges ---------- */
+  /* Battle Royale : jusqu'à la 2.7.2, l'écran de fin comptait une partie à
+     chaque rafraîchissement (toutes les 2,5 s), d'où des badges « 10 parties »
+     après une seule. Les compteurs ont été refaits à partir des parties
+     réellement terminées (royCodes, recopiées du serveur) ; ces badges-là sont
+     retirés s'ils ne sont pas mérités — seulement une fois le bilan serveur
+     relu, pour ne jamais retirer un badge gagné honnêtement. */
+  var BADGES_ROY_RECOMPTES = ["br10", "brwin", "brw5", "brpod"];
+  function retirerBadgesRoyFaux() {
+    if (!state.b.royBilan) return false;
+    var retire = false;
+    BADGES_ROY_RECOMPTES.forEach(function (id) {
+      var i = state.badges.indexOf(id), bd = BADGE_BY_ID[id];
+      if (i < 0 || !bd) return;
+      var ok = false; try { ok = !!bd.t(state.b, state); } catch (e) {}
+      if (ok) return;
+      state.badges.splice(i, 1); retire = true;
+      if (state.emblem === id) { state.emblem = ""; state.emblemAt = Date.now(); }
+    });
+    return retire;
+  }
   function checkBadges(silent) {
     var gained = [];
+    if (retirerBadgesRoyFaux()) { saveLocal(); pushDebounced(); }
     BADGES.forEach(function (bd) {
       if (state.badges.indexOf(bd.id) >= 0) return;
       var ok = false;
@@ -459,15 +572,40 @@
     if (extra) for (var k in extra) h[k] = extra[k];
     return h;
   }
+  /* Fonctions de la base. Depuis la 2.7.2, le profil et les résultats du jour
+     ne sont plus lus ni écrits directement dans les tables : le code du compte
+     (state.id) ne doit jamais pouvoir être lu par quelqu'un d'autre. */
+  function rpcP(nom, params) {
+    return fetch(API + "/rest/v1/rpc/" + nom, {
+      method: "POST", headers: headers(), body: JSON.stringify(params || {}), cache: "no-store"
+    }).then(function (r) {
+      return r.text().then(function (t) {
+        var d = null; try { d = t ? JSON.parse(t) : null; } catch (e) {}
+        if (!r.ok) throw new Error((d && (d.message || d.hint)) || ("http-" + r.status));
+        return d;
+      });
+    });
+  }
+  /* Le code de ce compte a été remplacé (sur un autre appareil) : on arrête
+     d'écrire avec l'ancien, et on dit au joueur quoi faire. */
+  var codeRetire = false;
+  function signalerCodeRetire() {
+    if (codeRetire) return;
+    codeRetire = true;
+    bulle('<div><b>Ton code de compte a changé</b><small>Il a été renouvelé sur un autre appareil. '
+      + 'Profil → Mon compte : colle le nouveau code pour retrouver ta progression.</small></div>', 9000);
+  }
+  function estRetire(e) { return /code-change/.test(String(e && e.message || e)); }
+  function maPub() { return masqueDe(state.id); }
+
   function pushRemote() {
-    if (!configured) return;
+    if (!configured || codeRetire) return;
     state.updated_at = new Date().toISOString();
-    fetch(API + "/rest/v1/profiles", {
-      method: "POST",
-      headers: headers({ "Prefer": "resolution=merge-duplicates,return=minimal" }),
-      body: JSON.stringify({ id: state.id, pseudo: state.pseudo, xp: state.xp, games: state.games,
-                             wins: state.wins, level: state.level, badge: emblemEmoji(),
-                             data: { b: state.b, badges: state.badges, emblem: state.emblem,
+    rpcP("profil_ecrire", {
+      p_id: state.id, p_pseudo: state.pseudo || "", p_xp: state.xp || 0, p_games: state.games || 0,
+      p_wins: state.wins || 0, p_level: state.level || 1, p_badge: emblemEmoji(),
+      p_updated_at: state.updated_at,
+      p_data: { b: state.b, badges: state.badges, emblem: state.emblem,
                                      emblemAt: state.emblemAt || 0,
                                      hintEarned: state.hintEarned || 0,
                                      hintSpent: state.hintSpent || 0,
@@ -476,9 +614,8 @@
                                      pronomAt: state.pronomAt || 0,
                                      boutique: state.boutique || null,
                                      jetons: state.jetons || null,
-                                     xpJour: state.xpJour || null },
-                             updated_at: state.updated_at })
-    }).catch(function () {});
+                                     xpJour: state.xpJour || null }
+    }).catch(function (e) { if (estRetire(e)) signalerCodeRetire(); });
   }
   var pushTimer;
   /* File des résultats du jour non transmis (mot du jour, défi, grammaire,
@@ -510,13 +647,14 @@
      la changer en cours de partie. */
   var PRONOM_FRAIS = 120000;
   function pronomCharger(id) {
-    if (!id || id === state.id || !configured || navigator.onLine === false) return Promise.resolve(pronomDe(id));
+    if (!id || id === state.id || id === maPub() || !configured || navigator.onLine === false) return Promise.resolve(pronomDe(id));
     if (pronomsEnCours[id]) return pronomsEnCours[id];
     var avant = pronoms[id] && pronoms[id].p;
-    pronomsEnCours[id] = fetchRemote(id).then(function (r) {
+    // id est le MASQUE de l'adversaire (la base ne donne plus son code)
+    pronomsEnCours[id] = rpcP("profil_pronom", { p_pub: id }).catch(function () { return null; }).then(function (r) {
       delete pronomsEnCours[id];
-      if (!r) return avant || "il";          // un échec n'est pas retenu : on retentera
-      var p = (r.data && r.data.pronom === "elle") ? "elle" : "il";
+      if (r !== "il" && r !== "elle") return avant || "il";          // un échec n'est pas retenu : on retentera
+      var p = r;
       pronoms[id] = { p: p, t: Date.now() };
       if (p !== (avant || "il")) {
         try { window.dispatchEvent(new CustomEvent("motus-pronom", { detail: { id: id, pronom: p } })); } catch (e) {}
@@ -527,19 +665,20 @@
   }
   function pronomDe(id) {
     if (!id) return "il";
-    if (id === state.id) return state.pronom === "elle" ? "elle" : "il";
+    if (id === state.id || id === maPub()) return state.pronom === "elle" ? "elle" : "il";
     var c = pronoms[id];
     if (!c || Date.now() - c.t > PRONOM_FRAIS) pronomCharger(id);
     return c ? c.p : "il";       // par défaut, en attendant la réponse
   }
 
   function pushDebounced() { clearTimeout(pushTimer); pushTimer = setTimeout(pushRemote, 300); }
+  /* Son propre profil (ou celui d'un code qu'on veut récupérer). Rend
+     « retire » si ce code a été remplacé par un nouveau. */
   function fetchRemote(id) {
     if (!configured) return Promise.resolve(null);
-    return fetch(API + "/rest/v1/profiles?select=*&id=eq." + encodeURIComponent(id), { headers: headers(), cache: "no-store" })
-      .then(function (r) { return r.ok ? r.json() : []; })
-      .then(function (a) { return (a && a[0]) || null; })
-      .catch(function () { return null; });
+    return rpcP("profil_lire", { p_id: id })
+      .then(function (a) { return (Array.isArray(a) ? a[0] : a) || null; })
+      .catch(function (e) { return estRetire(e) ? "retire" : null; });
   }
   function countQuery(qs) {
     if (!configured) return Promise.resolve(null);
@@ -576,9 +715,12 @@
     (rb.days || []).forEach(function (x) { if (lb.days.indexOf(x) < 0) lb.days.push(x); });
     (rb.modes || []).forEach(function (x) { if (lb.modes.indexOf(x) < 0) lb.modes.push(x); });
     if (!lb.duelLostTo) lb.duelLostTo = [];
-    (rb.duelLostTo || []).forEach(function (x) { if (lb.duelLostTo.indexOf(x) < 0) lb.duelLostTo.push(x); });
+    (rb.duelLostToMasque ? (rb.duelLostTo || []) : (rb.duelLostTo || []).map(masqueDe))
+      .forEach(function (x) { if (lb.duelLostTo.indexOf(x) < 0) lb.duelLostTo.push(x); });
     if (!lb.raceThemes) lb.raceThemes = [];
     (rb.raceThemes || []).forEach(function (x) { if (lb.raceThemes.indexOf(x) < 0) lb.raceThemes.push(x); });
+    // Battle Royale : union des parties (une partie = un code de salle)
+    royFusion(lb, rb.royCodes);
     if (lb.days.length > 500) lb.days = lb.days.slice(-500);
     lb.dayBest = Math.max(lb.dayBest || 0, dayStreak(lb.days));
     // badges : union
@@ -628,9 +770,11 @@
     if (syncing) return;
     syncing = true;
     fetchRemote(state.id).then(function (rem) {
+      if (rem === "retire") { signalerCodeRetire(); syncing = false; if (cb) cb(false); return; }
       mergeRemote(rem);
       pushRemote();
       syncing = false;
+      royBilanSync();
       refreshOpen();
       if (cb) cb(true);
     }).catch(function () { syncing = false; if (cb) cb(false); });
@@ -810,6 +954,9 @@
           <b>Attention :</b> la progression de cet appareil sera fusionnée avec l'autre.</p>
         <div class="prof-row"><input id="restoreCode" placeholder="Coller un code ou un lien…" autocomplete="off"><button class="btn ghost" id="restoreBtn">Récupérer</button></div>
         <button class="btn ghost" id="syncBtn" style="width:100%">Synchroniser maintenant</button>
+        <p class="compte-note">Ton code a pu circuler (lien partagé, capture d'écran) ? Remplace-le :
+          l'ancien ne marchera plus nulle part. Tes autres appareils te demanderont le nouveau.</p>
+        <button class="btn ghost" id="compteNouveau" style="width:100%">🔄 Changer mon code</button>
         <div id="syncMsg" style="text-align:center;margin-top:6px;font-size:12px"></div>
       </details>
     </div>
@@ -947,6 +1094,27 @@
       peindreCompte();
     }
 
+    var boutonNouveau = el("compteNouveau");
+    if (boutonNouveau) boutonNouveau.addEventListener("click", function () {
+      var m = el("syncMsg");
+      if (!configured || navigator.onLine === false) { m.textContent = "Il faut être connecté."; return; }
+      if (!confirm("Remplacer ton code de compte ?\n\nL'ancien code et les anciens liens ne marcheront plus. "
+                 + "Sur tes autres appareils, il faudra coller le nouveau code.")) return;
+      m.textContent = "Changement…";
+      pushRemote();                                   // la dernière progression part avec le compte
+      setTimeout(function () {
+        rpcP("compte_nouveau_code", { p_id: state.id }).then(function (nouveau) {
+          if (!nouveau || typeof nouveau !== "string") throw new Error("vide");
+          state.id = nouveau.toLowerCase(); codeRetire = false;
+          try { localStorage.removeItem("motus.compteSauve"); } catch (e) {}
+          saveLocal(); peindreCompte(); fillProfil();
+          m.textContent = "Nouveau code en place ✓ — sauvegarde-le avec le bouton 🔗";
+        }).catch(function (e) {
+          m.textContent = estRetire(e) ? "Ce code avait déjà été remplacé." : "Échec — réessaie plus tard.";
+        });
+      }, 700);
+    });
+
     el("restoreBtn").addEventListener("click", function () {
       var brut = (el("restoreCode").value || "").trim();
       // on accepte aussi bien un lien complet qu'un code seul
@@ -956,10 +1124,13 @@
       if (!/^[0-9a-f-]{16,}$/i.test(code)) { el("restoreCode").value = ""; el("restoreCode").placeholder = "Code invalide"; return; }
       if (!configured) { el("restoreCode").placeholder = "Base non configurée"; el("restoreCode").value = ""; return; }
       fetchRemote(code).then(function (rem) {
+        if (rem === "retire") { el("restoreCode").value = ""; el("syncMsg").textContent = "Ce code a été remplacé : utilise le nouveau."; return; }
         if (!rem) { el("restoreCode").value = ""; el("restoreCode").placeholder = "Code introuvable"; return; }
-        state.id = code;            // les deux appareils partagent désormais le même profil
+        state.id = code.toLowerCase();   // les deux appareils partagent désormais le même profil
+        codeRetire = false;
         mergeRemote(rem);           // et on garde le meilleur des deux
         pushRemote();
+        royBilanLu = false; royBilanSync();   // les parties du compte retrouvé
         el("restoreCode").value = "";
         el("syncMsg").textContent = "Compte récupéré ✓";
         try { localStorage.setItem("motus.compteSauve", "1"); } catch (e) {}
@@ -1183,17 +1354,17 @@
     if (rankMode === "elo") return loadRankElo(done);
     if (rankMode === "memo") return loadRankMemo(done);
 
-    Promise.all([countQuery("profiles?select=id&xp=gt." + state.xp), countQuery("profiles?select=id")])
+    Promise.all([countQuery("profiles?select=pub&xp=gt." + state.xp), countQuery("profiles?select=pub")])
       .then(function (r) {
         if (r[0] != null && r[1] != null) mr.innerHTML = "Ta place : <b>#" + (r[0] + 1) + "</b> sur " + r[1] + " joueurs";
         else mr.textContent = "";
       });
-    fetch(API + "/rest/v1/profiles?select=id,pseudo,level,xp,badge&order=xp.desc&limit=20", { headers: headers(), cache: "no-store" })
+    fetch(API + "/rest/v1/profiles?select=pub,pseudo,level,xp,badge&order=xp.desc&limit=20", { headers: headers(), cache: "no-store" })
       .then(function (r) { return r.ok ? r.json() : []; })
       .then(function (rows) {
         if (!rows.length) { box.innerHTML = '<div class="muted">Personne encore — sois le premier !</div>'; return; }
         box.innerHTML = rows.map(function (p, i) {
-          var me = p.id === state.id ? " me" : "";
+          var me = p.pub === maPub() ? " me" : "";
           var nm = (p.pseudo && p.pseudo.trim()) ? p.pseudo : "Anonyme";
           var em = p.badge ? '<span class="em">' + escapeHtml(p.badge) + "</span>" : "";
           return '<div class="r' + me + '"><span class="rk">' + (i + 1) + '</span><span class="nm">' + escapeHtml(nm) + "</span>" + em +
@@ -1239,20 +1410,20 @@
              + '<span class="val">' + myElo + '</span></div>';
 
     Promise.all([
-      countQuery("profiles?select=id&elo_games=gt.0&elo=gt." + myElo),
-      countQuery("profiles?select=id&elo_games=gt.0")
+      countQuery("profiles?select=pub&elo_games=gt.0&elo=gt." + myElo),
+      countQuery("profiles?select=pub&elo_games=gt.0")
     ]).then(function (r) {
       if (!myGames) { mr.innerHTML = head + "Joue un duel pour entrer au classement."; }
       else if (r[0] != null && r[1] != null) mr.innerHTML = head + "Ta place : <b>#" + (r[0] + 1) + "</b> sur " + r[1] + " joueurs classés";
       else mr.innerHTML = head;
     });
 
-    fetch(API + "/rest/v1/profiles?select=id,pseudo,badge,elo,elo_games&elo_games=gt.0&order=elo.desc&limit=20", { headers: headers(), cache: "no-store" })
+    fetch(API + "/rest/v1/profiles?select=pub,pseudo,badge,elo,elo_games&elo_games=gt.0&order=elo.desc&limit=20", { headers: headers(), cache: "no-store" })
       .then(function (r) { return r.ok ? r.json() : []; })
       .then(function (rows) {
         if (!rows.length) { box.innerHTML = '<div class="muted">Aucun duel classé pour l\'instant — lance le premier !</div>'; return; }
         box.innerHTML = rows.map(function (p, i) {
-          var me = p.id === state.id ? " me" : "";
+          var me = p.pub === maPub() ? " me" : "";
           var nm = (p.pseudo && p.pseudo.trim()) ? p.pseudo : "Anonyme";
           var em = p.badge ? '<span class="em">' + escapeHtml(p.badge) + "</span>" : "";
           return '<div class="r' + me + '"><span class="rk">' + (i + 1) + '</span><span class="nm">' + escapeHtml(nm) + "</span>" + em +
@@ -1688,16 +1859,27 @@
       saveLocal(); checkBadges(); pushDebounced(); refreshOpen();
     },
 
+    /* Une partie compte UNE fois, identifiée par son code de salle : l'écran
+       de fin peut se redessiner autant de fois qu'il veut. */
     royaleDone: function (o) {
-      joue();
       o = o || {};
-      var b = state.b;
-      b.royParties = (b.royParties || 0) + 1;
-      if (o.rang === 1) b.royVictoires = (b.royVictoires || 0) + 1;
-      if (o.rang >= 1 && o.rang <= 3) b.royPodiums = (b.royPodiums || 0) + 1;
+      var b = state.b, code = String(o.code || "").toUpperCase();
+      if (!code || !(o.rang >= 1)) return false;
+      if (!b.royCodes || typeof b.royCodes !== "object") b.royCodes = {};
+      if (b.royCodes[code]) return false;
+      joue();
+      var f = {}; f[code] = o.rang;
+      royFusion(b, f);
       if ((o.total || 0) > (b.royMeilleurTotal || 0)) b.royMeilleurTotal = o.total;
       saveLocal(); checkBadges(); pushDebounced(); refreshOpen();
+      return true;
     },
+    royaleCompte: function () { return royC(state.b); },
+    /* Mon identifiant PUBLIC : c'est lui que la base renvoie pour me désigner
+       dans une partie (jamais mon code de compte). */
+    get pub() { return maPub(); },
+    masque: masqueDe,
+    royaleBilan: function () { royBilanLu = false; royBilanSync(); },
 
     memoDone: function (o) {
       joue();
@@ -1767,21 +1949,23 @@
     adminChercher: function (q) {
       if (!configured) return Promise.resolve([]);
       q = String(q || "").replace(/[*,()%]/g, "").trim().slice(0, 30);
-      var filtre = q ? "&pseudo=ilike." + encodeURIComponent("*" + q + "*") : "";
-      return fetch(API + "/rest/v1/profiles?select=id,pseudo,level,games,wins,badge,updated_at" + filtre
-                   + "&order=updated_at.desc.nullslast&limit=" + (q ? 30 : 25), { headers: headers(), cache: "no-store" })
-        .then(function (r) { return r.ok ? r.json() : []; })
+      // la fiche s'ouvre par le MASQUE du joueur (r.id) : son code ne sort pas
+      return rpcP("admin_joueurs", { p_admin: state.id, p_q: q || null })
+        .then(function (l) { return (Array.isArray(l) ? l : []).map(function (r) { r.id = r.pub; return r; }); })
         .catch(function () { return []; });
     },
-    adminFiche: function (id) {
-      if (!configured || !id) return Promise.resolve(null);
+    adminFiche: function (pub) {
+      if (!configured || !pub) return Promise.resolve(null);
       var depuis = new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10);
       return Promise.all([
-        fetchRemote(id),
-        fetch(API + "/rest/v1/daily_results?player_id=eq." + encodeURIComponent(id) + "&day=gte." + depuis
-              + "&select=game,day,tries,won&order=day.desc&limit=600", { headers: headers(), cache: "no-store" })
-          .then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; })
-      ]).then(function (x) { return x[0] ? { profil: x[0], jours: Array.isArray(x[1]) ? x[1] : [] } : null; });
+        rpcP("admin_fiche", { p_admin: state.id, p_pub: pub }).catch(function () { return null; }),
+        rpcP("admin_jours", { p_admin: state.id, p_pub: pub, p_depuis: depuis }).catch(function () { return []; })
+      ]).then(function (x) {
+        var p = Array.isArray(x[0]) ? x[0][0] : x[0];
+        if (!p) return null;
+        p.id = pub;
+        return { profil: p, jours: Array.isArray(x[1]) ? x[1] : [] };
+      });
     },
     badgesInfo: function () { return BADGES.map(function (b) { return { id: b.id, e: b.e, n: b.n, c: b.c }; }); },
 
@@ -1804,11 +1988,8 @@
        récent au plus ancien. null en cas d'échec (hors ligne, serveur). */
     historiqueJour: function (jeu) {
       if (!configured || !state.id) return Promise.resolve(null);
-      return fetch(API + "/rest/v1/daily_results?player_id=eq." + encodeURIComponent(state.id)
-                   + "&game=eq." + encodeURIComponent(jeu) + "&select=day,won&order=day.desc&limit=400",
-                   { headers: headers(), cache: "no-store" })
-        .then(function (r) { return r.ok ? r.json() : null; })
-        .then(function (l) { return Array.isArray(l) ? l : null; })
+      return rpcP("jour_mes_resultats", { p_id: state.id, p_game: jeu, p_day: null, p_limit: 400 })
+        .then(function (l) { return Array.isArray(l) ? l.map(function (r) { return { day: r.day, won: r.won }; }) : null; })
         .catch(function () { return null; });
     },
 
@@ -1817,11 +1998,8 @@
        undefined si l'on ne peut pas savoir (hors ligne, serveur absent). */
     resultatJour: function (jeu, jour) {
       if (!configured || !state.id || navigator.onLine === false) return Promise.resolve(undefined);
-      return fetch(API + "/rest/v1/daily_results?player_id=eq." + encodeURIComponent(state.id)
-                   + "&game=eq." + encodeURIComponent(jeu) + "&day=eq." + encodeURIComponent(jour)
-                   + "&select=tries,won&limit=1", { headers: headers(), cache: "no-store" })
-        .then(function (r) { return r.ok ? r.json() : undefined; })
-        .then(function (l) { return Array.isArray(l) ? (l[0] || null) : undefined; })
+      return rpcP("jour_mes_resultats", { p_id: state.id, p_game: jeu, p_day: jour, p_limit: 1 })
+        .then(function (l) { return Array.isArray(l) ? (l[0] ? { tries: l[0].tries, won: l[0].won } : null) : undefined; })
         .catch(function () { return undefined; });
     },
 
@@ -1829,13 +2007,11 @@
       /* ignore-duplicates : le PREMIER résultat du jour fait foi. Avant, le
          dernier envoyé écrasait le précédent : on pouvait rejouer le mot du
          jour sur un second appareil, réponse connue, et améliorer son score. */
-      return fetch(API + "/rest/v1/daily_results?on_conflict=player_id,game,day", {
-        method: "POST",
-        headers: headers({ "Prefer": "resolution=ignore-duplicates,return=minimal" }),
-        body: JSON.stringify({ player_id: state.id, pseudo: state.pseudo, game: o.game, day: o.day,
-                               tries: (o.tries == null ? null : o.tries), won: !!o.won })
-      }).then(function (r) { return !!(r && r.ok); })
-        .catch(function () { return false; });
+      if (codeRetire) return Promise.resolve(false);
+      return rpcP("jour_ecrire", { p_id: state.id, p_pseudo: state.pseudo || "", p_game: o.game, p_day: o.day,
+                                   p_tries: (o.tries == null ? null : o.tries), p_won: !!o.won })
+        .then(function (ok) { return ok !== false; })
+        .catch(function (e) { if (estRetire(e)) signalerCodeRetire(); return false; });
     }
   };
 
