@@ -581,7 +581,13 @@
     }).then(function (r) {
       return r.text().then(function (t) {
         var d = null; try { d = t ? JSON.parse(t) : null; } catch (e) {}
-        if (!r.ok) throw new Error((d && (d.message || d.hint)) || ("http-" + r.status));
+        if (!r.ok) {
+          var e = new Error((d && (d.message || d.hint)) || ("http-" + r.status));
+          // fonction inconnue de la base : schema.sql v2.12 pas encore exécuté
+          e.absente = r.status === 404 || (d && d.code === "PGRST202");
+          if (e.absente) baseAncienne(nom);
+          throw e;
+        }
         return d;
       });
     });
@@ -597,11 +603,30 @@
   }
   function estRetire(e) { return /code-change/.test(String(e && e.message || e)); }
   function maPub() { return masqueDe(state.id); }
+  /* Base pas encore mise à jour (schema.sql v2.12 non exécuté) : on retombe
+     sur les anciennes requêtes, pour que rien ne se perde en attendant. */
+  var baseAJour = true;
+  function baseAncienne(nom) {
+    if (!baseAJour) return;
+    baseAJour = false;
+    try { console.warn("Mot en Six : la base n'a pas la fonction " + nom + " — exécuter duel/schema.sql (v2.11 et v2.12)."); } catch (e) {}
+  }
+  function absente(e) { return !!(e && e.absente); }
+  function pushAncien(corps) {
+    return fetch(API + "/rest/v1/profiles", {
+      method: "POST", headers: headers({ "Prefer": "resolution=merge-duplicates,return=minimal" }),
+      body: JSON.stringify(corps)
+    }).catch(function () {});
+  }
+  function getAncien(chemin) {
+    return fetch(API + "/rest/v1/" + chemin, { headers: headers(), cache: "no-store" })
+      .then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
+  }
 
   function pushRemote() {
     if (!configured || codeRetire) return;
     state.updated_at = new Date().toISOString();
-    rpcP("profil_ecrire", {
+    var donnees = {
       p_id: state.id, p_pseudo: state.pseudo || "", p_xp: state.xp || 0, p_games: state.games || 0,
       p_wins: state.wins || 0, p_level: state.level || 1, p_badge: emblemEmoji(),
       p_updated_at: state.updated_at,
@@ -615,7 +640,13 @@
                                      boutique: state.boutique || null,
                                      jetons: state.jetons || null,
                                      xpJour: state.xpJour || null }
-    }).catch(function (e) { if (estRetire(e)) signalerCodeRetire(); });
+    };
+    rpcP("profil_ecrire", donnees).catch(function (e) {
+      if (estRetire(e)) return signalerCodeRetire();
+      if (absente(e)) pushAncien({ id: donnees.p_id, pseudo: donnees.p_pseudo, xp: donnees.p_xp, games: donnees.p_games,
+                                   wins: donnees.p_wins, level: donnees.p_level, badge: donnees.p_badge,
+                                   data: donnees.p_data, updated_at: donnees.p_updated_at });
+    });
   }
   var pushTimer;
   /* File des résultats du jour non transmis (mot du jour, défi, grammaire,
@@ -651,7 +682,11 @@
     if (pronomsEnCours[id]) return pronomsEnCours[id];
     var avant = pronoms[id] && pronoms[id].p;
     // id est le MASQUE de l'adversaire (la base ne donne plus son code)
-    pronomsEnCours[id] = rpcP("profil_pronom", { p_pub: id }).catch(function () { return null; }).then(function (r) {
+    pronomsEnCours[id] = rpcP("profil_pronom", { p_pub: id }).catch(function (e) {
+      if (!absente(e)) return null;
+      return getAncien("profiles?select=data&id=eq." + encodeURIComponent(id))
+        .then(function (a) { return (a && a[0] && a[0].data && a[0].data.pronom === "elle") ? "elle" : (a && a[0] ? "il" : null); });
+    }).then(function (r) {
       delete pronomsEnCours[id];
       if (r !== "il" && r !== "elle") return avant || "il";          // un échec n'est pas retenu : on retentera
       var p = r;
@@ -678,12 +713,28 @@
     if (!configured) return Promise.resolve(null);
     return rpcP("profil_lire", { p_id: id })
       .then(function (a) { return (Array.isArray(a) ? a[0] : a) || null; })
-      .catch(function (e) { return estRetire(e) ? "retire" : null; });
+      .catch(function (e) {
+        if (estRetire(e)) return "retire";
+        if (absente(e)) return getAncien("profiles?select=*&id=eq." + encodeURIComponent(id)).then(function (a) { return (a && a[0]) || null; });
+        return null;
+      });
+  }
+  /* Lignes d'un classement ; sur une base pas à jour (pas de colonne pub),
+     l'ancienne requête par identifiant. */
+  function classementBrut(chemin) {
+    return fetch(API + "/rest/v1/" + chemin, { headers: headers(), cache: "no-store" })
+      .then(function (r) {
+        if (r.ok) return r.json();
+        return getAncien(chemin.replace("select=pub,", "select=id,")).then(function (l) { return l || []; });
+      });
   }
   function countQuery(qs) {
     if (!configured) return Promise.resolve(null);
     return fetch(API + "/rest/v1/" + qs, { headers: headers({ "Prefer": "count=exact", "Range": "0-0" }), cache: "no-store" })
-      .then(function (r) { var cr = r.headers.get("content-range") || "*/0"; return parseInt(cr.split("/")[1], 10) || 0; })
+      .then(function (r) {
+        if (!r.ok && /select=pub/.test(qs)) return countQuery(qs.replace("select=pub", "select=id"));   // base pas à jour
+        var cr = r.headers.get("content-range") || "*/0"; return parseInt(cr.split("/")[1], 10) || 0;
+      })
       .catch(function () { return null; });
   }
   /* Fusionne le profil distant avec le profil local.
@@ -1359,12 +1410,11 @@
         if (r[0] != null && r[1] != null) mr.innerHTML = "Ta place : <b>#" + (r[0] + 1) + "</b> sur " + r[1] + " joueurs";
         else mr.textContent = "";
       });
-    fetch(API + "/rest/v1/profiles?select=pub,pseudo,level,xp,badge&order=xp.desc&limit=20", { headers: headers(), cache: "no-store" })
-      .then(function (r) { return r.ok ? r.json() : []; })
+    classementBrut("profiles?select=pub,pseudo,level,xp,badge&order=xp.desc&limit=20")
       .then(function (rows) {
         if (!rows.length) { box.innerHTML = '<div class="muted">Personne encore — sois le premier !</div>'; return; }
         box.innerHTML = rows.map(function (p, i) {
-          var me = p.pub === maPub() ? " me" : "";
+          var me = (p.pub ? p.pub === maPub() : p.id === state.id) ? " me" : "";
           var nm = (p.pseudo && p.pseudo.trim()) ? p.pseudo : "Anonyme";
           var em = p.badge ? '<span class="em">' + escapeHtml(p.badge) + "</span>" : "";
           return '<div class="r' + me + '"><span class="rk">' + (i + 1) + '</span><span class="nm">' + escapeHtml(nm) + "</span>" + em +
@@ -1418,12 +1468,11 @@
       else mr.innerHTML = head;
     });
 
-    fetch(API + "/rest/v1/profiles?select=pub,pseudo,badge,elo,elo_games&elo_games=gt.0&order=elo.desc&limit=20", { headers: headers(), cache: "no-store" })
-      .then(function (r) { return r.ok ? r.json() : []; })
+    classementBrut("profiles?select=pub,pseudo,badge,elo,elo_games&elo_games=gt.0&order=elo.desc&limit=20")
       .then(function (rows) {
         if (!rows.length) { box.innerHTML = '<div class="muted">Aucun duel classé pour l\'instant — lance le premier !</div>'; return; }
         box.innerHTML = rows.map(function (p, i) {
-          var me = p.pub === maPub() ? " me" : "";
+          var me = (p.pub ? p.pub === maPub() : p.id === state.id) ? " me" : "";
           var nm = (p.pseudo && p.pseudo.trim()) ? p.pseudo : "Anonyme";
           var em = p.badge ? '<span class="em">' + escapeHtml(p.badge) + "</span>" : "";
           return '<div class="r' + me + '"><span class="rk">' + (i + 1) + '</span><span class="nm">' + escapeHtml(nm) + "</span>" + em +
@@ -1878,6 +1927,8 @@
     /* Mon identifiant PUBLIC : c'est lui que la base renvoie pour me désigner
        dans une partie (jamais mon code de compte). */
     get pub() { return maPub(); },
+    // false tant que duel/schema.sql v2.12 n'a pas été exécuté sur la base
+    get baseAJour() { return baseAJour; },
     masque: masqueDe,
     royaleBilan: function () { royBilanLu = false; royBilanSync(); },
 
@@ -1952,11 +2003,20 @@
       // la fiche s'ouvre par le MASQUE du joueur (r.id) : son code ne sort pas
       return rpcP("admin_joueurs", { p_admin: state.id, p_q: q || null })
         .then(function (l) { return (Array.isArray(l) ? l : []).map(function (r) { r.id = r.pub; return r; }); })
-        .catch(function () { return []; });
+        .catch(function (e) {
+          if (!absente(e)) return [];
+          var filtre = q ? "&pseudo=ilike." + encodeURIComponent("*" + q + "*") : "";
+          return getAncien("profiles?select=id,pseudo,level,games,wins,badge,updated_at" + filtre
+                           + "&order=updated_at.desc.nullslast&limit=" + (q ? 30 : 25)).then(function (l) { return l || []; });
+        });
     },
     adminFiche: function (pub) {
       if (!configured || !pub) return Promise.resolve(null);
       var depuis = new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10);
+      if (!baseAJour) return Promise.all([
+        getAncien("profiles?select=*&id=eq." + encodeURIComponent(pub)),
+        getAncien("daily_results?player_id=eq." + encodeURIComponent(pub) + "&day=gte." + depuis + "&select=game,day,tries,won&order=day.desc&limit=600")
+      ]).then(function (x) { return x[0] && x[0][0] ? { profil: x[0][0], jours: x[1] || [] } : null; });
       return Promise.all([
         rpcP("admin_fiche", { p_admin: state.id, p_pub: pub }).catch(function () { return null; }),
         rpcP("admin_jours", { p_admin: state.id, p_pub: pub, p_depuis: depuis }).catch(function () { return []; })
@@ -1990,7 +2050,11 @@
       if (!configured || !state.id) return Promise.resolve(null);
       return rpcP("jour_mes_resultats", { p_id: state.id, p_game: jeu, p_day: null, p_limit: 400 })
         .then(function (l) { return Array.isArray(l) ? l.map(function (r) { return { day: r.day, won: r.won }; }) : null; })
-        .catch(function () { return null; });
+        .catch(function (e) {
+          if (!absente(e)) return null;
+          return getAncien("daily_results?player_id=eq." + encodeURIComponent(state.id) + "&game=eq." + encodeURIComponent(jeu)
+                           + "&select=day,won&order=day.desc&limit=400");
+        });
     },
 
     /* Le résultat de CE joueur pour un jeu du jour : {tries, won} s'il a
@@ -2000,7 +2064,12 @@
       if (!configured || !state.id || navigator.onLine === false) return Promise.resolve(undefined);
       return rpcP("jour_mes_resultats", { p_id: state.id, p_game: jeu, p_day: jour, p_limit: 1 })
         .then(function (l) { return Array.isArray(l) ? (l[0] ? { tries: l[0].tries, won: l[0].won } : null) : undefined; })
-        .catch(function () { return undefined; });
+        .catch(function (e) {
+          if (!absente(e)) return undefined;
+          return getAncien("daily_results?player_id=eq." + encodeURIComponent(state.id) + "&game=eq." + encodeURIComponent(jeu)
+                           + "&day=eq." + encodeURIComponent(jour) + "&select=tries,won&limit=1")
+            .then(function (l) { return Array.isArray(l) ? (l[0] || null) : undefined; });
+        });
     },
 
     submitDailyBrut: function (o) {
@@ -2011,7 +2080,15 @@
       return rpcP("jour_ecrire", { p_id: state.id, p_pseudo: state.pseudo || "", p_game: o.game, p_day: o.day,
                                    p_tries: (o.tries == null ? null : o.tries), p_won: !!o.won })
         .then(function (ok) { return ok !== false; })
-        .catch(function (e) { if (estRetire(e)) signalerCodeRetire(); return false; });
+        .catch(function (e) {
+          if (estRetire(e)) { signalerCodeRetire(); return false; }
+          if (!absente(e)) return false;
+          return fetch(API + "/rest/v1/daily_results?on_conflict=player_id,game,day", {
+            method: "POST", headers: headers({ "Prefer": "resolution=ignore-duplicates,return=minimal" }),
+            body: JSON.stringify({ player_id: state.id, pseudo: state.pseudo, game: o.game, day: o.day,
+                                   tries: (o.tries == null ? null : o.tries), won: !!o.won })
+          }).then(function (r) { return !!(r && r.ok); }).catch(function () { return false; });
+        });
     }
   };
 

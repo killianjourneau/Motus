@@ -15,13 +15,13 @@
 <meta property="og:title" content="Mot en Six — trouve le mot caché en 6 essais">
 <meta property="og:description" content="Mot du jour, grammaire et orthographe du jour, duels, Battle Royale et mode Junior. Gratuit, sans publicité, jouable hors-ligne.">
 <meta property="og:url" content="https://mot-en-six.gamesbyneur.workers.dev/">
-<meta property="og:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.8.0">
+<meta property="og:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.7.3">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Mot en Six — trouve le mot caché en 6 essais">
 <meta name="twitter:description" content="Mot du jour, grammaire et orthographe du jour, duels et Battle Royale.">
-<meta name="twitter:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.8.0">
+<meta name="twitter:image" content="https://mot-en-six.gamesbyneur.workers.dev/icons/apercu.png?v=2.7.3">
 <link rel="canonical" href="https://mot-en-six.gamesbyneur.workers.dev/">
 <script type="application/ld+json">
 {
@@ -1286,28 +1286,28 @@
     </div>
   </div>
 
-<script src="./dico/motus-words.js?v=2.8.0"></script>
-<script src="./dico/motus-grammaire.js?v=2.8.0"></script>
-<script src="./dico/motus-halloween.js?v=2.8.0"></script>
-<script src="./dico/motus-noel.js?v=2.8.0"></script>
-<script src="./noel/avent.js?v=2.8.0"></script>
-<script src="./noel/traineau.js?v=2.8.0"></script>
-<script src="./decors/decors.js?v=2.8.0"></script>
-<script src="./dico/motus-ortho.js?v=2.8.0"></script>
-<script src="./dico/motus-prenoms.js?v=2.8.0"></script>
-<script src="./dico/motus-prenoms-info.js?v=2.8.0"></script>
-<script src="./dico/motus-maladies.js?v=2.8.0"></script>
-<script src="./dico/motus-maladies-info.js?v=2.8.0"></script>
-<script src="./dico/motus-villes.js?v=2.8.0"></script>
-<script src="./dico/motus-villes-info.js?v=2.8.0"></script>
-<script src="./dico/motus-persos.js?v=2.8.0"></script>
-<script src="./dico/motus-persos-info.js?v=2.8.0"></script>
-<script src="./dico/motus-persos-split.js?v=2.8.0"></script>
-<script src="./dico/motus-race.js?v=2.8.0"></script>
-<script src="./dico/motus-expert.js?v=2.8.0"></script>
-<script src="./profiles/config.js?v=2.8.0"></script>
-<script src="./profiles/profile.js?v=2.8.0"></script>
-<script src="./duel/duel.js?v=2.8.0"></script>
+<script src="./dico/motus-words.js?v=2.7.3"></script>
+<script src="./dico/motus-grammaire.js?v=2.7.3"></script>
+<script src="./dico/motus-halloween.js?v=2.7.3"></script>
+<script src="./dico/motus-noel.js?v=2.7.3"></script>
+<script src="./noel/avent.js?v=2.7.3"></script>
+<script src="./noel/traineau.js?v=2.7.3"></script>
+<script src="./decors/decors.js?v=2.7.3"></script>
+<script src="./dico/motus-ortho.js?v=2.7.3"></script>
+<script src="./dico/motus-prenoms.js?v=2.7.3"></script>
+<script src="./dico/motus-prenoms-info.js?v=2.7.3"></script>
+<script src="./dico/motus-maladies.js?v=2.7.3"></script>
+<script src="./dico/motus-maladies-info.js?v=2.7.3"></script>
+<script src="./dico/motus-villes.js?v=2.7.3"></script>
+<script src="./dico/motus-villes-info.js?v=2.7.3"></script>
+<script src="./dico/motus-persos.js?v=2.7.3"></script>
+<script src="./dico/motus-persos-info.js?v=2.7.3"></script>
+<script src="./dico/motus-persos-split.js?v=2.7.3"></script>
+<script src="./dico/motus-race.js?v=2.7.3"></script>
+<script src="./dico/motus-expert.js?v=2.7.3"></script>
+<script src="./profiles/config.js?v=2.7.3"></script>
+<script src="./profiles/profile.js?v=2.7.3"></script>
+<script src="./duel/duel.js?v=2.7.3"></script>
 <script>
 (() => {
   "use strict";
@@ -1359,7 +1359,7 @@
 
   const DAILY_POOL = POOLS.normal;   // mot du jour : 6 à 8 lettres
 
-  const VERSION = "2.8.0";
+  const VERSION = "2.7.3";
   const MAX_ROWS = 6;
   const DEFI_STEPS = ["court","normal","long"];   // 3 mots : court, moyen, long
   const DEFI_LIMIT = 15*60*1000;                 // 15 minutes pour les 3 mots
@@ -6115,7 +6115,7 @@
      --------------------------------------------------------------- */
   const ROY_MANCHES = 4, ROY_TEMPS = 90000;
   let royCodeCourant = "", royStop = null, royManche = 0, royMots = [];
-  let royReporte = -1, royDeadline = 0, royEtat = null, royFinComptee = "", royPingAt = 0, royPretMoi = false;
+  let royReporte = -1, royDeadline = 0, royEtat = null, royFinComptee = "", royPingAt = 0, royPretMoi = false, royAbsences = 0;
   // la salle de Battle Royale est ouverte (attente ou classement) : le panneau
   // d'émotes y parle à la salle, pas à un adversaire de Duel
   function roySalleOuverte(){ const o = $("royaleOverlay"); return !!(royCodeCourant && o && o.classList.contains("open")); }
@@ -6166,7 +6166,7 @@
 
   function royVeille(){
     if(royStop) royStop();
-    royPretMoi = false; royPingAt = 0; royDerniersEmotes = {}; royEmotesInit = false;
+    royPretMoi = false; royPingAt = 0; royDerniersEmotes = {}; royEmotesInit = false; royAbsences = 0;
     royStop = Royale.watch(royCodeCourant, (err, d)=>{
       if(err || !d) return;
       royEtat = d;
@@ -6181,7 +6181,10 @@
       royEtape("royLobby");
       $("royCodeShow").textContent = d.id;
       const moi = d.joueurs.find(j=>j.moi);
-      if(!moi){ royHorsSalle("Tu n'es plus dans cette salle."); return; }
+      // absent de la liste : on ne sort qu'après plusieurs lectures (une seule
+      // peut arriver avant que l'inscription soit visible)
+      if(!moi){ if(++royAbsences >= 3) royHorsSalle("Tu n'es plus dans cette salle."); return; }
+      royAbsences = 0;
       royPretMoi = !!moi.pret;
       // signe de vie : un joueur parti sans prévenir ne bloque pas le vote
       // plus d'une minute (le serveur l'écarte au lancement)
@@ -6189,7 +6192,8 @@
       const presents = d.joueurs.filter(j=>!j.fantome && j.present);
       const vrais = presents.length, prets = presents.filter(j=>j.pret).length;
       let sub = vrais + " joueur" + (vrais>1?"s":"") + " sur 4";
-      if(vrais === 1) sub += " — tu es seul : les 3 autres places seront tenues par des fantômes.";
+      if(d.ancienne) sub += vrais < 4 ? " — les places libres seront tenues par des fantômes." : " — salle complète !";
+      else if(vrais === 1) sub += " — tu es seul : les 3 autres places seront tenues par des fantômes.";
       else if(vrais < 4) sub += " — la partie démarre quand tout le monde est prêt (" + prets + "/" + vrais + ").";
       else sub += " — salle complète : le premier prêt lance la partie.";
       $("royLobbySub").textContent = sub;
@@ -6199,7 +6203,8 @@
         + '<span class="lv">niv. '+(j.level||1)+'</span>'
         + '<span class="pr">'+(!j.present ? "💤 absent" : j.pret ? "✅ prêt" : "⏳")+'</span></div>').join("");
       const go = $("royGo");
-      go.textContent = royPretMoi ? "Je ne suis plus prêt"
+      go.textContent = d.ancienne ? "Lancer la partie"      // base pas à jour : pas de vote
+        : royPretMoi ? "Je ne suis plus prêt"
         : vrais === 1 ? "Lancer avec 3 fantômes"
         : vrais >= 4 ? "Lancer la partie" : "Je suis prêt";
       go.classList.toggle("ghost", royPretMoi);
@@ -6209,7 +6214,11 @@
     }
 
     // la partie a démarré sans moi (j'étais absent au lancement)
-    if(!d.joueurs.some(j=>j.moi)){ royHorsSalle("La partie a commencé sans toi : tu étais absent au lancement."); return; }
+    if(!d.joueurs.some(j=>j.moi)){
+      if(++royAbsences >= 3) royHorsSalle("La partie a commencé sans toi : tu étais absent au lancement.");
+      return;
+    }
+    royAbsences = 0;
 
     // partie lancée : on joue la manche courante
     if(d.status === "playing"){
@@ -7420,7 +7429,7 @@
   }
 })();
 </script>
-<script src="./boutique/boutique.js?v=2.8.0"></script>
+<script src="./boutique/boutique.js?v=2.7.3"></script>
 <noscript><p><a href="./decouvrir.html">Découvrir Mot en Six, le jeu de mots en français</a></p></noscript>
 </body>
 </html>

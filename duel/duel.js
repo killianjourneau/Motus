@@ -63,6 +63,15 @@
     });
   }
 
+  /* Est-ce moi ? Une base à jour (schema.sql v2.11+) me désigne par mon
+     masque ; une base pas encore mise à jour, par mon code. On accepte les
+     deux : déployer les fichiers avant le SQL ne doit rien casser. */
+  function soiMeme(id, m) { return !!id && (id === m.pub || String(id).toLowerCase() === m.id); }
+  /* Battle Royale sur une base antérieure à la v2.11 (pas de vote « prêt »,
+     anciennes émotes) : détecté à la lecture de la salle. */
+  var royaleAncienne = false;
+  var EMOTE_ANCIENNE = { bonjour: "coeur", bienjoue: "bravo", incroyable: "vite", traque: "feu", oups: "oups", essai: "deception" };
+
   function me() {
     var p = (window.Profile && window.Profile.state) || {};
     var badge = "";
@@ -195,7 +204,7 @@
     /* Ajoute les champs pratiques : mots déchiffrés, camp, échéance. */
     parse: function (d) {
       var m = me();
-      d.side = (d.p1_id === m.pub) ? 1 : (d.p2_id === m.pub ? 2 : 0);
+      d.side = soiMeme(d.p1_id, m) ? 1 : (soiMeme(d.p2_id, m) ? 2 : 0);
       d.myWord = d.side === 2 ? show(d.word2) : show(d.word1);
       d.target = d.side === 2 ? show(d.word1) : show(d.word2);
       d.opp = d.side === 2
@@ -376,7 +385,7 @@
 
     parse: function (d) {
       var m = me();
-      d.side = (d.p1_id === m.pub) ? 1 : (d.p2_id === m.pub ? 2 : 0);
+      d.side = soiMeme(d.p1_id, m) ? 1 : (soiMeme(d.p2_id, m) ? 2 : 0);
       d.opp = d.side === 2
         ? { id: d.p1_id, pseudo: d.p1_pseudo, level: d.p1_level, badge: d.p1_badge }
         : { id: d.p2_id, pseudo: d.p2_pseudo, level: d.p2_level, badge: d.p2_badge };
@@ -649,6 +658,7 @@
     },
     emote: function (code, emote) {
       var m = me();
+      if (royaleAncienne && EMOTE_ANCIENNE[emote]) emote = EMOTE_ANCIENNE[emote];   // l'ancienne liste blanche
       return rpc("royale_emote", { p_code: code, p_id: m.id, p_emote: emote })
         .catch(function () { return null; });
     },
@@ -657,7 +667,14 @@
     lobby: function (code, pret) {
       var m = me();
       return rpc("royale_lobby", { p_code: code, p_id: m.id, p_pret: pret == null ? null : !!pret })
-        .catch(function () { return null; });
+        .catch(function (e) {
+          // base pas à jour : pas de vote, l'ancien bouton « Lancer » lance
+          if (String(e && e.message) === "fonctions-absentes" && pret) {
+            royaleAncienne = true;
+            return rpc("royale_start", { p_code: code }).then(function () { return "lance"; }, function () { return null; });
+          }
+          return null;
+        });
     },
     quitter: function (code) {
       var m = me();
@@ -675,8 +692,10 @@
         .then(function (rows) {
           if (!rows || !rows.length) return null;
           var r = rows[0], m = me();
+          royaleAncienne = !("pret" in r);
           return {
             id: r.id, status: r.status, isPublic: r.is_public,
+            ancienne: royaleAncienne,
             words: r.words || [], manche: r.manche || 0, mancheAt: r.manche_at,
             pauseJusqu: r.pause_jusqu,
             // heure du serveur : l'âge d'une émote se mesure avec elle, pas
@@ -693,7 +712,7 @@
                        pret: !!x.pret, present: x.present !== false,
                        moves: (x.moves && x.moves_manche === (r.manche||0))
                                 ? show(x.moves).split(",").filter(Boolean) : [],
-                       moi: x.player_id === m.pub };
+                       moi: soiMeme(x.player_id, m) };
             })
           };
         });

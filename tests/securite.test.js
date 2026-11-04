@@ -43,11 +43,54 @@ module.exports = async function ({ groupe, verifie, ok, egal, vide, RACINE }) {
 
   verifie("le client ne lit ni n'écrit plus les tables par l'identifiant", () => {
     const prof = lire("profiles/profile.js"), duel = lire("duel/duel.js"), idx = lire("index.html");
-    vide([prof, duel, idx].join("\n").match(/select=[^"&]*\bid\b/g) || [], "requête select=id");
-    vide([prof, duel, idx].join("\n").match(/player_id=eq\./g) || [], "filtre player_id=eq.");
-    ok(!/rest\/v1\/profiles",\s*\{\s*method: "POST"/.test(prof), "écriture directe du profil");
-    ok(!/daily_results\?on_conflict/.test(prof), "écriture directe des résultats du jour");
-    ok(/d\.p1_id === m\.pub/.test(duel) && /x\.player_id === m\.pub/.test(duel), "le client ne se reconnaît pas par son masque");
+    // seules exceptions : les replis pour une base pas encore mise à jour (où
+    // l'identifiant était lisible de toute façon ; une base à jour les refuse)
+    const horsReplis = [prof, duel, idx].join("\n").split("\n")
+      .filter(l => !/getAncien\(|base pas à jour/.test(l)).join("\n");
+    vide(horsReplis.match(/select=[^"&]*\bid\b/g) || [], "requête select=id");
+    vide(horsReplis.match(/player_id=eq\./g) || [], "filtre player_id=eq.");
+    // écriture : par les fonctions de la base ; l'écriture directe n'existe
+    // plus que comme repli quand la fonction est absente (base pas à jour)
+    ok(/rpcP\("profil_ecrire", donnees\)/.test(prof) && /if \(absente\(e\)\) pushAncien\(/.test(prof), "écriture directe du profil");
+    ok((prof.match(/rest\/v1\/profiles", \{/g) || []).length === 1, "une seule écriture directe du profil (le repli)");
+    ok(/if \(!absente\(e\)\) return false;\s*return fetch\(API \+ "\/rest\/v1\/daily_results\?on_conflict/.test(prof), "écriture directe des résultats du jour hors repli");
+    ok(/id === m\.pub/.test(duel) && /pub: \(window\.Profile && window\.Profile\.masque\)/.test(duel), "le client ne se reconnaît pas par son masque");
+  });
+
+  verifie("schema.sql se rejoue en entier : chaque changement de type de retour est précédé d'un drop", () => {
+    // PostgreSQL refuse « create or replace » si le type de retour change ;
+    // rejouer tout le fichier recrée d'abord les ANCIENNES versions, donc
+    // chaque définition d'une fonction dont le retour varie doit avoir son drop.
+    const re = /create or replace function\s+(\w+)\s*\(([\s\S]*?)\)\s*returns\s+(table\s*\([\s\S]*?\)|setof \w+|\S+)/gi;
+    const defs = []; let m;
+    while ((m = re.exec(sql))) {
+      const types = m[2].split(",").map(a => a.replace(/\bdefault\b.*/i, "").trim().split(/\s+/)[1] || "").join(",");
+      defs.push({ nom: m[1], types, ret: m[3].replace(/\s+/g, " ").toLowerCase(), pos: m.index });
+    }
+    const manque = [];
+    defs.forEach(d => {
+      const autres = defs.filter(x => x.nom === d.nom && x.types === d.types);
+      if (new Set(autres.map(x => x.ret)).size < 2) return;
+      const avant = sql.slice(Math.max(0, d.pos - 400), d.pos);
+      if (!new RegExp("drop function if exists " + d.nom + "\\(").test(avant))
+        manque.push(d.nom + " (ligne " + (sql.slice(0, d.pos).split("\n").length) + ")");
+    });
+    vide(manque, "drop manquant avant");
+  });
+
+  verifie("fichiers déployés avant le SQL : rien ne casse (régression 2.7.2)", () => {
+    const duel = lire("duel/duel.js"), prof = lire("profiles/profile.js"), idx = lire("index.html");
+    // se reconnaître : par le masque (base à jour) OU par le code (base pas à jour)
+    ok(/function soiMeme\(id, m\) \{ return !!id && \(id === m\.pub \|\| String\(id\)\.toLowerCase\(\) === m\.id\); \}/.test(duel), "soiMeme");
+    ok(/moi: soiMeme\(x\.player_id, m\)/.test(duel), "Battle Royale : se reconnaître des deux façons");
+    ok((duel.match(/soiMeme\(d\.p1_id, m\)/g) || []).length === 2, "Duel et Course : se reconnaître des deux façons");
+    ok(/rpc\("royale_start", \{ p_code: code \}\)/.test(duel.slice(duel.indexOf("lobby: function"))), "sans vote côté base, « Lancer » doit lancer");
+    // profil : sans les fonctions v2.12, retour aux anciennes requêtes
+    ok(/e\.absente = r\.status === 404/.test(prof), "fonction absente non détectée");
+    ["pushAncien(", "getAncien(\"profiles?select=*&id=eq.", "daily_results?on_conflict=player_id,game,day"].forEach(x =>
+      ok(prof.includes(x.replace(/\\/g, "")), "repli manquant : " + x));
+    // la salle d'attente ne met pas dehors sur une seule lecture
+    ok(/if\(\+\+royAbsences >= 3\) royHorsSalle\("Tu n'es plus dans cette salle\."\)/.test(idx), "sortie de salle trop rapide");
   });
 
   verifie("le masque calculé par le jeu est celui de la base", () => {

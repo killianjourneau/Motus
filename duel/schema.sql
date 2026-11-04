@@ -676,6 +676,8 @@ begin
 end $$;
 
 -- ---------- Résultat d'une attaque ----------
+-- (le type de retour a changé en v2.8 : sans ce drop, rejouer le script échouait)
+drop function if exists defense_report(uuid,uuid,int,int,boolean);
 create or replace function defense_report(
   p_id uuid, p_target uuid, p_version int, p_tries int, p_won boolean
 ) returns void language plpgsql security definer as $$
