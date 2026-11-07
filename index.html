@@ -140,6 +140,12 @@
   #modeBtn{ width:100%; height:42px; border:none; border-radius:11px; background:var(--cell); color:var(--ink); font-weight:800; font-size:15px; cursor:pointer; box-shadow: inset 0 0 0 1.5px var(--cell-edge); display:flex; align-items:center; justify-content:center; gap:8px; transition:.15s; }
   #modeBtn:active{ transform:scale(.985); }
   #modeBtn .chev{ color:var(--ink-dim); font-size:13px; }
+  /* modes pas encore débloqués (niveau trop bas) : retirés du menu */
+  .verrou{ display:none !important; }
+  .deblocage-info{ margin:14px 0 2px; padding:9px 12px; border-radius:11px; font-size:12.5px; line-height:1.45;
+                   color:var(--ink-dim); background:var(--cell); box-shadow:inset 0 0 0 1px var(--cell-edge); }
+  .deblocage-info:empty{ display:none; }
+  .deblocage-info b{ color:var(--ink); }
   .mode-cat{ font-size:11px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.6px; font-weight:800; margin:12px 0 7px; }
   .mode-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
   .mode-item{ border:none; border-radius:12px; background:var(--cell); box-shadow:inset 0 0 0 1.5px var(--cell-edge); color:var(--ink); padding:10px 8px 9px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:2px; transition:.12s; position:relative; }
@@ -827,14 +833,15 @@
         <button class="mode-item" data-mode="defense" id="modeDefense"><span class="mi">🛡️</span><b>Défense</b><i id="modeDefenseSub">Protège ton mot</i></button>
         <button class="mode-item" data-mode="royale"><span class="mi">👑</span><b>Battle Royale</b><i>4 joueurs · 4 manches</i></button>
       </div>
-      <div class="mode-cat">Thèmes</div>
-      <div class="mode-grid">
+      <div class="mode-cat" id="catThemes">Thèmes</div>
+      <div class="mode-grid" id="gridThemes">
         <button class="mode-item" data-mode="prenoms"><span class="mi">👶</span><b>Prénoms</b><i>Prénoms français</i></button>
         <button class="mode-item" data-mode="maladies"><span class="mi">🩺</span><b>Maladies</b><i>Pathologies connues</i></button>
         <button class="mode-item" data-mode="villes"><span class="mi">🏙️</span><b>Villes</b><i>France et monde</i></button>
         <button class="mode-item" data-mode="persos"><span class="mi">🎭</span><b>Personnages</b><i>Réels, fictifs, mythologiques</i></button>
         <button class="mode-item" id="persoSuggestItem"><span class="mi">➕</span><b>Proposer un mot</b><i>Personnage, prénom, ville, maladie</i></button>
       </div>
+      <p class="deblocage-info" id="deblocageInfo"></p>
     </div>
   </div>
 
@@ -2291,6 +2298,7 @@
      en tête de liste, prête à être attaquée. */
   let defCible = "";
   function defOpen(qui){
+    marquerOuvert("defense");      // invitation suivie avant le niveau 4 : le mode reste ensuite
     if(!exigeConnexion("La Défense")) return;
     if(!defAvailable()){ toast("Le mode Défense nécessite la connexion au serveur"); return; }
     defCible = typeof qui === "string" ? qui.trim().slice(0, 20) : "";
@@ -5486,7 +5494,73 @@
   }
 
   /* ---------- Démarrage d'une partie ---------- */
+  /* ---------------------------------------------------------------
+     MODES DÉBLOQUÉS PAR NIVEAU
+     Un nouveau joueur se perdait dans une vingtaine de modes : certains
+     n'apparaissent qu'à partir d'un niveau. Un mode déjà joué reste
+     toujours disponible (joueurs d'avant ce changement, lien d'invitation
+     ou raccourci suivi avant le niveau requis).
+     --------------------------------------------------------------- */
+  const DEBLOCAGES = [
+    { niv:3,  cle:"junior",   nom:"le mode enfant 🧸",            el:()=>[$("btnKid")] },
+    { niv:4,  cle:"defense",  nom:"la Défense 🛡️",                el:()=>[document.querySelector('.mode-item[data-mode="defense"]')] },
+    { niv:5,  cle:"themes",   nom:"les modes à thème 🎭",          el:()=>[$("catThemes"), $("gridThemes")] },
+    { niv:6,  cle:"boutique", nom:"la boutique et le compagnon 🐈‍⬛", el:()=>{ const b = $("boutiqueItem"), g = b && b.closest(".mode-grid");
+                                                                         return g ? [g, g.previousElementSibling] : []; } },
+    { niv:7,  cle:"pendu",    nom:"le Pendu 🪢",                   el:()=>[document.querySelector('.mode-item[data-mode="pendu"]')] },
+    { niv:8,  cle:"quete",    nom:"Mot en Six Quête ⚔️",           el:()=>[$("btnRpg")] },
+    { niv:9,  cle:"memo",     nom:"la Mémorisation 🧠",            el:()=>[document.querySelector('.mode-item[data-mode="memo"]')] },
+    { niv:10, cle:"expert",   nom:"le mode Expert 🎓",             el:()=>[document.querySelector('.mode-item[data-mode="expert"]')] }
+  ];
+  const DEBLOCAGE_MODE = { defense:"defense", prenoms:"themes", maladies:"themes", villes:"themes", persos:"themes",
+                           pendu:"pendu", memo:"memo", expert:"expert" };
+  function niveauJoueur(){ return (window.Profile && Profile.state && Profile.state.level) || 1; }
+  function marquerOuvert(cle){
+    if(!cle) return;
+    const l = store.get("motus.dejaOuverts", []);
+    if(l.indexOf(cle) < 0){ l.push(cle); store.set("motus.dejaOuverts", l); }
+  }
+  function dejaJoue(cle){
+    if(store.get("motus.dejaOuverts", []).indexOf(cle) >= 0) return true;
+    const b = (window.Profile && Profile.state && Profile.state.b) || {};
+    switch(cle){
+      case "junior":   return (b.jrTotal||0) > 0;
+      case "defense":  return (b.defAtkPlay||0) + (b.defWinsAsDefender||0) + (b.defLossesAsDefender||0) + (b.defMaxWordLen||0) > 0;
+      case "themes":   return (b.mP||0) + (b.mM||0) + (b.mV||0) + (b.mPe||0) > 0 || (b.modes||[]).some(m=>m==="prenoms"||m==="maladies");
+      case "boutique": return Object.keys((store.get("motus.boutique", null) || {}).objets || {}).length > 0;
+      case "pendu":    return (b.penduPlay||0) > 0;
+      case "quete":    return (b.qActes||0) > 0 || !!store.get("motus.rpg", null);
+      case "memo":     return (b.memoTotal||0) > 0;
+      case "expert":   return (b.mX||0) > 0;
+    }
+    return false;
+  }
+  function estDebloque(d, niv){ return (niv == null ? niveauJoueur() : niv) >= d.niv || dejaJoue(d.cle); }
+  function appliquerDeblocages(){
+    const niv = niveauJoueur();
+    DEBLOCAGES.forEach(d=>{
+      const libre = estDebloque(d, niv);
+      d.el().forEach(e=>{ if(e) e.classList.toggle("verrou", !libre); });
+    });
+    // le prochain palier, pour donner envie de monter
+    const info = $("deblocageInfo");
+    if(info){
+      const reste = DEBLOCAGES.filter(d=>!estDebloque(d, niv));
+      info.innerHTML = reste.length
+        ? "🔒 Au <b>niveau " + reste[0].niv + "</b> : " + reste.filter(d=>d.niv===reste[0].niv).map(d=>d.nom).join(", ")
+          + (reste.length > 1 ? "<br>Encore " + (reste.length - 1) + " autre" + (reste.length > 2 ? "s" : "") + " ensuite, jusqu'au niveau " + reste[reste.length-1].niv + "." : ".")
+        : "";
+    }
+  }
+  /* Ce qu'un passage de niveau débloque (pour la bulle « Niveau X atteint ») */
+  window.motusDebloque = function(nouveau, avant){
+    const l = DEBLOCAGES.filter(d=>d.niv > avant && d.niv <= nouveau && !dejaJoue(d.cle)).map(d=>d.nom);
+    setTimeout(appliquerDeblocages, 0);
+    return l;
+  };
+
   function startFree(m){
+    marquerOuvert(DEBLOCAGE_MODE[m]);
     bbArreter();
     if(m!=="traineau" && window.Traineau) Traineau.arreter();     // quitter le Traîneau arrête la course
     if(m==="traineau"){ trOuvrir(); return; }
@@ -7130,8 +7204,9 @@
   $("roySuivant").addEventListener("click", royQuitter);
   $("gramValider").addEventListener("click", gramValider);
   $("gramSaisie").addEventListener("keydown", e=>{ if(e.key==="Enter") gramValider(); });
-  $("btnKid").addEventListener("click", ()=>{ location.href="./enfant.html"; });
-  $("btnRpg").addEventListener("click", ()=>{ location.href="./rpg.html"; });
+  $("btnKid").addEventListener("click", ()=>{ marquerOuvert("junior"); location.href="./enfant.html"; });
+  $("btnRpg").addEventListener("click", ()=>{ marquerOuvert("quete"); location.href="./rpg.html"; });
+  $("modeOverlay").addEventListener("click", e=>{ if(e.target.closest && e.target.closest("#boutiqueItem")) marquerOuvert("boutique"); });
   document.querySelectorAll("#duelTabs .dtab").forEach(b=>b.addEventListener("click", ()=>{
     duelMode=b.dataset.dt;
     document.querySelectorAll("#duelTabs .dtab").forEach(x=>x.classList.toggle("active", x===b));
@@ -7283,7 +7358,7 @@
   $("confirmYes").addEventListener("click", ()=>{ closeOverlays(); const a=pendingAction; pendingAction=null; if(a) a(); });
   $("confirmNo").addEventListener("click", closeOverlays);
 
-  $("modeBtn").addEventListener("click", ()=>{ majPastillesDuJour(); majPastilleDefense(); openOverlay("modeOverlay"); });
+  $("modeBtn").addEventListener("click", ()=>{ majPastillesDuJour(); majPastilleDefense(); appliquerDeblocages(); openOverlay("modeOverlay"); });
   document.querySelectorAll(".mode-item").forEach(b=>b.addEventListener("click", ()=>{
     // « Proposer un personnage » partage l'apparence des modes mais n'en est
     // pas un : sans ce garde-fou il lancerait une partie en mode undefined.
@@ -7466,6 +7541,8 @@
     if(f && f.answer && f.mode!=="pendu" && f.mode!=="defense" && !f.over && (f.guesses||[]).length < MAX_ROWS && (f.guesses||[])[(f.guesses||[]).length-1] !== f.answer){ restoreFree(f); }
     else startFree("normal");
   }
+  appliquerDeblocages();
+  window.addEventListener("load", appliquerDeblocages);
   // Premier lancement : le guide remplace l'ancien pavé de règles.
   if(!inviteEnCours && !store.get("motus.tour",false) && !store.get("motus.seen",false)){
     store.set("motus.seen",true);

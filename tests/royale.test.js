@@ -55,6 +55,16 @@ module.exports = async function ({ groupe, verifie, ignore, ok, egal, RACINE }) 
     egal(net(" o1lb "), "011B"); egal(net("a0f3"), "A0F3");
   });
 
+  verifie("modes débloqués par niveau (2.7.5) : les paliers demandés", () => {
+    const idx = lire("index.html");
+    const bloc = idx.slice(idx.indexOf("const DEBLOCAGES = ["), idx.indexOf("const DEBLOCAGE_MODE"));
+    const paliers = {}; [...bloc.matchAll(/niv:(\d+),\s*cle:"(\w+)"/g)].forEach(m => { paliers[m[2]] = +m[1]; });
+    const voulu = { junior: 3, defense: 4, themes: 5, boutique: 6, pendu: 7, quete: 8, memo: 9, expert: 10 };
+    Object.keys(voulu).forEach(k => egal(paliers[k], voulu[k], "palier de " + k));
+    ok(/case "pendu":\s+return \(b\.penduPlay\|\|0\) > 0;/.test(idx), "un mode déjà joué doit rester disponible");
+    ok(/appliquerDeblocages\(\); openOverlay\("modeOverlay"\)/.test(idx), "le menu doit appliquer les paliers à l'ouverture");
+  });
+
   if (!dispo()) { ignore("compteurs du profil", "jsdom absent — lance : npm install"); return; }
   const { JSDOM } = require("jsdom");
   const src = lire("profiles/profile.js");

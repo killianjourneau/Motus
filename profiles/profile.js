@@ -492,7 +492,10 @@
     state.level = levelFromXp(state.xp);
     if (state.level > avant) {
       var info = levelInfo(state.xp);
-      bulle('<span class="be">⬆️</span><div><b>Niveau ' + state.level + ' atteint !</b><small>' + echapper(info.title) + '</small></div>',
+      var neufs = [];
+      try { if (window.motusDebloque) neufs = window.motusDebloque(state.level, avant) || []; } catch (e) {}
+      bulle('<span class="be">' + (neufs.length ? "🔓" : "⬆️") + '</span><div><b>Niveau ' + state.level + ' atteint !</b><small>'
+        + (neufs.length ? "Débloqué : " + echapper(neufs.join(", ")) : echapper(info.title)) + '</small></div>',
         3200, function () { try { if (window.motusSon) window.motusSon("niveau"); } catch (e) {} });
     }
   }
