@@ -90,7 +90,7 @@ module.exports = async function ({ groupe, verifie, ok, egal, vide, RACINE }) {
     ["pushAncien(", "getAncien(\"profiles?select=*&id=eq.", "daily_results?on_conflict=player_id,game,day"].forEach(x =>
       ok(prof.includes(x.replace(/\\/g, "")), "repli manquant : " + x));
     // la salle d'attente ne met pas dehors sur une seule lecture
-    ok(/if\(\+\+royAbsences >= 3\) royHorsSalle\("Tu n'es plus dans cette salle\."\)/.test(idx), "sortie de salle trop rapide");
+    ok(/else if\(royAbsences >= 6\) royHorsSalle\("Tu n'es plus dans cette salle\."\)/.test(idx), "sortie de salle trop rapide");
   });
 
   verifie("le masque calculé par le jeu est celui de la base", () => {

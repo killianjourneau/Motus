@@ -2773,3 +2773,181 @@ grant execute on function admin_joueurs(uuid,text)                              
 grant execute on function admin_fiche(uuid,uuid)                                        to anon, authenticated;
 grant execute on function admin_jours(uuid,uuid,text)                                   to anon, authenticated;
 grant execute on function compte_nouveau_code(uuid)                                     to anon, authenticated;
+
+-- =====================================================================
+-- v2.13 — Battle Royale : absents, partie rapide, sortie de salle
+--
+-- 1. Absent = plus de signe de vie depuis 30 s (le jeu en envoie toutes
+--    les 8 s). Un absent ne bloque pas le vote, n'occupe plus de place pour
+--    la partie rapide, et n'importe quel joueur présent peut le retirer
+--    (royale_retirer). Au bout de 2 min, il est retiré d'office. S'il
+--    revient, son jeu le réinscrit tout seul tant que la salle attend.
+-- 2. Partie rapide : on rejoint toute salle publique où quelqu'un ATTEND
+--    VRAIMENT (présent), quel que soit son âge — avant, seules les salles
+--    de moins de 3 min étaient proposées, et un joueur qui patientait
+--    depuis plus longtemps restait seul pendant que les nouveaux venus
+--    ouvraient d'autres salles. La plus remplie passe en premier.
+-- 3. Les salles d'attente abandonnées (personne depuis 1 h) sont effacées.
+-- =====================================================================
+create or replace function royale_purger(p_code text) returns void
+language sql security definer as $$
+  delete from royale_players p using royale_rooms r
+   where r.id = upper(btrim(p_code)) and r.status = 'waiting' and p.room_id = r.id
+     and not p.fantome and p.vu_at < now() - interval '2 minutes';
+$$;
+revoke execute on function royale_purger(text) from public, anon, authenticated;
+
+create or replace function royale_peut_lancer(p_code text)
+returns boolean language sql security definer stable as $$
+  select count(*) > 0
+     and (case when count(*) >= 4 then bool_or(coalesce(pret, false))
+               else bool_and(coalesce(pret, false)) end)
+    from royale_players
+   where room_id = upper(btrim(p_code)) and not fantome
+     and vu_at >= now() - interval '30 seconds';
+$$;
+revoke execute on function royale_peut_lancer(text) from public, anon, authenticated;
+
+create or replace function royale_demarrer(p_code text)
+returns void language plpgsql security definer as $$
+declare v_code text := upper(btrim(p_code)); v_nb int; i int;
+        v_noms text[] := array['Ombre','Écho','Mirage','Spectre'];
+begin
+  perform 1 from royale_rooms where id = v_code and status = 'waiting' for update;
+  if not found then return; end if;
+  delete from royale_players
+   where room_id = v_code and not fantome and vu_at < now() - interval '30 seconds';
+  select count(*) into v_nb from royale_players where room_id = v_code;
+  i := 0;
+  while v_nb < 4 loop
+    i := i + 1;
+    insert into royale_players (room_id, player_id, pseudo, level, badge, fantome)
+    values (v_code, md5(v_code || ':fantome:' || i)::uuid, v_noms[i] || ' 🤖', 1 + (i * 2), '🤖', true)
+    on conflict do nothing;
+    v_nb := v_nb + 1;
+  end loop;
+  update royale_rooms
+     set status = 'playing', manche = 1, started_at = now(), manche_at = now()
+   where id = v_code;
+end $$;
+revoke execute on function royale_demarrer(text) from public, anon, authenticated;
+
+create or replace function royale_lobby(p_code text, p_id uuid, p_pret boolean)
+returns text language plpgsql security definer as $$
+declare v_code text := upper(btrim(p_code));
+begin
+  if not exists (select 1 from royale_rooms where id = v_code and status = 'waiting') then return 'ferme'; end if;
+  update royale_players set vu_at = now(), pret = coalesce(p_pret, pret)
+   where room_id = v_code and player_id = p_id and not fantome;
+  if not found then return 'absent'; end if;
+  perform royale_purger(v_code);
+  if royale_peut_lancer(v_code) then perform royale_demarrer(v_code); return 'lance'; end if;
+  return 'ok';
+end $$;
+grant execute on function royale_lobby(text,uuid,boolean) to anon, authenticated;
+
+-- Retirer un joueur ABSENT (désigné par son masque) : réservé à un joueur
+-- présent de la même salle, et sans effet sur un joueur présent.
+create or replace function royale_retirer(p_code text, p_id uuid, p_cible uuid)
+returns text language plpgsql security definer as $$
+declare v_code text := upper(btrim(p_code)); v_n int;
+begin
+  if not exists (select 1 from royale_rooms where id = v_code and status = 'waiting') then return 'ferme'; end if;
+  update royale_players set vu_at = now()
+   where room_id = v_code and player_id = p_id and not fantome;
+  if not found then return 'absent'; end if;
+  delete from royale_players
+   where room_id = v_code and not fantome and masque(player_id) = p_cible and player_id <> p_id
+     and vu_at < now() - interval '30 seconds';
+  get diagnostics v_n = row_count;
+  if v_n = 0 then return 'present'; end if;
+  if royale_peut_lancer(v_code) then perform royale_demarrer(v_code); return 'lance'; end if;
+  return 'ok';
+end $$;
+grant execute on function royale_retirer(text,uuid,uuid) to anon, authenticated;
+
+create or replace function royale_quick(
+  p_id uuid, p_pseudo text, p_level int, p_badge text, p_words text[]
+) returns text language plpgsql security definer as $$
+declare v_code text;
+begin
+  -- ménage : salles d'attente sans personne depuis 1 h
+  delete from royale_rooms r
+   where r.status = 'waiting' and r.created_at < now() - interval '1 hour'
+     and not exists (select 1 from royale_players p
+                      where p.room_id = r.id and not p.fantome and p.vu_at >= now() - interval '1 hour');
+  select r.id into v_code
+    from royale_rooms r
+   where r.status = 'waiting' and r.is_public
+     and exists (select 1 from royale_players p
+                  where p.room_id = r.id and not p.fantome and p.vu_at >= now() - interval '30 seconds')
+     and (select count(*) from royale_players p
+           where p.room_id = r.id and not p.fantome and p.vu_at >= now() - interval '30 seconds') < 4
+   order by (select count(*) from royale_players p
+              where p.room_id = r.id and not p.fantome and p.vu_at >= now() - interval '30 seconds') desc,
+            r.created_at asc
+   limit 1
+     for update skip locked;
+  if v_code is null then
+    return royale_create(p_id, p_pseudo, p_level, p_badge, p_words, true);
+  end if;
+  perform royale_purger(v_code);
+  -- une place tenue par un absent se libère pour le nouveau venu
+  delete from royale_players
+   where room_id = v_code and not fantome and vu_at < now() - interval '30 seconds'
+     and (select count(*) from royale_players q where q.room_id = v_code and not q.fantome) >= 4;
+  perform royale_inscrire(v_code, p_id, p_pseudo, p_level, p_badge);
+  return v_code;
+end $$;
+grant execute on function royale_quick(uuid,text,int,text,text[]) to anon, authenticated;
+
+-- Rejoindre par code : une salle « pleine » d'absents ne l'est plus.
+create or replace function royale_join(
+  p_code text, p_id uuid, p_pseudo text, p_level int, p_badge text
+) returns text language plpgsql security definer as $$
+declare v_code text := upper(btrim(p_code)); v_statut text; v_nb int;
+begin
+  select status into v_statut from royale_rooms where id = v_code;
+  if v_statut is null then return 'introuvable'; end if;
+  if v_statut <> 'waiting' then
+    if exists (select 1 from royale_players where room_id = v_code and player_id = p_id)
+      then return 'ok'; end if;
+    return 'commencee';
+  end if;
+  perform royale_purger(v_code);
+  if not exists (select 1 from royale_players where room_id = v_code and player_id = p_id) then
+    select count(*) into v_nb from royale_players where room_id = v_code and not fantome;
+    if v_nb >= 4 then
+      delete from royale_players
+       where ctid in (select ctid from royale_players
+                       where room_id = v_code and not fantome and vu_at < now() - interval '30 seconds'
+                       order by vu_at limit 1);
+      select count(*) into v_nb from royale_players where room_id = v_code and not fantome;
+      if v_nb >= 4 then return 'pleine'; end if;
+    end if;
+  end if;
+  perform royale_inscrire(v_code, p_id, p_pseudo, p_level, p_badge);
+  return 'ok';
+end $$;
+grant execute on function royale_join(text,uuid,text,int,text) to anon, authenticated;
+
+drop function if exists royale_state(text);
+create or replace function royale_state(p_code text)
+returns table (
+  id text, status text, is_public boolean, words text[], manche int, manche_at timestamptz,
+  pause_jusqu timestamptz,
+  player_id uuid, pseudo text, level int, badge text, fantome boolean,
+  scores int[], essais int[], temps_ms int[], total int, emote text, emote_at timestamptz,
+  moves text, moves_manche int, pret boolean, present boolean, maintenant timestamptz
+) language sql security definer stable as $$
+  select r.id, r.status, r.is_public, r.words, r.manche, r.manche_at, r.pause_jusqu,
+         masque(p.player_id), p.pseudo, p.level, p.badge, p.fantome,
+         p.scores, p.essais, p.temps_ms, p.total, p.emote, p.emote_at,
+         p.moves, p.moves_manche, coalesce(p.pret, false),
+         p.fantome or p.vu_at >= now() - interval '30 seconds', now()
+    from royale_rooms r
+    join royale_players p on p.room_id = r.id
+   where r.id = upper(btrim(p_code))
+   order by p.total desc, p.joined_at asc;
+$$;
+grant execute on function royale_state(text) to anon, authenticated;

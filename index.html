@@ -260,6 +260,9 @@
   .roy-j .lv{ font-size:11.5px; color:var(--ink-dim); font-weight:700; }
   .roy-j .pr{ font-size:12px; font-weight:800; white-space:nowrap; }
   .roy-j.absent{ opacity:.55; }
+  .roy-j.absent .roy-retirer{ opacity:1; }
+  .roy-retirer{ flex:none; border:none; border-radius:8px; padding:4px 9px; font-size:12px; font-weight:800; cursor:pointer;
+                background:var(--key); color:var(--ink); box-shadow:inset 0 -2px 0 var(--key-edge); }
   .roy-r{ position:relative; }
   .roy-r small{ display:block; font-size:11px; color:var(--ink-dim); font-weight:600; margin-top:1px; }
   .roy-r.fantome{ opacity:.75; }
@@ -756,6 +759,7 @@
         <div class="roy-emotes" id="royLobbyEmotes"></div>
         <button class="btn" id="royGo">Lancer la partie</button>
         <button class="btn ghost" id="royShare">📤 Partager le code</button>
+        <button class="btn ghost" id="royQuitterSalle">🚪 Quitter la salle</button>
       </div>
 
       <div id="royClassement" style="display:none">
@@ -6158,7 +6162,7 @@
       if(code === "introuvable"){ royMsg("Aucune salle avec ce code.", true); return; }
       if(code === "pleine"){ royMsg("Cette salle est déjà complète.", true); return; }
       if(code === "commencee"){ royMsg("Cette partie a déjà commencé.", true); return; }
-      royCodeCourant = (code === "ok") ? ($("royCode").value||"").trim().toUpperCase() : code;
+      royCodeCourant = (code === "ok") ? royCodeNet($("royCode").value) : code;
       royMsg("");
       royVeille();
     }).catch(()=> royMsg("Connexion impossible.", true));
@@ -6183,7 +6187,13 @@
       const moi = d.joueurs.find(j=>j.moi);
       // absent de la liste : on ne sort qu'après plusieurs lectures (une seule
       // peut arriver avant que l'inscription soit visible)
-      if(!moi){ if(++royAbsences >= 3) royHorsSalle("Tu n'es plus dans cette salle."); return; }
+      if(!moi){
+        // retiré pendant une absence (téléphone en veille, partage du code…) :
+        // la salle attend encore, on se réinscrit sans rien demander
+        if(++royAbsences === 2) royReinscrire();
+        else if(royAbsences >= 6) royHorsSalle("Tu n'es plus dans cette salle.");
+        return;
+      }
       royAbsences = 0;
       royPretMoi = !!moi.pret;
       // signe de vie : un joueur parti sans prévenir ne bloque pas le vote
@@ -6201,7 +6211,16 @@
         '<div class="roy-j'+(j.present?"":" absent")+'"><span class="e">'+(j.badge||"🎖️")+'</span>'
         + '<span class="n">'+escapeHtml(j.pseudo||"Anonyme")+(j.moi?" (toi)":"")+'</span>'
         + '<span class="lv">niv. '+(j.level||1)+'</span>'
-        + '<span class="pr">'+(!j.present ? "💤 absent" : j.pret ? "✅ prêt" : "⏳")+'</span></div>').join("");
+        + '<span class="pr">'+(!j.present ? "💤 absent" : j.pret ? "✅ prêt" : "⏳")+'</span>'
+        + (!j.present && !j.moi && !d.ancienne ? '<button class="roy-retirer" data-cible="'+escapeHtml(j.id)+'">Retirer</button>' : '')
+        + '</div>').join("");
+      $("royJoueurs").querySelectorAll(".roy-retirer").forEach(b=> b.addEventListener("click", ()=>{
+        b.disabled = true; b.textContent = "…";
+        Royale.retirer(royCodeCourant, b.dataset.cible).then(r=>{
+          if(r === "present") toast("Ce joueur est revenu entre-temps.", 2200);
+          if(royStop) royStop.now();
+        });
+      }));
       const go = $("royGo");
       go.textContent = d.ancienne ? "Lancer la partie"      // base pas à jour : pas de vote
         : royPretMoi ? "Je ne suis plus prêt"
@@ -6484,6 +6503,19 @@
     royEmotesInit = true;
   }
 
+  function royReinscrire(){
+    if(!royCodeCourant || !window.Royale) return;
+    const code = royCodeCourant;
+    Royale.join(code).then(r=>{
+      if(code !== royCodeCourant) return;
+      if(r === "ok"){ royAbsences = 0; if(royStop) royStop.now(); return; }
+      royHorsSalle(r === "pleine" ? "La salle s'est remplie pendant ton absence."
+                 : r === "commencee" ? "La partie a commencé sans toi."
+                 : "Tu n'es plus dans cette salle.");
+    }).catch(()=>{});
+  }
+  // Un code se lit mal à voix haute ou sur une capture : O pour 0, I ou L pour 1
+  function royCodeNet(c){ return String(c||"").trim().toUpperCase().replace(/O/g,"0").replace(/[IL]/g,"1").replace(/[^0-9A-F]/g,""); }
   function royHorsSalle(msg){
     if(royStop){ royStop(); royStop = null; }
     royCodeCourant = ""; royEtat = null;
@@ -7066,9 +7098,16 @@
   $("royQuick").addEventListener("click", ()=> royEntrer(Royale.quick(royTirerMots())));
   $("royCreate").addEventListener("click", ()=> royEntrer(Royale.create(royTirerMots(), false)));
   $("royJoin").addEventListener("click", ()=>{
-    const c = ($("royCode").value||"").trim().toUpperCase();
+    const c = royCodeNet($("royCode").value);
+    $("royCode").value = c;
     if(c.length < 4){ royMsg("Le code fait 4 caractères.", true); return; }
     royEntrer(Royale.join(c));
+  });
+  // Quitter la salle d'attente : bouton dédié, et la croix de la fenêtre
+  // (fermer la salle ne doit pas laisser le joueur inscrit en fantôme)
+  $("royQuitterSalle").addEventListener("click", royQuitter);
+  document.querySelector("#royaleOverlay [data-close]").addEventListener("click", ()=>{
+    if(royCodeCourant && royEtat && royEtat.status === "waiting") royQuitter();
   });
   // Lancer = se déclarer prêt : à moins de 4, la partie part quand TOUS les
   // joueurs présents sont prêts ; à 4, le premier prêt la lance.
@@ -7283,6 +7322,7 @@
 
   /* Lien d'invitation : ...?duel=XXXXX ou ...?race=XXXXX
      Le code est pré-rempli, il ne reste qu'à valider. */
+  let inviteEnCours = false;
   function openInvite(){
     let q;
     try{ q = new URLSearchParams(location.search); }catch(e){ return; }
@@ -7316,6 +7356,9 @@
       return;
     }
     if(!dc && !rc && !df && !cp && !br && !md) return;
+    // arrivé par une invitation : le guide de démarrage attendra la prochaine
+    // visite (il s'ouvrait par-dessus la salle, puis lançait le mot du jour)
+    if(dc || rc || df || cp || br) inviteEnCours = true;
     try{ history.replaceState(null,"",location.pathname); }catch(e){}   // pas de re-déclenchement au rechargement
     setTimeout(()=>{
       if(cp){                          // lien « récupérer mon compte »
@@ -7329,10 +7372,11 @@
         }
         return;
       }
-      if(br){                          // lien « rejoins ma Battle Royale »
+      if(br){                          // lien « rejoins ma Battle Royale » : on entre directement
         royOuvrir();
-        $("royCode").value = br;
-        toast("Appuie sur « Rejoindre » pour entrer dans la salle", 4000);
+        if(!$("royaleOverlay").classList.contains("open")) return;   // hors ligne (message déjà affiché)
+        $("royCode").value = royCodeNet(br);
+        royEntrer(Royale.join(royCodeNet(br)));
         return;
       }
       if(df){ defOpen(df === "1" ? "" : df); return; }     // lien « viens attaquer ma défense »
@@ -7423,7 +7467,7 @@
     else startFree("normal");
   }
   // Premier lancement : le guide remplace l'ancien pavé de règles.
-  if(!store.get("motus.tour",false) && !store.get("motus.seen",false)){
+  if(!inviteEnCours && !store.get("motus.tour",false) && !store.get("motus.seen",false)){
     store.set("motus.seen",true);
     tourStep = 0; setTimeout(tourShow, 400);
   }

@@ -33,6 +33,28 @@ module.exports = async function ({ groupe, verifie, ignore, ok, egal, RACINE }) 
     ok(/royRecevoirEmotes\(d\);\s*royDessine\(d\);/.test(idx), "les émotes reçues doivent être lues à chaque relecture, même en pleine manche");
   });
 
+  verifie("salle d'attente (2.7.4) : quitter, retirer un absent, partie rapide, lien d'invitation", () => {
+    const idx = lire("index.html"), sql = lire("duel/schema.sql");
+    const v213 = sql.slice(sql.indexOf("-- v2.13 — Battle Royale"));
+    ok(v213.length > 500, "section v2.13 absente");
+    // partie rapide : plus de limite d'âge, seulement une salle où quelqu'un attend vraiment
+    const quick = v213.slice(v213.indexOf("create or replace function royale_quick("));
+    ok(!/created_at > now\(\) - interval '3 minutes'/.test(quick.slice(0, quick.indexOf("$$;"))), "la partie rapide ignore encore les salles de plus de 3 min");
+    ok(/vu_at >= now\(\) - interval '30 seconds'\)/.test(quick), "la partie rapide doit viser une salle avec un joueur présent");
+    // retirer : seulement un absent, seulement par un joueur de la salle
+    const ret = v213.slice(v213.indexOf("create or replace function royale_retirer("));
+    ok(/masque\(player_id\) = p_cible and player_id <> p_id\s+and vu_at < now\(\) - interval '30 seconds'/.test(ret), "retirer doit viser un absent, par son masque");
+    ok(/update royale_players set vu_at = now\(\)\s+where room_id = v_code and player_id = p_id and not fantome;\s+if not found then return 'absent'/.test(ret), "seul un joueur de la salle peut retirer");
+    // client
+    ok(/id="royQuitterSalle"/.test(idx) && /\$\("royQuitterSalle"\)\.addEventListener\("click", royQuitter\)/.test(idx), "bouton Quitter la salle");
+    ok(/#royaleOverlay \[data-close\]"\)\.addEventListener\("click", \(\)=>\{\s*if\(royCodeCourant && royEtat && royEtat\.status === "waiting"\) royQuitter\(\);/.test(idx), "la croix doit quitter la salle d'attente");
+    ok(/royEntrer\(Royale\.join\(royCodeNet\(br\)\)\)/.test(idx), "le lien d'invitation doit faire entrer directement");
+    ok(/if\(!inviteEnCours && !store\.get\("motus\.tour",false\)/.test(idx), "le guide ne doit pas recouvrir une invitation");
+    ok(/if\(\+\+royAbsences === 2\) royReinscrire\(\);/.test(idx), "un joueur retiré pendant une absence doit être réinscrit");
+    const net = new Function("return " + idx.match(/function royCodeNet\(c\)\{[^\n]+\}/)[0])();
+    egal(net(" o1lb "), "011B"); egal(net("a0f3"), "A0F3");
+  });
+
   if (!dispo()) { ignore("compteurs du profil", "jsdom absent — lance : npm install"); return; }
   const { JSDOM } = require("jsdom");
   const src = lire("profiles/profile.js");

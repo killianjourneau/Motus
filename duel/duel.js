@@ -676,6 +676,12 @@
           return null;
         });
     },
+    /* Retirer un joueur absent de la salle d'attente (cible = son masque,
+       tel que renvoyé par la salle). Sans effet sur un joueur présent. */
+    retirer: function (code, cible) {
+      var m = me();
+      return rpc("royale_retirer", { p_code: code, p_id: m.id, p_cible: cible }).catch(function () { return null; });
+    },
     quitter: function (code) {
       var m = me();
       return rpc("royale_quitter", { p_code: code, p_id: m.id }).catch(function () { return null; });
